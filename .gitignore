@@ -1,0 +1,16 @@
+node_modules/
+dist/
+.vite/
+coverage/
+test-results/
+playwright-report/
+references/
+.DS_Store
+Thumbs.db
+*.log
+.env
+.env.*
+!.env.example
+*.pem
+*.p12
+*.pfx

@@ -1,0 +1,23 @@
+{
+  "chrome": "157.0.8103.51",
+  "seed": 2,
+  "viewport": {
+    "width": 1280,
+    "height": 720
+  },
+  "spawn": {
+    "id": "south-loading",
+    "position": [
+      -17,
+      0,
+      19
+    ],
+    "yaw": 0.78
+  },
+  "entry": {
+    "calls": 99,
+    "triangles": 27496
+  },
+  "inputs": "Start, RMB, fire 1 round, wait until ready, R, 1, left click",
+  "issues": []
+}

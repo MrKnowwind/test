@@ -1,0 +1,50 @@
+[
+  {
+    "Path": "D:\\xzh\\web3DGametest\\src\\presentation\\enemyVisuals.ts",
+    "Hash": "ACF3117B80CBAB297640CDD7D256727E16773A3B4AC1867643A5869AE2728913"
+  },
+  {
+    "Path": "D:\\xzh\\web3DGametest\\src\\presentation\\infectedModel.ts",
+    "Hash": "423254A398B74D33B8400661F8F4E468A3F08E62793254A15BF44DD017293836"
+  },
+  {
+    "Path": "D:\\xzh\\web3DGametest\\src\\presentation\\modelParts.ts",
+    "Hash": "F4E825DFE9563759FB10C024ED1BDD26D46DBA5892CED153920C0270BBD9276F"
+  },
+  {
+    "Path": "D:\\xzh\\web3DGametest\\src\\presentation\\securityModel.ts",
+    "Hash": "25502F4B0E57C78B8C6EA412375BCFF1A4D3524B356A705D33DEE7F54B5C2A05"
+  },
+  {
+    "Path": "D:\\xzh\\web3DGametest\\src\\presentation\\viewmodel.ts",
+    "Hash": "75481DD204941DAFE821ED5F20EB7D24A9A56559F85257003C08A6D88500722B"
+  },
+  {
+    "Path": "D:\\xzh\\web3DGametest\\src\\presentation\\viewmodelModels.ts",
+    "Hash": "063C0C64F7CB49FEBAAF972F7F040B21B349AFA8C06A894574A351604EBEB68C"
+  },
+  {
+    "Path": "D:\\xzh\\web3DGametest\\src\\contracts\\demo.ts",
+    "Hash": "7E563F11BCF97EA8ABD217162FE4FCBC2D6F0AA5F663A349D6DB2F4B64A1611B"
+  },
+  {
+    "Path": "D:\\xzh\\web3DGametest\\tests\\art-browser.mjs",
+    "Hash": "5E13FE6E80147D16D74B136F162DF3319C26811AC0A6AEB46013A9D6718B9E80"
+  },
+  {
+    "Path": "D:\\xzh\\web3DGametest\\tests\\art-preview.html",
+    "Hash": "0268BF9AC987850D5871B60443AC4F476C62AFBF9D347442F308D0D7B8A698C3"
+  },
+  {
+    "Path": "D:\\xzh\\web3DGametest\\tests\\art-preview.ts",
+    "Hash": "A26389626A02F27498F85574FC8B3E82F1434FEEB770F2827C3791746ECB9C55"
+  },
+  {
+    "Path": "D:\\xzh\\web3DGametest\\tests\\art-raid.mjs",
+    "Hash": "BA86556305A13E2E6772413F0C6233920B26326A487895B528D8FADFC703C045"
+  },
+  {
+    "Path": "D:\\xzh\\web3DGametest\\tests\\art.test.mjs",
+    "Hash": "0222E8CA21B1B4174193A1BC9A72900871A06E6DFA385CE82BF26EA6C1B978FA"
+  }
+]

@@ -1,0 +1,157 @@
+{
+  "date": "2026-11-12T08:24:32.467Z",
+  "url": "http://127.0.0.1:5182/",
+  "chrome": "157.0.8103.51",
+  "viewport": {
+    "width": 1120,
+    "height": 630
+  },
+  "files": {
+    "src/world/firstMap.ts": "b9a88951fb21adb7499cf4b1e5b4fb3bd8f0446a615fd8a4f28df519ad07c2f4",
+    "src/world/environment.ts": "2c5e5fc7b28b4d4e738368f607089782439f2d4ba47d4580ffd4a4060c36b0d8",
+    "src/world/worldQueries.ts": "cb523bb593752db751b55df3d4b5f8de8f33071713409ba5dda6ee9c5644b6a8",
+    "src/world/surfaceMaterials.ts": "6cf2712c7152253717566fac647b80c5a36f44ebef8bab134da5ed63dbb1056c",
+    "src/world/industrialDetails.ts": "f2971be802e3f69b85723c3e08eb540ded25edc985c934c67c015d0ddd9d4b23"
+  },
+  "routes": [
+    {
+      "seed": 2,
+      "spawn": "south-loading",
+      "waypoints": [
+        {
+          "target": [
+            -21,
+            19
+          ],
+          "feet": [
+            -20.64583152378417,
+            0,
+            18.996367559161285
+          ],
+          "yaw": 1.5698,
+          "health": 100
+        },
+        {
+          "target": [
+            -21,
+            -19
+          ],
+          "feet": [
+            -21.02290857242625,
+            0,
+            -18.71008037321708
+          ],
+          "yaw": 0.010000000000000009,
+          "health": 100
+        }
+      ],
+      "errors": [],
+      "navigations": 1,
+      "result": {
+        "runId": "e9ca860f-0756-4c1e-8094-73df7c23e103",
+        "outcome": "extracted",
+        "exitId": "highway",
+        "items": {}
+      },
+      "calls": 87,
+      "triangles": 25044
+    },
+    {
+      "seed": 1,
+      "spawn": "warehouse-alley",
+      "waypoints": [
+        {
+          "target": [
+            21,
+            10
+          ],
+          "feet": [
+            20.66666666665543,
+            0,
+            10.0000061220085
+          ],
+          "yaw": -1.5708000000000002,
+          "health": 100
+        },
+        {
+          "target": [
+            21,
+            -19
+          ],
+          "feet": [
+            20.98176447876031,
+            0,
+            -18.644094155883206
+          ],
+          "yaw": -0.01100000000000012,
+          "health": 100
+        },
+        {
+          "target": [
+            -21,
+            -19
+          ],
+          "feet": [
+            -20.6832902115278,
+            0,
+            -19.010603045834184
+          ],
+          "yaw": 1.562,
+          "health": 100
+        }
+      ],
+      "errors": [],
+      "navigations": 1,
+      "result": {
+        "runId": "6bb2843f-26c8-4ae0-9c0c-8066a46a2024",
+        "outcome": "extracted",
+        "exitId": "highway",
+        "items": {}
+      },
+      "calls": 83,
+      "triangles": 24996
+    },
+    {
+      "seed": 5,
+      "spawn": "scrap-shelter",
+      "waypoints": [
+        {
+          "target": [
+            -21,
+            5
+          ],
+          "feet": [
+            -20.645833046998845,
+            0,
+            4.9985550585981064
+          ],
+          "yaw": 1.5704,
+          "health": 100
+        },
+        {
+          "target": [
+            -21,
+            -19
+          ],
+          "feet": [
+            -21.00050724636761,
+            0,
+            -18.644618168362783
+          ],
+          "yaw": 0.014999999999999902,
+          "health": 100
+        }
+      ],
+      "errors": [],
+      "navigations": 1,
+      "result": {
+        "runId": "e757858a-9b65-49b6-91c1-5daed825b73a",
+        "outcome": "extracted",
+        "exitId": "highway",
+        "items": {}
+      },
+      "calls": 87,
+      "triangles": 25044
+    }
+  ]
+}

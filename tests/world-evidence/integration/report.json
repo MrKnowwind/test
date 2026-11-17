@@ -1,0 +1,44 @@
+{
+  "url": "http://127.0.0.1:5182",
+  "chrome": "157.0.8103.51",
+  "viewport": {
+    "width": 1024,
+    "height": 576
+  },
+  "scenarios": {
+    "service": {
+      "seed": 1,
+      "spawn": "warehouse-alley",
+      "result": {
+        "runId": "a7a0af05-ab02-4fc7-95e6-dd0ac97c2efd",
+        "outcome": "extracted",
+        "exitId": "service-passage",
+        "items": {
+          "service-card": 1
+        }
+      },
+      "rejectedWithoutCard": true,
+      "warehouseAfterReload": {
+        "service-card": 1
+      }
+    },
+    "lab": {
+      "seed": 1,
+      "spawn": "warehouse-alley",
+      "result": {
+        "runId": "449c3f53-ad0f-4d76-b7f4-99ef62753fae",
+        "outcome": "extracted",
+        "exitId": "lab-lift",
+        "items": {
+          "research-sample": 1
+        }
+      },
+      "rejectedWithoutPower": true,
+      "warehouseAfterReload": {
+        "service-card": 1,
+        "research-sample": 1
+      }
+    }
+  },
+  "entryAsset": "/src/app/main.ts"
+}

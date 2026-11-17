@@ -1,0 +1,30 @@
+import assert from 'node:assert/strict';
+import test from 'node:test';
+import { createRaid } from '../src/raid/raid.ts';
+const map={spawnPoints:[{id:'a',position:[0,0,0],yaw:0}],exits:[],interactions:[{id:'case',label:'case',kind:'loot',item:'research-sample',quantity:3,position:[1,1,0]}]};
+test('container search reveals one item at a time, resumes, and a rejected transfer preserves the item',()=>{
+ const raid=createRaid('a',42,map), same=createRaid('b',42,map);
+ assert.deepEqual(raid.containers.get('case'),same.containers.get('case'));
+ const source=raid.containers.get('case');
+ assert.ok(source.entries.length>=3);
+ assert.equal(raid.takeContainerItem('case',source.entries[0].id),false);
+ assert.equal(raid.interact('case'),undefined);
+ raid.searchContainer('case',.4);
+ assert.equal(source.entries.filter(e=>e.revealed).length,0);
+ const progress=source.entries[0].progress;
+ assert.equal(raid.containers.get('case').entries[0].progress,progress);
+ raid.searchContainer('case',source.entries[0].duration-progress+.1);
+ assert.equal(source.entries.filter(e=>e.revealed).length,1);
+ const entry=source.entries[0];
+ assert.equal(raid.takeContainerItem('case',entry.id,{x:6,y:0,rotated:false}),false);
+ assert.ok(source.entries.includes(entry));
+ assert.equal(raid.takeContainerItem('case',entry.id,{x:0,y:0,rotated:true}),true);
+ assert.equal(raid.backpack.entries[0].rotated,true);
+ assert.equal(raid.takeContainerItem('case',entry.id),false);
+ raid.searchContainer('case',20);
+ while(raid.backpack.add('salvage',1)) {}
+ const remaining=source.entries[0];
+ const before=structuredClone(source.entries);
+ assert.equal(raid.takeContainerItem('case',remaining.id,{x:0,y:0,rotated:false}),false);
+ assert.deepEqual(source.entries,before);
+});

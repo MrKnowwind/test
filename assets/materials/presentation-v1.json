@@ -1,0 +1,30 @@
+{
+  "source": "AI-generated presentation-atlas-v1.png and infected-face-v1.png",
+  "normal": "Albedo high-pass estimate, not a sculpt bake",
+  "face": {
+    "width": 1254,
+    "height": 1254
+  },
+  "materials": {
+    "rubber": {
+      "width": 627,
+      "height": 627,
+      "colorCompensation": 1.65655
+    },
+    "fabric": {
+      "width": 627,
+      "height": 627,
+      "colorCompensation": 1.65159
+    },
+    "metal": {
+      "width": 627,
+      "height": 627,
+      "colorCompensation": 1.64612
+    },
+    "skin": {
+      "width": 627,
+      "height": 627,
+      "colorCompensation": 1.64369
+    }
+  }
+}

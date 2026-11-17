@@ -1,0 +1,101 @@
+{
+  "chrome": "157.0.8103.51",
+  "viewport": {
+    "width": 1280,
+    "height": 720
+  },
+  "frames": {
+    "01-pistol-hip": {
+      "calls": 64,
+      "triangles": 13758,
+      "worldCalls": 33,
+      "worldTriangles": 576,
+      "gpu": "ANGLE (AMD, AMD Radeon RX 5700 XT (0x0000731F) Direct3D11 vs_5_0 ps_5_0, D3D11)"
+    },
+    "02-pistol-ads": {
+      "calls": 64,
+      "triangles": 13758,
+      "worldCalls": 33,
+      "worldTriangles": 576,
+      "gpu": "ANGLE (AMD, AMD Radeon RX 5700 XT (0x0000731F) Direct3D11 vs_5_0 ps_5_0, D3D11)"
+    },
+    "03-pistol-shot": {
+      "calls": 65,
+      "triangles": 13966,
+      "worldCalls": 33,
+      "worldTriangles": 576,
+      "gpu": "ANGLE (AMD, AMD Radeon RX 5700 XT (0x0000731F) Direct3D11 vs_5_0 ps_5_0, D3D11)"
+    },
+    "04-pistol-reload": {
+      "calls": 64,
+      "triangles": 13758,
+      "worldCalls": 33,
+      "worldTriangles": 576,
+      "gpu": "ANGLE (AMD, AMD Radeon RX 5700 XT (0x0000731F) Direct3D11 vs_5_0 ps_5_0, D3D11)"
+    },
+    "05-knife-ready": {
+      "calls": 53,
+      "triangles": 8452,
+      "worldCalls": 33,
+      "worldTriangles": 576,
+      "gpu": "ANGLE (AMD, AMD Radeon RX 5700 XT (0x0000731F) Direct3D11 vs_5_0 ps_5_0, D3D11)"
+    },
+    "06-knife-strike": {
+      "calls": 52,
+      "triangles": 8412,
+      "worldCalls": 33,
+      "worldTriangles": 576,
+      "gpu": "ANGLE (AMD, AMD Radeon RX 5700 XT (0x0000731F) Direct3D11 vs_5_0 ps_5_0, D3D11)"
+    },
+    "07-enemies-idle": {
+      "calls": 124,
+      "triangles": 14068,
+      "worldCalls": 124,
+      "worldTriangles": 14068,
+      "gpu": "ANGLE (AMD, AMD Radeon RX 5700 XT (0x0000731F) Direct3D11 vs_5_0 ps_5_0, D3D11)"
+    },
+    "08-enemies-windup": {
+      "calls": 124,
+      "triangles": 14068,
+      "worldCalls": 124,
+      "worldTriangles": 14068,
+      "gpu": "ANGLE (AMD, AMD Radeon RX 5700 XT (0x0000731F) Direct3D11 vs_5_0 ps_5_0, D3D11)"
+    },
+    "09-enemies-attack": {
+      "calls": 125,
+      "triangles": 14236,
+      "worldCalls": 125,
+      "worldTriangles": 14236,
+      "gpu": "ANGLE (AMD, AMD Radeon RX 5700 XT (0x0000731F) Direct3D11 vs_5_0 ps_5_0, D3D11)"
+    },
+    "10-enemies-dead": {
+      "calls": 124,
+      "triangles": 14068,
+      "worldCalls": 124,
+      "worldTriangles": 14068,
+      "gpu": "ANGLE (AMD, AMD Radeon RX 5700 XT (0x0000731F) Direct3D11 vs_5_0 ps_5_0, D3D11)"
+    },
+    "11-pistol-reload-seat": {
+      "calls": 64,
+      "triangles": 13758,
+      "worldCalls": 33,
+      "worldTriangles": 576,
+      "gpu": "ANGLE (AMD, AMD Radeon RX 5700 XT (0x0000731F) Direct3D11 vs_5_0 ps_5_0, D3D11)"
+    },
+    "12-ads-4by3": {
+      "calls": 64,
+      "triangles": 13758,
+      "worldCalls": 33,
+      "worldTriangles": 576,
+      "gpu": "ANGLE (AMD, AMD Radeon RX 5700 XT (0x0000731F) Direct3D11 vs_5_0 ps_5_0, D3D11)"
+    },
+    "13-ads-ultrawide": {
+      "calls": 64,
+      "triangles": 13758,
+      "worldCalls": 33,
+      "worldTriangles": 576,
+      "gpu": "ANGLE (AMD, AMD Radeon RX 5700 XT (0x0000731F) Direct3D11 vs_5_0 ps_5_0, D3D11)"
+    }
+  },
+  "issues": []
+}
