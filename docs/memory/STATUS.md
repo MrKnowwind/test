@@ -1,5 +1,13 @@
 # 当前状态
 
+## 地区补给与高台路线
+
+2026-11-18 新增 8 个沿路补给据点。`src/world/supplySites.ts` 同时提供场景配置、容器和战术图标记，37 个容器中有 24 个来自本轮。医疗、弹药、维修和研究据点有独立名称，两处高风险研究据点有感染体守卫。各据点设有低墙、工作台、货架、托盘和攀爬平台，平台高 3.2 至 6.4 米。布局参考 [三角洲行动官方地图工具](https://www.playdeltaforce.com/act/mapswiki/?lang=en) 的资源分类，以及 [ARC Raiders 的 Bird City](https://arcraiders.com/es/news/headwinds-content-update) 用高处战利品引导探索的做法。
+
+`npm test` 50 项通过，覆盖原撤离通路及每处新增据点的地面箱、攀爬净空、高台通路和储备箱视线。`npm run build -- --base=./` 通过，保留原分包大小提示。Chrome 使用种子 42，以 QA 定位到南侧救护站首个攀爬边缘，通过实际 Space 和 WASD 两次攀登到 3.2 米平台，按 E 打开高台容器。实拍和报告位于 `test-results/supply-pass/`。其余据点已做坐标回归，尚待逐点人工试玩和风险收益调参。
+
+GitHub Pages 使用 `.github/workflows/deploy.yml`，每次推送 `main` 后安装依赖、跑测试并发布相对路径构建。线上入口为 [盐港隔离区](https://mrknowwind.github.io/test/)。
+
 ## 2026-11-17 Git 工程基线
 
 本轮按用户要求先提交推送现有工程到 `origin/main`。提交包含当前源码、测试、项目文档和已有资产资料，`references/` 为本地只读参考归档，加入忽略规则。运行内容仍采用程序生成。

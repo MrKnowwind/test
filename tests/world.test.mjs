@@ -3,9 +3,32 @@ import test from 'node:test';
 import { createFirstMap } from '../src/world/firstMap.ts';
 import { districtPoint as at, highwayPosition } from '../src/world/layout.ts';
 import { lab, rampHeight } from '../src/world/worldQueries.ts';
+import { supplySites } from '../src/world/supplySites.ts';
 
 const map = createFirstMap(42);
 const radius=.36, height=1.8;
+
+test('each roadside site has two ground stores and a reachable elevated store', () => {
+  for (const site of supplySites) {
+    const { x, z } = site;
+    visible([x - 3, 0, z + 3.3], site.id + '-stock');
+    visible([x + 3, 0, z + 3.3], site.id + '-tools');
+    for (let step = 0; step < site.height / 1.6; step++) {
+      const feet = [x + 10, step * 1.6 + .7, z + 4.85 - step * 2.6];
+      const landing = map.climbTarget(feet, [0, 0, -1], radius, height);
+      assert.ok(landing, `${site.id}: step ${step + 1} is blocked`);
+      assert.ok(Math.abs(landing[1] - (step + 1) * 1.6) < .01);
+    }
+    const topZ = z + 3 - (site.height / 1.6 - 1) * 2.6;
+    const from = [x + 10, site.height, topZ];
+    const bridge = map.moveBody(from, -5.7, 0, 0, radius, height);
+    assert.ok(Math.abs(bridge[0] - (x + 4.3)) < .01, site.id + ' bridge');
+    const deck = map.moveBody(bridge, 0, 0, z - 9.3 - bridge[2], radius, height);
+    const approach = map.moveBody(deck, -4.3, 0, 0, radius, height);
+    assert.ok(Math.abs(approach[0] - x) < .01, site.id + ' deck');
+    visible(approach, site.id + '-upper');
+  }
+});
 function walk(start, route, district) {
  if(district){ const point=at(district,start); route=route.map(([x,z])=>{ const p=at(district,[x,0,z]); return [p[0],p[2]]; }); start=point; }
  let feet=start;

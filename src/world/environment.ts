@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { siteInteractions, supplySites } from './supplySites.ts';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import type { MapInteraction, Vec3 } from '../contracts/demo.ts';
 import { box, cable, cylinder, label, mesh, strut } from './detail/geometry.ts';
@@ -28,6 +29,7 @@ const localInteractions: readonly MapInteraction[] = [
 ];
 
 export const mapInteractions: readonly MapInteraction[] = [
+  ...siteInteractions,
   ...localInteractions.map(target => ({ ...target, position: districtPoint(districtForInteraction(target.id), target.position) })),
   { id: 'plant-workshop', label: '厂区维修箱', kind: 'loot', item: 'salvage', quantity: 2, position: [83.6,1.12,-47.7] },
   { id: 'research-office', label: '研究后勤箱', kind: 'loot', item: 'medkit', quantity: 1, position: [1,1.12,-122.7] },
@@ -591,6 +593,35 @@ export function createEnvironment() {
     for(const y of [-4.9,-4.4,-3.9]) box(staticRoot,m.zinc,.65,.03,.04,x,y,-171.17,.005);
   }
   pipe([[13,-1.3,-166],[19,-1.3,-166],[26,-1.3,-166],[31,-1.3,-166]],.17,offwhite);
+  for (const site of supplySites) {
+    const { x, z } = site;
+    sign([x, 3.4, z + 7], 6, 0, site.label, `补给站 / 风险${site.risk} / 高台二次跳跃攀爬`);
+    for (const side of [-1, 1]) {
+      solid([x + side * 7, 1.1, z], [.4, 2.2, 12], m.concrete);
+      modules.bench(x + side * 3, z + 2);
+      modules.rack(x - 5, z - 5 + side * 2, Math.round(x));
+      modules.pallet(x + side * 9, 0, z + 3);
+      for (const dz of [-5, 0, 5]) solid([x + side * 7, 1.1, z + dz], [.24, 2.2, .24], m.steel);
+    }
+    solid([x, site.height - .2, z - 8], [10, .4, 5], m.steel);
+    for (const dx of [-4.6, 4.6]) {
+      solid([x + dx, site.height / 2, z - 8], [.3, site.height, .3], m.steel);
+      if (dx < 0) rail([x + dx, site.height, z - 10.4], [x + dx, site.height, z - 5.6]);
+    }
+    rail([x - 4.6, site.height, z - 10.4], [x + 4.6, site.height, z - 10.4]);
+    solid([x, site.height + .25, z - 8], [1.8, .5, .8], painted);
+    const count = Math.round(site.height / 1.6);
+    for (let i = 0; i < count; i++) {
+      const top = (i + 1) * 1.6;
+      const stepZ = z + 3 - i * 2.6;
+      solid([x + 10, top / 2, stepZ], [3.4, top, 2.6], painted);
+      box(staticRoot, m.safety, 3.42, .06, .14, x + 10, top + .025, stepZ + 1.25);
+    }
+    const topZ = z + 3 - (count - 1) * 2.6;
+    solid([x + 6.7, site.height - .15, topZ], [3.4, .3, 2.6], m.steel);
+    solid([x + 4.3, site.height - .15, (topZ + z - 8) / 2], [1.4, .3, Math.abs(topZ - (z - 8)) + 2.6], m.steel);
+    lamp([x, 5.7, z + 2], 0xffc38b, 65);
+  }
   addPortHorizon(allStatic, m);
   for(const interaction of mapInteractions) addPickup(interaction);
 

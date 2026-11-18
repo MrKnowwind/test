@@ -1,6 +1,7 @@
 import type { EnemySpawn, FirstMap, Vec3 } from '../contracts/demo.ts';
 import { createEnvironment, mapInteractions } from './environment.ts';
 import { createWorldQueries, lab } from './worldQueries.ts';
+import { supplySites } from './supplySites.ts';
 
 import { districtPoint, highwayPosition, servicePosition } from './layout.ts';
 
@@ -17,6 +18,9 @@ function placeEnemies(seed: number): EnemySpawn[] {
     ...infected.map((position, index): EnemySpawn => ({ id: 'infected-' + (index + 1), position: districtPoint(index < 3 ? 'wharf' : index < 6 ? 'warehouse' : index < 8 ? 'plant' : 'research', position), yaw: Math.PI, kind: 'infected' })),
     ...[[ -78,0,-25],[90,0,-54],[83,0,-175],[7,0,-129]].map((position,index): EnemySpawn => ({id:'district-infected-'+index,position:position as unknown as Vec3,yaw:Math.PI,kind:'infected'})),
     { id: 'lab-security', position: districtPoint('research', botPosts[post]), yaw: Math.PI, kind: 'security-bot' },
+    ...supplySites.filter(site => site.risk === '高').flatMap(site => [-1, 1].map((side): EnemySpawn => ({
+      id: `${site.id}-guard-${side}`, position: [site.x + side * 6, 0, site.z + 9], yaw: Math.PI, kind: 'infected',
+    }))),
   ];
 }
 

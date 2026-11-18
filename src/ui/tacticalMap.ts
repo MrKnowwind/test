@@ -1,3 +1,4 @@
+import { supplySites } from '../world/supplySites.ts';
 import { mapBounds } from '../world/worldQueries.ts';
 import type { FirstMap, Vec3 } from '../contracts/demo.ts';
 
@@ -38,7 +39,7 @@ export function createTacticalMap() {
         const [x, z] = project(region.center[0], region.center[2]);
         ctx.fillStyle = region.center[1] < -2 ? '#71d6d01c' : '#9eaaa91b';
         ctx.strokeStyle = region.center[1] < -2 ? '#71d6d059' : '#9eaaa94f';
-        const r = Math.max(30, region.radius / 400 * 740);
+        const r = region.id === 'approach' ? 74 : Math.max(30, region.radius / 400 * 740);
         const left = Math.max(80, x - r), top = Math.max(85, z - r * .6);
         const right = Math.min(820, x + r), bottom = Math.min(665, z + r * .6);
         ctx.beginPath(); ctx.roundRect(left, top, right - left, bottom - top, 8); ctx.fill(); ctx.stroke();
@@ -46,6 +47,19 @@ export function createTacticalMap() {
         ctx.fillStyle = '#bdcece';
         ctx.fillText(region.center[1] < -2 ? 'B1 实验室' : region.label, left + 12,
           region.center[1] < -2 ? z + 24 : top + 25);
+      }
+      for (const site of supplySites) {
+        const [sx, sz] = project(site.x, site.z);
+        ctx.fillStyle = site.risk === '高' ? '#f09a7b' : '#a9d4b9';
+        ctx.fillRect(sx - 4, sz - 4, 8, 8);
+        ctx.font = '15px "Microsoft YaHei",sans-serif';
+        ctx.fillText(site.label + ' · ' + site.risk, sx + 8, sz + 4);
+      }
+      for (const target of map.interactions) {
+        if (target.kind !== 'loot') continue;
+        const [sx, sz] = project(target.position[0], target.position[2]);
+        ctx.fillStyle = target.item === 'research-sample' ? '#f09a7b' : '#a9d4b9';
+        ctx.beginPath(); ctx.arc(sx, sz, 2, 0, Math.PI * 2); ctx.fill();
       }
       for (const exit of map.exits) {
         const [x, z] = project(exit.position[0], exit.position[2]);
@@ -66,7 +80,7 @@ export function createTacticalMap() {
       ctx.restore();
       ctx.fillStyle = '#a2b9bb';
       ctx.font = '14px "Microsoft YaHei",sans-serif';
-      ctx.fillText('▲ 当前位置     □ 撤离点     维修通道需要卡片 · 货梯需要供电', 80, 710);
+      ctx.fillText('▲ 当前位置   □ 撤离点   ■ 补给据点   • 可搜索容器   维修通道需卡 · 货梯需供电', 80, 710);
     },
   };
 }
