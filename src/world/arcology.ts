@@ -42,9 +42,58 @@ export function addArcology(root: THREE.Group,m: Materials,solid: Solid) {
     solid([x-w*.19,h+1.11,z],[w*.46,.72,d*.63],navy,.14);
     for(let i=0;i<4;i++) box(root,m.zinc,w*.4,.12,.19,x-w*.19,h+1.5,z+(i-1.5)*d*.13,.03);
   }
+  // Walk-through platforms have a level sill and a clear view between their two portals.
+  function concourse(x:number,z:number,w:number,d:number,h:number,accent:THREE.Material,code:string,sub:string) {
+    const roof=h+.2, sideX=w/2-.2;
+    box(root,m.concrete,w,.04,d,x,.02,z);
+    solid([x,roof,z],[w+.56,.38,d+1.3],navy,.18);
+    solid([x,roof+.24,z],[w+.42,.16,d+1.16],porcelain,.08);
+    for(const side of [-1,1]) {
+      const sx=x+side*sideX;
+      solid([sx,.58,z],[.4,1.16,d],porcelain,.08);
+      solid([sx,1.82,z],[.18,1.32,d-.28],glass,.055);
+      for(const end of [-1,1]) {
+        const ez=z+end*(d/2-.16);
+        solid([sx,h/2,ez],[.44,h,.46],accent,.08);
+        rail([sx,h-1.36,ez],[sx-side*.92,roof-.17,ez],.32,.4,porcelain);
+      }
+      for(const dz of [-d*.25,0,d*.25]) {
+        box(root,navy,.45,.10,.24,sx,1.12,z+dz);
+        solid([sx,h/2,z+dz],[.22,h,.13],navy,.025);
+      }
+      solid([sx-side*.58,.45,z],[1.04,.90,d*.48],m.steel,.09);
+      box(root,accent,1.15,.10,d*.5,sx-side*.58,.94,z,.047);
+      box(root,mint,.12,.045,d*.66,sx-side*.62,roof-.22,z);
+      if(side<0) {
+        const tx=sx-side*.53;
+        solid([tx,1.24,z],[.17,.52,.19],navy,.03);
+        solid([tx,1.66,z],[.23,.67,1.5],porcelain,.075);
+        const screen=label(root,1.32,.51,(ctx,width,height)=>{
+          ctx.fillStyle='#172f4c';ctx.fillRect(0,0,width,height);
+          ctx.fillStyle='#a8f5e4';ctx.font='bold 37px sans-serif';ctx.fillText(code,14,42);
+          ctx.fillStyle='#79b7d2';ctx.fillRect(15,60,width-32,4);
+          ctx.fillStyle='#d0dfe7';ctx.font='27px sans-serif';ctx.fillText(sub,14,101,width-30);
+        },.23);
+        screen.position.set(tx+.12,1.66,z);screen.rotation.y=Math.PI/2;
+      }
+    }
+    for(const end of [-1,1]) {
+      const fz=z+end*(d/2+.17);
+      solid([x,roof-.49,fz],[w-.35,.73,.32],accent,.10);
+      const marker = label(root,w*.62,.58,(ctx,width,height)=>{
+        ctx.fillStyle='#223752';ctx.fillRect(0,0,width,height);
+        ctx.fillStyle='#e3fff8';ctx.font='bold 40px sans-serif';
+        ctx.fillText(code+'   '+sub,12,height*.78,width-24);
+      },.14);
+      marker.position.set(x,roof-.49,fz+end*.166);
+      marker.rotation.y=end<0?Math.PI:0;
+      for(const side of [-1,1])
+        box(root,accent,.52,.018,.78,x+side*1.48,.052,z+end*(d/2-.58));
+    }
+  }
   const lots = [
     [-15,130,8,9,4.2,coral,'A-01','SOUTH ARRIVALS'],
-    [-37,132,8,6,3.7,cyan,'S-02','MED TRANSIT'],
+    [-37,135,8,6,3.7,cyan,'S-02','MED TRANSIT'],
     [12,113,15,10,6,cyan,'T-04','CARGO CONTROL'],
     [-83,112,18,9,5.1,cyan,'Q-07','BONDED STORAGE'],
     [95,114,17,10,5.4,coral,'E-02','POWER SERVICE'],
@@ -56,8 +105,28 @@ export function addArcology(root: THREE.Group,m: Materials,solid: Solid) {
     [-40,-140,12,9,5.2,iris,'L-04','TELEMETRY'],
     [102,-108,12,7,4.3,iris,'B-11','CONTAINMENT'],
   ] as const;
-  for(const [x,z,w,d,h,color,code,sub] of lots) station(x,z,w,d,h,color,code,sub);
+  for(const [x,z,w,d,h,color,code,sub] of lots) {
+    const build = ['A-01','T-04','L-02'].includes(code) ? concourse : station;
+    build(x,z,w,d,h,color,code,sub);
+  }
 
+  // Palletized return pods face the pedestrian spine through the freight sorting court.
+  // Split the stacks into short bays so players can cross between, or skirt the court entirely.
+  for(const [cx,cz,levels] of [[-82,81,2],[-82,87,1],[-64,81,1],[-64,72,2]]) {
+    solid([cx,.16,cz],[4.1,.32,2.16],navy,.10);
+    for(let level=0;level<levels;level++) {
+      const bottom=.32+level*1.43;
+      solid([cx,bottom+.68,cz],[3.86,1.36,1.96],level?cyan:porcelain,.21);
+      solid([cx,bottom+1.395,cz],[3.72,.07,1.86],navy,.03);
+      for(const side of [-1,1]) {
+        box(root,glass,2.7,.49,.08,cx,bottom+.84,cz+side*.98,.038);
+        for(const dx of [-1.43,1.43]) {
+          box(root,coral,.16,1.1,.12,cx+dx,bottom+.68,cz+side*.96,.035);
+        }
+        box(root,mint,.68,.065,.035,cx,bottom+.90,cz+side*1.03);
+      }
+    }
+  }
   // Elevated twin freight guideway. Paired bearings rest on the pier cap.
   const x=2;
   const stops=[143,120,97,74,51,32];

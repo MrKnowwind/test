@@ -20,3 +20,20 @@ export const siteInteractions: readonly MapInteraction[] = supplySites.flatMap(s
   { id: site.id + '-upper', label: site.label + '高台储备', kind: 'loot' as const, item: site.item,
     quantity: site.item === 'pistol-ammo' ? 6 : 1, position: [site.x, site.height + .72, site.z - 8] as Vec3 },
 ]);
+
+// Surveyed centre lines start on the public road and end between the entrance posts.
+type PlanPoint = readonly [number,number];
+const approachCorners: Record<typeof supplySites[number]['id'], readonly PlanPoint[]> = {
+  triage: [[-24,128],[-48,128]],
+  freight: [[-115,75],[-91,75]],
+  customs: [[-115,-58],[-104,-58]],
+  depot: [[175,69],[159,69]],
+  pump: [[60,-64],[73,-64]],
+  clinic: [[-55,-61],[-27,-61]],
+  archive: [[114,-100],[114,-118],[106,-118]],
+  relay: [[-55,-157],[-54,-157]],
+};
+export const siteApproaches = supplySites.map(site=>({
+  site,
+  points: [...approachCorners[site.id], [site.x,site.z+7] as PlanPoint],
+}));

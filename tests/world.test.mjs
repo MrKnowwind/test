@@ -196,3 +196,29 @@ test('every search case rests on a support surface and remains level after searc
     assert.equal(model.rotation.z,0,item.id);
   }
 });
+
+test('each signed supply entrance is connected to a public road by a walkable approach',async()=>{
+  const {siteApproaches}=await import('../src/world/supplySites.ts');
+  const {roads}=await import('../src/world/roads.ts');
+  for(const {points,site} of siteApproaches) {
+    const [x,z]=points[0];
+    assert.ok(roads.some(r=>x>=r.x1 && x<=r.x2 && z>=r.z1 && z<=r.z2),site.id);
+    const forward=walk([x,0,z],[...points.slice(1),[site.x,site.z+4]]);
+    walk(forward,[...points].reverse());
+  }
+});
+
+test('arrivals, cargo control and bio transfer platforms can be crossed from either portal',()=>{
+  for(const [x,z,depth] of [[-15,130,9],[12,113,10],[24,-84,8]]) {
+    const front=z+depth/2+1.5, rear=z-depth/2-1.5;
+    for(const offset of [-.95,.95]) walk([x+offset,0,front],[[x+offset,rear],[x+offset,front]]);
+  }
+});
+
+test('freight court links the transfer shed, supply gate and both sides of the pallet stacks',async()=>{
+  const {freightWalk}=await import('../src/world/roads.ts');
+  const [start,...lane]=freightWalk;
+  walk([start[0],0,start[1]],lane);
+  walk([-72,0,95],[[-72,82],[-77,82],[-77,75],[-72,75],[-72,51]]);
+  walk([-72,0,95],[[-72,85],[-68,85],[-68,75],[-72,75]]);
+});

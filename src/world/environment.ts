@@ -6,6 +6,7 @@ import { box, cable, cylinder, label, mesh, strut } from './detail/geometry.ts';
 import { createMaterialLibrary, enamel, paving, emissive } from './detail/materialLibrary.ts';
 import { createShippingContainer, foldedSheet } from './detail/createShippingContainer.ts';
 import { addArcology } from './arcology.ts';
+import { portHauler } from './detail/portHauler.ts';
 import { buildRoads } from './roads.ts';
 import {
   dock, dockRamp, dockSlope, factory, factoryRamp, factorySlope, lab,
@@ -180,34 +181,22 @@ export function createEnvironment() {
     }
   }
 
-  function truck(x: number, z: number, base = 0) {
-    const glass = new THREE.MeshStandardMaterial({ color: 0x243f46, roughness: .19, metalness: .38 });
-    obstacle(x, base + 1.2, z, 6.4, 2.4, 2.35);
-    box(staticRoot, m.steel, 6.25, .22, 1.95, x, base + .72, z, .04);
-    box(staticRoot, painted, 1.75, 1.47, 2.15, x + 2.1, base + 1.57, z, .11);
-    box(staticRoot, m.steel, 1.9, .12, 2.27, x + 2.09, base + 2.38, z, .04);
-    for (const side of [-1, 1]) {
-      box(staticRoot, glass, 1.38, .61, .028, x + 2.08, base + 1.99, z + side * 1.081, .018);
-      box(staticRoot, m.zinc, .035, .65, .033, x + 2.22, base + 2, z + side * 1.1, .004);
-      box(staticRoot, m.steel, .26, .035, .04, x + 1.75, base + 1.48, z + side * 1.105, .005);
-      beam([x + 2.73, base + 2.03, z + side * 1.04], [x + 2.78, base + 1.94, z + side * 1.39], .025);
-      box(staticRoot, m.steel, .19, .3, .055, x + 2.78, base + 1.94, z + side * 1.4, .022);
-      for (const dx of [-2.0, -.76, 2.08]) {
-        cylinder(staticRoot, dark, .46, .26, x + dx, base + .47, z + side * 1.02, 24).rotation.x = Math.PI / 2;
-        cylinder(staticRoot, m.steel, .25, .28, x + dx, base + .47, z + side * 1.04, 20).rotation.x = Math.PI / 2;
-        cylinder(staticRoot, m.zinc, .09, .30, x + dx, base + .47, z + side * 1.05, 12).rotation.x = Math.PI / 2;
-      }
-      for (const dx of [-2.7, -1.4, -.1]) box(staticRoot, m.steel, .064, 1.15, .064, x + dx, base + 1.55, z + side * 1.02, .009);
-      for (const dy of [1.25, 1.9]) box(staticRoot, painted, 3.7, .14, .08, x - 1.37, base + dy, z + side * 1.04, .009);
+  const guideLamp=emissive(0x76e9dd,.5);
+  function truck(x: number, z: number, base: number, load: Parameters<typeof portHauler>[1]) {
+    const vehicle = portHauler(m, load);
+    vehicle.position.set(x,base,z);
+    for (const side of [-1,1]) {
+      box(staticRoot,m.zinc,7.95,.012,.09,x,base+.043,z+side*1.42);
+      for(const end of [-1,1]) box(staticRoot,m.zinc,.09,.012,.62,x+end*3.93,base+.043,z+side*1.07);
     }
-    box(staticRoot, glass, .03, .61, 1.83, x + 2.99, base + 1.99, z, .016);
-    box(staticRoot, m.steel, .12, .25, 2.25, x + 3.03, base + .85, z, .025);
-    for (const dz of [-.72, .72]) box(staticRoot, emissive(0xc8bc92, .13), .045, .22, .34, x + 3.08, base + 1.23, z + dz, .025);
-    for (let i = 0; i < 6; i++) box(staticRoot, dark, .032, .043, .78, x + 3.055, base + 1.05 + i * .077, z, .004);
-    for (const dx of [-2.3, -1.05]) {
-      box(staticRoot, m.timber, 1.15, 1.13, 1.65, x + dx, base + 1.64, z, .025);
-      for (const dz of [-.83, .83]) box(staticRoot, m.steel, .03, 1.2, .022, x + dx, base + 1.64, z + dz, .003);
-    }
+    solid([x-3.68,base+.76,z],[.34,1.52,.64],m.steel,.07);
+    box(staticRoot,offwhite,.47,.52,.7,x-3.68,base+1.38,z,.07);
+    box(staticRoot,guideLamp,.49,.10,.71,x-3.68,base+1.47,z,.045);
+    staticRoot.add(vehicle);
+    obstacle(x,base+.51,z,6.25,1.02,2.28);
+    obstacle(x+2.02,base+1.76,z,2.22,1.48,2.08);
+    const height=load==='cells'?.99:1.34;
+    obstacle(x-1.08,base+1.02+height/2,z,3.67,height,1.93);
   }
 
   // Subtract the lower quay and descent apertures from the continuous ground slab.
@@ -543,9 +532,9 @@ export function createEnvironment() {
   beam([-154,4,144.7],[-148,4,144.7],.2);
   sign([highwayPosition[0],3.24,144.86],4.6,0,'公路出口','撤离 E / 常开','#9ac79f');
   sign([servicePosition[0]+2.91,2.8,servicePosition[2]],3.5,-Math.PI/2,'维修通道','需维修卡 / 值班室领取');
-  truck(-17,138); truck(145,77);
+  truck(-8.2,138,0,'medical'); truck(140,77,0,'cells');
   for(const [x,z] of [[-19,31],[7,29],[128,-20],[27,-126]]) drum(x,0,z);
-  district('wharf'); truck(-44,18,dock.y); district();
+  district('wharf'); truck(-48.2,22,dock.y,'freight'); district();
   // Local barricades explain finite roads without encircling the world in a wall.
   for (const z of [-211,173]) for(const x of [-115,60,175]) {
     for(const dx of [-6,-2,2,6]) solid([x+dx,.55,z],[3.2,1.1,.8],m.concrete,.09);
@@ -605,11 +594,66 @@ export function createEnvironment() {
   pipe([[13,-1.3,-166],[19,-1.3,-166],[26,-1.3,-166],[31,-1.3,-166]],.17,offwhite);
   for (const site of supplySites) {
     const { x, z } = site;
-    for (const dx of [-2.85, 2.85]) solid([x+dx,1.7,z+6.91],[.12,3.4,.14],m.steel);
-    sign([x, 3.4, z + 7], 6, 0, site.label, `补给站 / 风险${site.risk} / 高台二次跳跃攀爬`);
+    const taxonomy = {
+      'medkit': ['MED',0x3aafb0], 'salvage': ['MRO',0xda7c41],
+      'pistol-ammo': ['LOG',0xed6854], 'research-sample': ['BIO',0x8973c2],
+    } as const;
+    const [code,tint]=taxonomy[site.item];
+    const fascia=enamel(tint);
+    // The front lintel carries both the sign and the canopy. Keep the approach between its feet open.
+    for (const side of [-1,1]) {
+      const px=x+side*2.85;
+      solid([px,.3,z+6.86],[.54,.6,.72],m.steel,.09);
+      solid([px,1.88,z+6.86],[.28,2.58,.42],offwhite,.035);
+      beam([px,2.74,z+6.86],[px+side*.58,3.51,z+6.86],.25,.35,fascia);
+      beam([px,3.08,z+6.86],[px,3.74,z+5.25],.16,.23,m.steel);
+    }
+    solid([x,3.50,z+6.86],[7.65,1,.42],fascia,.12);
+    sign([x+.53,3.51,z+7.08],4.65,0,site.label,code+'  /  风险'+site.risk+'  /  高台储备');
+    // A backlit category pictogram stays legible before the lettering resolves.
+    const markX=x-2.74, markY=3.5, markZ=z+7.09;
+    box(staticRoot,m.steel,1.0,.83,.06,markX,markY,markZ,.07);
+    if(code==='MED') {
+      box(staticRoot,guide,.59,.17,.04,markX,markY,markZ+.05);
+      box(staticRoot,guide,.17,.58,.04,markX,markY,markZ+.06);
+    } else if(code==='BIO') {
+      for(const dx of [-.19,0,.19]) {
+        cylinder(staticRoot,guide,.071,.32,markX+dx,markY,markZ+.08,10);
+        box(staticRoot,m.zinc,.15,.06,.10,markX+dx,markY+.19,markZ+.08);
+      }
+    } else {
+      for (const dx of [-.24,0,.24]) {
+        const bar=box(staticRoot,guide,.11,code==='LOG'?.39:.25,.05,markX+dx,markY,markZ+.05);
+        bar.rotation.z=code==='LOG'?-.30:.55;
+      }
+    }
     for (const side of [-1, 1]) {
       solid([x + side * 7, 1.1, z], [.4, 2.2, 12], m.concrete);
-      modules.bench(x + side * 3, z + 2);
+      const benchX=x+side*3, benchZ=z+2;
+      if(code==='MRO') {
+        modules.bench(benchX,benchZ);
+      } else {
+        solid([benchX,.46,benchZ],[2.96,.92,.90],offwhite,.09);
+        solid([benchX,.97,benchZ],[3.3,.10,1.0],m.steel,.045);
+        for (const dx of [-.91,0,.91]) {
+          box(staticRoot,fascia,.83,.49,.045,benchX+dx,.52,benchZ+.46,.025);
+          box(staticRoot,m.zinc,.27,.045,.065,benchX+dx,.68,benchZ+.49,.015);
+        }
+        solid([benchX,1.48,benchZ-.45],[3.18,.92,.12],fascia,.06);
+        if(code==='MED') {
+          box(staticRoot,m.steel,.96,.54,.085,benchX-.82,1.49,benchZ-.35,.045);
+          box(staticRoot,guide,.39,.085,.04,benchX-.82,1.49,benchZ-.29);
+          box(staticRoot,guide,.085,.39,.044,benchX-.82,1.49,benchZ-.29);
+        } else {
+          box(staticRoot,m.steel,1.04,.12,.54,benchX-.82,1.08,benchZ-.08,.04);
+          for(const dx of [-.29,0,.29]) {
+            if(code==='BIO') {
+              cylinder(staticRoot,guide,.09,.39,benchX-.82+dx,1.33,benchZ-.08,12);
+              cylinder(staticRoot,m.zinc,.103,.08,benchX-.82+dx,1.56,benchZ-.08,12);
+            } else box(staticRoot,m.ceramic,.19,.29,.34,benchX-.82+dx,1.28,benchZ-.08,.035);
+          }
+        }
+      }
 
       if (side < 0) modules.pallet(x - 9, 0, z + 3);
       for (const dz of [-5, 0, 5]) solid([x + side * 7, 1.1, z + dz], [.24, 2.2, .24], m.steel);
@@ -632,9 +676,8 @@ export function createEnvironment() {
     const topZ = z + 3 - (count - 1) * 2.6;
     solid([x + 6.7, site.height - .15, topZ], [3.4, .3, 2.6], m.steel);
     solid([x + 4.3, site.height - .15, (topZ + z - 8) / 2], [1.4, .3, Math.abs(topZ - (z - 8)) + 2.6], m.steel);
-    box(staticRoot,m.steel,.28,.32,13.7,x-7,2.36,z,.03);
-    box(staticRoot,m.steel,14.4,.28,.35,x,2.48,z+2,.03);
-    lamp([x, 2.29, z + 2], 0x85efed, 6);
+    box(staticRoot,m.steel,4.8,.15,.42,x,3.62,z+2,.04);
+    lamp([x, 3.47, z + 2], 0x85efed, 6);
   }
   addArcology(staticRoot, m, solid);
   addPortHorizon(allStatic, m);
