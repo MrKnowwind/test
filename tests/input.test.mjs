@@ -30,3 +30,23 @@ test('number keys select primary slots, sidearm and melee through the actual inp
   assert.equal(input.sample().attackPressed, true);
   assert.equal(input.sample().attackPressed, false);
 });
+
+test('the cursor recenter event at pointer capture leaves the initial view level', () => {
+  const canvas = new EventTarget();
+  const doc = new EventTarget();
+  globalThis.document = doc;
+  globalThis.window = new EventTarget();
+  const input = createInput(canvas);
+  doc.pointerLockElement = canvas;
+  function mouseMove(dx, dy) {
+    const event = Object.assign(new Event('mousemove'), { movementX: dx, movementY: dy });
+    doc.dispatchEvent(event);
+  }
+  mouseMove(-187, -549);
+  const entering = input.sample();
+  assert.deepEqual([entering.lookX, entering.lookY], [0, 0]);
+  doc.dispatchEvent(new Event('pointerlockchange'));
+  mouseMove(120, -80);
+  const playing = input.sample();
+  assert.deepEqual([playing.lookX, playing.lookY], [120, -80]);
+});

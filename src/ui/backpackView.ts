@@ -1,3 +1,4 @@
+import { itemIcon } from './itemArt.ts';
 import type { SearchContainer, Placement } from '../raid/containerSearch.ts';
 import type { MapInteraction } from '../contracts/demo.ts';
 import { itemSpecs, type createBackpack } from '../raid/backpack.ts';
@@ -18,11 +19,13 @@ export function createBackpackView(callbacks: {
     <div class="bag-window">
       <header><div><span class="eyebrow">FIELD INVENTORY</span><h2>装备与背包</h2></div><button id="bag-close">返回出击</button></header>
       <div class="bag-columns">
-        <div class="equipment"><h3>装备</h3><div><kbd>1</kbd> 主武器 I <small>空</small></div><div><kbd>2</kbd> 主武器 II <small>空</small></div><div><kbd>3</kbd> 手枪 <small>已装备</small></div><div><kbd>4</kbd> 战术刀 <small>已装备</small></div></div>
+        <div class="equipment"><h3>装备</h3><canvas class="operator-portrait" aria-label="出击队员"></canvas><div><kbd>1</kbd> 主武器 I <small>空</small></div><div><kbd>2</kbd> 主武器 II <small>空</small></div><div><kbd>3</kbd> 手枪 <small>已装备</small></div><div><kbd>4</kbd> 战术刀 <small>已装备</small></div></div>
         <div><h3>随身背包 <span id="bag-size"></span></h3><div id="bag-grid"></div><p class="bag-help">拖动物品移动 · R 旋转 · 双击使用补给</p></div>
         <div class="bag-container"><h3 id="container-title">物品详情</h3><div id="container-content"></div><div id="selected-item"></div><div class="bag-actions"><button id="bag-use" hidden>使用</button><button id="bag-drop" hidden>丢弃</button></div></div>
       </div><p id="bag-feedback" role="status"></p>
     </div>`;
+  const slots=panel.querySelectorAll('.equipment > div');
+  slots[2].prepend(itemIcon('pistol')); slots[3].prepend(itemIcon('knife'));
   document.body.append(panel);
   const grid = panel.querySelector<HTMLElement>('#bag-grid')!;
   const size = panel.querySelector('#bag-size')!;
@@ -94,8 +97,11 @@ export function createBackpackView(callbacks: {
       button.draggable = true;
       button.dataset.entry = String(entry.id);
       button.style.cssText = `left:calc(${entry.x} * var(--cell));top:calc(${entry.y} * var(--cell));width:calc(${w} * var(--cell));height:calc(${h} * var(--cell));--item-color:${spec.color}`;
-      button.textContent = `${spec.name}${entry.quantity > 1 ? ' × ' + entry.quantity : ''}`;
-      button.prepend(itemIcon(entry.item));
+      button.setAttribute('aria-label',spec.name+' × '+entry.quantity);
+      button.append(itemIcon(entry.item));
+      if(entry.quantity>1) {
+        const count=document.createElement('b');count.className='stack-count';count.textContent=String(entry.quantity);button.append(count);
+      }
       button.title = `${spec.name} · ${w}×${h}`;
       button.onclick = () => { if(sourceSelected!==undefined) transfer({x:entry.x,y:entry.y,rotated});else select(entry.id); };
       button.ondragstart = event => {
@@ -140,7 +146,10 @@ export function createBackpackView(callbacks: {
       button.title=button.getAttribute('aria-label')!;
       button.draggable=entry.revealed;
       if(entry.revealed) {
-        button.append(itemIcon(entry.item),document.createTextNode(spec.name+(entry.quantity>1?' × '+entry.quantity:'')));
+        button.append(itemIcon(entry.item));
+        if(entry.quantity>1) {
+          const count=document.createElement('b');count.className='stack-count';count.textContent=String(entry.quantity);button.append(count);
+        }
         button.onclick=()=>{sourceSelected=entry.id;selected=undefined;rotated=entry.rotated;detail.textContent=`${spec.name} × ${entry.quantity} · ${w}×${h} 格 · 单件 ${spec.price} 券`;useButton.hidden=dropButton.hidden=true;message('点击背包格放入 · R 旋转 · 双击自动放置');};
         button.ondblclick=()=>{sourceSelected=entry.id;transfer();};
         button.ondragstart=e=>{if(sourceSelected!==entry.id)rotated=entry.rotated;sourceSelected=entry.id;selected=undefined;e.dataTransfer?.setData('text/plain','source:'+entry.id);};
@@ -214,16 +223,4 @@ export function createBackpackView(callbacks: {
     },
     hide() { panel.hidden = true; },
   };
-}
-
-// Canvas pictograms: generated from item semantics, never loaded from files.
-function itemIcon(item: string) {
- const canvas=document.createElement('canvas');canvas.width=64;canvas.height=48;canvas.className='item-icon';
- const c=canvas.getContext('2d')!;c.strokeStyle='#dbdfcd';c.fillStyle='#91a29a';c.lineWidth=3;
- if(item==='medkit') {c.strokeRect(10,10,44,30);c.fillRect(28,14,8,23);c.fillRect(20,22,24,8);}
- else if(item==='pistol-ammo') {for(let x=15;x<55;x+=12){c.strokeRect(x,16,7,24);c.beginPath();c.moveTo(x,16);c.lineTo(x+3.5,6);c.lineTo(x+7,16);c.stroke();}}
- else if(item==='research-sample') {c.strokeRect(23,9,18,31);c.fillRect(26,25,12,12);c.fillRect(20,5,24,5);}
- else if(item==='service-card') {c.strokeRect(7,9,50,30);c.fillRect(11,14,10,12);for(let y=17;y<35;y+=7)c.fillRect(26,y,25,2);}
- else {c.beginPath();for(let i=0;i<32;i++){const a=i/32*Math.PI*2,r=i%4<2?20:15;c.lineTo(32+Math.cos(a)*r,24+Math.sin(a)*r);}c.closePath();c.stroke();c.beginPath();c.arc(32,24,7,0,Math.PI*2);c.stroke();}
- return canvas;
 }

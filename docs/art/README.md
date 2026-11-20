@@ -1,6 +1,8 @@
 # 美术与技术美术
 
-2026-11-13 最新程序材质/动作见 [程序内容增量](PROCEDURAL_PASS.md)，地区见 [地区增量](../demo/DISTRICT_PASS.md)。下列为迁移前历史记录： [外观修订](VISUAL_REFINEMENT.md)、[第一人称](FP_REFINEMENT.md) 和 [感染体](INFECTED_REFINEMENT.md)。下文为制作标准，不能据此推定所有资产已达到目标精度。
+2026-11-20 港区采用科幻赛璐璐美术。队员和两类敌人、第一人称装备、沿街店面与背包界面的游戏内画面见[本轮实拍](PORT_CEL_GAMEPLAY.webp)，版本和验收范围见[当前状态](../memory/STATUS.md)。
+
+2026-11-13 程序材质/动作见 [程序内容增量](PROCEDURAL_PASS.md)，地区见 [地区增量](../demo/DISTRICT_PASS.md)。下列为迁移前历史记录： [外观修订](VISUAL_REFINEMENT.md)、[第一人称](FP_REFINEMENT.md) 和 [感染体](INFECTED_REFINEMENT.md)。下文为制作标准，不能据此推定所有资产已达到目标精度。
 
 用户最新制作约束为纯程序生成整个游戏内容。后续不使用 AI 图像或现成模型/贴图/音频素材，采用代码构造模型、纹理、图标、动画和音效。P0 已迁出历史 AI 材质运行依赖，保留原几何轮廓与挂点，见 [程序材质记录](PROCEDURAL_PASS.md)。具体执行和包大小/生成耗时/内存验收见 [额度控制规则](../WORK_BUDGET.md)。下文涉及导入资产的通用规范，仅在用户之后明确变更此约束时适用。
 

@@ -1,15 +1,11 @@
 import * as THREE from 'three';
 import { batchRigid, block, curvedSkin, ease, oval, part, pivot, rod, surface } from './modelParts.ts';
+import { shell, pigment } from './shell.ts';
 import type { Point } from './modelParts.ts';
 import type { EnemyState } from '../contracts/demo.ts';
 
-const armor = surface(0x8b9183, 0.53, 0.33);
-const rim = surface(0xb4b5a2, 0.57, 0.44);
-const frame = surface(0x2d373b, 0.68, 0.43);
-const rubber = surface(0x1e272b, 0.91);
-const piston = surface(0x8a9c9e, 0.38, 0.60);
-const stripe = surface(0xb5883f, 0.68, 0.11);
-const steel = surface(0x575e59, 0.48, 0.56);
+const armor=pigment(0xc1c8fa), rim=pigment(0xe8f1ff), frame=pigment(0x374468);
+const rubber=pigment(0x29334e), piston=pigment(0x90e4eb), stripe=pigment(0xfd8067), steel=pigment(0x586e95);
 const up = new THREE.Vector3(0, 1, 0);
 const axis = new THREE.Vector3();
 
@@ -69,6 +65,10 @@ export function makeSecurityBot(group: THREE.Group) {
     block(shield, armor, [0.051, 0.231, 0.232], [side * 0.023, -0.037, 0.011], 0.019);
     block(shield, stripe, [0.005, 0.058, 0.120], [side * 0.050, 0.006, -0.006], 0.002);
     block(shield, frame, [0.032, 0.059, 0.156], [side * 0.006, -0.124, 0.006], 0.008);
+    const wing=shell(shield,armor,[side*.05,.02,.012],[
+      [-.18,.037,.09,0],[.05,.079,.19,.024],[.16,.056,.14,.061],[.22,.018,.055,.12]]);
+    wing.rotation.z=-side*.32;
+    block(shield,piston,[.031,.045,.17],[side*.108,.043,.028],.012);
     batchRigid(shield);
     shields.push(shield);
     block(deck, frame, [0.151, 0.147, 0.547], [side * 0.194, -0.030, 0.001], 0.023);
@@ -76,6 +76,11 @@ export function makeSecurityBot(group: THREE.Group) {
     for (let vent = 0; vent < 5; vent += 1) {
       block(deck, rubber, [0.098, 0.005, 0.013], [side * 0.151, 0.127, 0.052 + vent * 0.026], 0.001);
     }
+  }
+  shell(deck,frame,[0,0,.04],[[-.13,.17,.23,0],[.045,.314,.32,0],[.15,.23,.26,.021]]);
+  for(const side of [-1,1]) {
+    shell(deck,armor,[side*.22,.07,.13],[[0,.095,.15,0],[.12,.106,.155,.02],[.18,.073,.091,.05]]);
+    rod(turret,rim,[side*.10,.14,.052],[side*.18,.32,.13],.034,.012,6);
   }
   block(deck, armor, [0.478, 0.223, 0.524], [0, 0, 0], 0.053);
   block(deck, frame, [0.242, 0.091, 0.460], [0, -0.111, 0.003], 0.025);

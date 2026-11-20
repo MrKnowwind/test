@@ -5,6 +5,7 @@ import type { MapInteraction, Vec3 } from '../contracts/demo.ts';
 import { box, cable, cylinder, label, mesh, strut } from './detail/geometry.ts';
 import { createMaterialLibrary, enamel, paving, emissive } from './detail/materialLibrary.ts';
 import { createShippingContainer, foldedSheet } from './detail/createShippingContainer.ts';
+import { buildPortBlocks } from './portBlocks.ts';
 import { addArcology } from './arcology.ts';
 import { portHauler } from './detail/portHauler.ts';
 import { buildRoads } from './roads.ts';
@@ -680,6 +681,7 @@ export function createEnvironment() {
     lamp([x, 3.47, z + 2], 0x85efed, 6);
   }
   addArcology(staticRoot, m, solid);
+  buildPortBlocks(staticRoot, m, solids, solid);
   addPortHorizon(allStatic, m);
   for(const interaction of mapInteractions) addPickup(interaction);
 

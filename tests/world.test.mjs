@@ -222,3 +222,12 @@ test('freight court links the transfer shed, supply gate and both sides of the p
   walk([-72,0,95],[[-72,82],[-77,82],[-77,75],[-72,75],[-72,51]]);
   walk([-72,0,95],[[-72,85],[-68,85],[-68,75],[-72,75]]);
 });
+
+test('street blocks leave a continuous ground-floor passage under every upper floor',async()=>{
+  const {portBlocks}=await import('../src/world/portBlocks.ts');
+  for(const [x,z,,depth] of portBlocks) {
+    const south=z+depth/2+.8,north=z-depth/2-.8;
+    walk([x,0,south],[[x,north],[x,south]]);
+    assert.ok(map.blockedDistance([x,1.65,z],[0,1,0],4)!==null);
+  }
+});

@@ -122,3 +122,46 @@ button:disabled { opacity: .5; cursor: default; }
 #container-content #search-status {font-size:11px;color:#aeccbf;}
 
 .source-item .item-icon {width:30px;height:22px;margin:0 auto 2px;}
+
+/* Port authority field terminal: porcelain panels, navy instruments and signal orange. */
+#overlay {background:linear-gradient(90deg,#142844b8,transparent 75%);padding:clamp(16px,5vw,74px);align-content:center}
+.panel,.bag-window {color:#203652;background:#e7efeb;border:1px solid #b1d3d5;border-top:6px solid #43a79f;
+  box-shadow:0 14px 45px #10223c66;position:relative}
+.panel {max-width:435px;padding:26px 31px 23px;background:linear-gradient(118deg,#f4f4e9 5%,#ddebea 85%);border-radius:3px 28px 3px 3px;max-height:94vh;overflow:auto}
+.panel::before,.bag-window header::before {content:'';display:block;width:40px;height:28px;background:
+  linear-gradient(120deg,transparent 0 17%,#23405c 18% 32%,transparent 33% 40%,#358f91 41% 55%,transparent 56% 63%,#f68c66 64% 78%,transparent 79%);float:left;margin-right:9px}
+.panel .eyebrow,.bag-window .eyebrow {color:#246d74}
+#stage {line-height:28px}
+.panel h1 {clear:both;font-weight:950;color:#1c3353;font-size:clamp(36px,4.2vw,62px);margin:11px 0;letter-spacing:-.06em}
+#summary,.panel .quality-control,.controls,#warehouse {color:#385269}
+#controls {border-top:1px dashed #93afaf;margin-top:16px;padding-top:12px;font-size:13px}
+#controls summary {cursor:pointer;font-weight:700;color:#2c5368}.controls {margin-top:12px}
+.panel kbd,.bag-window kbd {border-color:#839caa;background:#f2f6ee;color:#264761}
+.panel .warehouse {border:0;border-left:4px solid #ec976d;background:#c5dcdd8c;padding:10px 12px;margin:16px 0 7px}
+#market-stock button {background:#eff4ee;color:#2d4760;display:flex;align-items:center}
+#market-stock .item-icon {width:31px;height:31px;margin:0 6px 0 0}
+.panel .actions {margin-top:14px}.panel button,.bag-window button:not(.bag-item,.bag-cell,.source-item) {background:#254762;color:#f1fcf8;border-color:#375a73}
+#primary {background:#f59669;border:0;border-bottom:3px solid #b86649;color:#203751;min-width:52%}
+.mission,.weapon,.vitals,.routes,.compass,.hud-hint,#notice,#prompt {color:#e1f3f2;background:linear-gradient(110deg,#233d59f2,#23374fe8);border:0;border-left:3px solid #81dfd1;border-radius:2px 10px 2px 2px;text-shadow:none}
+.weapon {border-color:#ff956d}.weapon strong,.stat strong {color:#fff5df}.health-track {height:6px;background:#40536b}
+#health-bar {background:repeating-linear-gradient(90deg,#71d4c3 0 17px,#29696e 17px 19px)}
+.compass {padding:4px 13px;border-left:0;border-bottom:2px solid #7ec8c0}
+.route span:first-child::before {content:'◆';font-size:9px;color:#77ddcd;margin-right:6px}.route[data-blocked] span:first-child::before {color:#eaa17a}
+#tactical-map {border:2px solid #8abec1;border-top:6px solid #69bcb4}
+.bag-window {width:min(960px,96vw);padding:18px 22px;max-height:95vh;overflow:auto;border-radius:2px 22px 2px 2px}
+.bag-window header {border-color:#98b5ba;justify-content:flex-start;gap:8px}.bag-window header::before {flex:none}.bag-window header button {margin-left:auto}
+.bag-window h2 {font-weight:850}.bag-window h3 {color:#334f6a;font-size:14px;font-weight:750}
+.equipment > div {background:#cddfde;color:#243f58;border-left:3px solid #669b9f;min-height:52px;position:relative}
+.equipment small,.bag-help,#bag-size,#container-content,#selected-item,#bag-feedback,#container-content #search-status {color:#385971}
+.equipment .item-icon {float:right;width:45px;height:40px}
+.bag-cell,.source-cell {background:linear-gradient(145deg,#263e58,#2d4860);border:1px solid #47647a}
+.bag-item,#container-content .source-item.revealed {display:grid;place-items:center;padding:0;background:linear-gradient(135deg,#354c64,color-mix(in srgb,var(--item-color),#273957 65%));border-bottom:3px solid var(--item-color)}
+.bag-item .item-icon,.source-item .item-icon {width:88%;height:88%;max-width:80px;max-height:80px;margin:0;filter:drop-shadow(0 2px 1px #09162977)}
+.stack-count {position:absolute;bottom:0;right:2px;font:700 11px monospace;color:white;background:#243c50d9;padding:0 2px}
+@media(max-width:780px){.bag-columns{grid-template-columns:auto 1fr;gap:10px}.equipment{grid-column:1/-1;display:flex;align-items:center;gap:5px}.equipment>div{flex:1;padding:5px;min-height:32px}.equipment small{padding:2px}.equipment .item-icon{width:26px;height:26px}.hud-hint{display:none}}
+.operator-card {position:absolute;right:clamp(18px,5vw,85px);bottom:8vh;width:clamp(160px,18vw,255px);border:2px solid #a6d6d4;background:repeating-linear-gradient(125deg,#31536b 0 23px,#375b70 23px 24px);border-radius:2px 24px 3px 3px;overflow:hidden;box-shadow:0 10px 32px #142a4959}
+.operator-card div {border-top:4px solid #f69975;background:#e4ece6;color:#234261;padding:10px 13px;display:grid;gap:4px;font-size:13px}.operator-card b{font-size:17px}
+.operator-portrait {width:100%;display:block;object-fit:contain}.equipment .operator-portrait {max-height:145px;background:linear-gradient(145deg,#739b9e,#324a64);border-bottom:3px solid #ef9871;margin-bottom:7px}
+#error {color:#943d36}
+@media(max-width:590px){.bag-columns{grid-template-columns:1fr}.equipment{flex-wrap:wrap}.bag-window h3{margin-top:8px}.bag-container{grid-column:1}.bag-window{max-height:96vh}#bag-grid{--cell:clamp(34px,12vw,50px)}}
+@media(max-width:780px),(max-height:480px){.operator-card,.equipment .operator-portrait{display:none}}

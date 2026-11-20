@@ -8,6 +8,7 @@ export function createInput(canvas: HTMLCanvasElement) {
   let aiming = false;
   let lookX = 0;
   let lookY = 0;
+  let acceptLook = false;
 
   const locked = () => document.pointerLockElement === canvas;
   function clear() {
@@ -29,9 +30,13 @@ export function createInput(canvas: HTMLCanvasElement) {
     clear();
     if (locked()) document.exitPointerLock();
   });
-  document.addEventListener('pointerlockchange', clear);
+  document.addEventListener('pointerlockchange', () => {
+    clear();
+    acceptLook = locked();
+  });
   document.addEventListener('mousemove', (event) => {
-    if (!locked()) return;
+    // Chromium can send cursor-recentering deltas before pointerlockchange is delivered.
+    if (!acceptLook || !locked()) return;
     lookX += event.movementX;
     lookY += event.movementY;
   });

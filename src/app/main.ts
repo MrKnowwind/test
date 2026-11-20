@@ -7,6 +7,7 @@ import { createEnemyVisual } from '../presentation/enemyVisuals.ts';
 import { createViewmodel } from '../presentation/viewmodel.ts';
 import { createRaid } from '../raid/raid.ts';
 import { createWarehouse } from '../raid/warehouse.ts';
+import { itemIcon } from '../ui/itemArt.ts';
 import { createGameView, itemName } from '../ui/gameView.ts';
 import { createFirstMap } from '../world/firstMap.ts';
 import { createRendering } from './rendering.ts';
@@ -16,6 +17,7 @@ import { createBackpackView } from '../ui/backpackView.ts';
 import { addSearchContainers } from './containers.ts';
 import type { ItemId } from '../contracts/demo.ts';
 import { itemSpecs } from '../raid/backpack.ts';
+import { renderOperatorPortrait } from '../presentation/operator.ts';
 import { styleCharacter } from '../presentation/celShading.ts';
 import { presentationMaterialsReady } from '../presentation/finishes.ts';
 import '../ui/game.css';
@@ -106,6 +108,7 @@ function startGame() {
     },
     discard(id) { run.raid.backpack.remove(id); },
   });
+  renderOperatorPortrait(renderer);
   let run = prepareRun();
 
   function prepareRun() {
@@ -244,6 +247,7 @@ function startGame() {
       const item = id as ItemId;
       const button = document.createElement('button');
       button.textContent = `变卖 ${itemName(item)} ×1 · ${itemSpecs[item].price} 券（持有 ${quantity}）`;
+      button.prepend(itemIcon(item));
       button.dataset.sell = item;
       button.onclick = async () => {
         button.disabled = true;

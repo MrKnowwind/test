@@ -1,30 +1,14 @@
 import * as THREE from 'three';
 import { batchRigid, block, curvedSkin, oval, part, pivot, rod, surface } from './modelParts.ts';
 import type { Point } from './modelParts.ts';
-import { applyFinish } from './finishes.ts';
+import { pigment, shell } from './shell.ts';
 import { fingerGeometry, palmGeometry } from './handGeometry.ts';
 
-const slideSteel = surface(0x30383d, 0.37, 0.72);
-const wornSteel = surface(0x68716d, 0.38, 0.78);
-const blueSteel = surface(0x20272b, 0.44, 0.56);
-const polymer = surface(0x2a2e2c, 0.74);
-const gunRubber = surface(0x191c1e, 0.86);
-const bore = surface(0x0a0d0f, 0.95);
-const brass = surface(0xb5914e, 0.42, 0.63);
-const sightPaint = surface(0xb9d0a3, 0.78);
-sightPaint.emissiveIntensity = 0.16;
-sightPaint.emissive.setHex(0x778d60);
-
-const sleeve = surface(0x526052, 0.91);
-const cloth = surface(0x697466, 0.86);
-const webbing = surface(0x414636, 0.88);
-const glove = surface(0x34342e, 0.86);
-const gloveSeam = surface(0x3e4037, 0.89);
-const knuckle = surface(0x252b29, 0.75);
-for (const material of [sleeve, cloth, webbing]) applyFinish(material, 'fabric');
-for (const material of [glove, gloveSeam]) applyFinish(material, 'rubber');
-for (const material of [knuckle, polymer, gunRubber]) applyFinish(material, 'polymer');
-for (const material of [slideSteel, wornSteel, blueSteel]) applyFinish(material, 'metal');
+const slideSteel=pigment(0xe6eef1), wornSteel=pigment(0x9cb5d3), blueSteel=pigment(0x34466c);
+const polymer=pigment(0x38798c), gunRubber=pigment(0x243650), bore=pigment(0x192639);
+const brass=pigment(0xffab65), sightPaint=pigment(0x74ffeb,.54), signal=pigment(0xfd785e);
+const sleeve=pigment(0x336f88), cloth=pigment(0x96e9df), webbing=pigment(0xec795e);
+const glove=pigment(0x344765), gloveSeam=pigment(0x7ad0c7), knuckle=pigment(0xddedf0);
 
 function slideSection(parent: THREE.Object3D, length: number, z: number) {
   const shape = new THREE.Shape();
@@ -48,8 +32,8 @@ function pistolStamp(parent: THREE.Object3D) {
   const canvas = document.createElement('canvas');
   canvas.width = 512; canvas.height = 96;
   const ctx = canvas.getContext('2d')!;
-  ctx.fillStyle = '#8b9690';
-  ctx.font = '500 42px monospace'; ctx.fillText('SL-9  /  9×19', 12, 43);
+  ctx.fillStyle = '#253653';
+  ctx.font = '500 42px monospace'; ctx.fillText('SALTLINE  /  03', 12, 43);
   ctx.font = '24px monospace'; ctx.fillText('SALTLINE  S-01482', 12, 80);
   const map = new THREE.CanvasTexture(canvas);
   map.colorSpace = THREE.SRGBColorSpace;
@@ -57,7 +41,7 @@ function pistolStamp(parent: THREE.Object3D) {
   for (const side of [-1, 1]) {
     const label = new THREE.Mesh(new THREE.PlaneGeometry(.065, .0122),
       new THREE.MeshStandardMaterial({ map, transparent: true, roughness: .79, depthWrite: false }));
-    label.position.set(side * .021, .001, -.119);
+    label.position.set(side * .0312, .003, -.119);
     label.rotation.y = side * Math.PI / 2;
     parent.add(label);
   }
@@ -125,6 +109,17 @@ export function makePistol(parent: THREE.Object3D) {
   // The shell is split around the ejection port so the barrel is visible through it.
   slideSection(slide, .119, -.124);
   slideSection(slide, .056, .002);
+  // Split ceramic shroud and luminous side cartridges. Leave the sight channel open.
+  for(const side of [-1,1]) {
+    const casing=shell(slide,slideSteel,[side*.020,0,-.106],[
+      [-.024,.006,.051,.006],[-.012,.011,.083,0],[.009,.011,.083,0],[.023,.005,.058,.003]]);
+    casing.rotation.z=side*.06;
+    block(slide,blueSteel,[.004,.015,.066],[side*.031,.003,-.074],.002);
+    for(const z of [-.091,-.074,-.057])
+      block(slide,sightPaint,[.004,.008,.009],[side*.034,.004,z],.001);
+    block(slide,signal,[.015,.027,.028],[side*.021,.002,.009],.004);
+    block(slide,sightPaint,[.009,.008,.004],[side*.024,.003,.024],.002);
+  }
   pistolStamp(slide);
   // Separate the striker plate and rear dovetail from the machined slide shell.
   block(slide, blueSteel, [.026, .027, .0015], [0, -.001, .0328], .002);
@@ -178,15 +173,19 @@ export function makeKnife(parent: THREE.Object3D) {
   const blade = new THREE.Shape();
   blade.moveTo(-0.019, 0);
   blade.lineTo(0.022, 0);
-  blade.lineTo(0.023, 0.117);
-  blade.quadraticCurveTo(0.019, 0.160, -0.008, 0.201);
+  blade.lineTo(.035,.077);
+  blade.lineTo(.026,.093);
+  blade.lineTo(.032,.112);
+  blade.lineTo(.016,.153);
+  blade.lineTo(-.014,.207);
   blade.lineTo(-0.019, 0.133);
   blade.lineTo(-0.019, 0);
   const forged = new THREE.ExtrudeGeometry(blade, {
     depth: 0.004, bevelEnabled: true, bevelThickness: 0.002,
     bevelSize: 0.003, bevelSegments: 3, curveSegments: 16,
   });
-  part(body, forged, wornSteel, [0, 0.001, -0.056]).rotation.x = -Math.PI / 2;
+  part(body, forged, sightPaint, [0, 0.001, -0.056]).rotation.x = -Math.PI / 2;
+  block(body, signal, [.045,.022,.042],[0,0,-.046],.006);
   block(body, slideSteel, [0.016, 0.002, 0.142], [-0.004, 0.006, -0.131], 0.0008);
   block(body, blueSteel, [0.064, 0.015, 0.017], [0, 0, -0.054], 0.004);
   block(body, gunRubber, [0.032, 0.026, 0.111], [0, 0, 0.012], 0.006);
@@ -292,6 +291,12 @@ export function makeForearm(parent: THREE.Object3D) {
   }
   sleeveGeometry.computeVertexNormals();
   part(arm, sleeveGeometry, sleeve, [0, 0, 0]);
+  shell(arm,knuckle,[0,0,0],[[.21,.048,.051,0],[.30,.052,.056,0],[.66,.042,.047,0],[.79,.032,.037,0]]);
+  shell(arm,webbing,[0,0,0],[[.66,.041,.047,0],[.70,.042,.046,0]]);
+  for(const side of [-1,1]) {
+    block(arm,blueSteel,[.012,.22,.037],[side*.041,.51,.01],.005);
+    block(arm,sightPaint,[.004,.13,.015],[side*.048,.51,.01],.002);
+  }
   for (const side of [-1, 1]) {
     const points: Point[] = Array.from({ length: 12 }, (_, i) => {
       const t = .13 + i / 11 * .72;

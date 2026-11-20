@@ -1,54 +1,12 @@
 import * as THREE from 'three';
-import { batchRigid, block, curvedSkin, ease, oval, part, pivot, rod, surface } from './modelParts.ts';
-import { applyFinish, faceAlbedo } from './finishes.ts';
-import { infectedHeadGeometry, tornClothGeometry } from './infectedGeometry.ts';
+import { batchRigid, block, curvedSkin, ease, oval, pivot, rod } from './modelParts.ts';
+import { pigment, shell } from './shell.ts';
 import type { Point } from './modelParts.ts';
 import type { EnemyState } from '../contracts/demo.ts';
 
-const coveralls = surface(0x3e5153, 0.91);
-const trousers = surface(0x3a403f, 0.95);
-const leather = surface(0x282b28, 0.88);
-const skin = surface(0x8a8773, 0.81);
-const lesions = surface(0x5d4540, 0.76);
-const tendon = surface(0x8d7867, 0.76);
-const dirtyTape = surface(0x8c805c, 0.91);
-const socket = new THREE.MeshStandardMaterial({ color: 0x221f1d, roughness: .96 });
-for (const material of [coveralls, trousers, dirtyTape]) applyFinish(material, 'fabric');
-for (const material of [skin, tendon, lesions]) applyFinish(material, 'skin');
-applyFinish(leather, 'leather');
-
-// Project the generated facial albedo onto the actual head surface; the sides fade to the shared skin.
-const faceSkin = skin.clone();
-if (faceAlbedo) {
-  faceSkin.onBeforeCompile = shader => {
-    shader.uniforms.infectedFaceColor = { value: faceAlbedo };
-    shader.vertexShader = shader.vertexShader.replace('#include <common>', `#include <common>
-      varying vec2 vInfectedFaceUv;
-      varying float vInfectedFaceBlend;`);
-    shader.vertexShader = shader.vertexShader.replace('#include <begin_vertex>', `#include <begin_vertex>
-      float y = position.y;
-      float v;
-      if (y >= .129) v = mix(.61, 1.0, (y - .129) / .106);
-      else if (y >= .093) v = mix(.395, .61, (y - .093) / .036);
-      else if (y >= .043) v = mix(.21, .395, (y - .043) / .05);
-      else v = mix(0.0, .21, (y + .029) / .072);
-      float x = position.x - .003 * exp(-pow((y - .07) / .09, 2.0));
-      vInfectedFaceUv = clamp(vec2(x / .17 + .5, v), 0.002, .998);
-      vInfectedFaceBlend = smoothstep(.005, .055, -position.z);`);
-    shader.fragmentShader = shader.fragmentShader.replace('#include <common>', `#include <common>
-      uniform sampler2D infectedFaceColor;
-      varying vec2 vInfectedFaceUv;
-      varying float vInfectedFaceBlend;`);
-    shader.fragmentShader = shader.fragmentShader.replace('#include <map_fragment>', `
-      #ifdef USE_MAP
-        vec4 sampledSkin = texture2D(map, vMapUv);
-        vec4 sampledFace = texture2D(infectedFaceColor, vInfectedFaceUv);
-        diffuseColor *= mix(sampledSkin, sampledFace, vInfectedFaceBlend);
-      #endif`);
-  };
-  faceSkin.customProgramCacheKey = () => 'infected-facial-projection-v1';
-}
-
+const coveralls=pigment(0x364277), trousers=pigment(0x394061), leather=pigment(0x222940);
+const skin=pigment(0xa884cc), tendon=pigment(0xff9e96), lesions=pigment(0xad4c99);
+const ivory=pigment(0xe9dee3), visor=pigment(0x35244e), core=pigment(0xff676d,.65);
 type Ring = readonly [height: number, x: number, z: number, radiusX: number, radiusZ: number, blend: number];
 
 function bone(parent: THREE.Object3D, at: Point) {
@@ -56,18 +14,6 @@ function bone(parent: THREE.Object3D, at: Point) {
   joint.position.set(...at);
   parent.add(joint);
   return joint;
-}
-
-function scarTissue(parent: THREE.Object3D, material: THREE.MeshStandardMaterial, size: Point, at: Point) {
-  const geometry = new THREE.SphereGeometry(1, 32, 24);
-  const p = geometry.getAttribute('position');
-  for (let i = 0; i < p.count; i++) {
-    const x = p.getX(i), y = p.getY(i), z = p.getZ(i);
-    const distortion = 1 + .06 * Math.sin(x * 9 + y * 11) * Math.cos(z * 13 - x * 4);
-    p.setXYZ(i, x * size[0] * distortion, y * size[1] * distortion, z * size[2] * distortion);
-  }
-  geometry.computeVertexNormals();
-  return part(parent, geometry, material, at);
 }
 
 // Build a smooth skin around the rest skeleton. Each ring blends between two adjacent bones.
@@ -174,64 +120,22 @@ export function makeInfected(group: THREE.Group) {
     [0.84, 0, 0.002, 0.136, 0.084, 0],
   ]);
   rod(chest, skin, [.017, .286, -.022], [.017, .423, -.032], .068, .050, 28);
-  const tornPocket = part(chest, tornClothGeometry(.143, .135), coveralls, [-.105, .126, -.128]);
-  tornPocket.rotation.set(-.09, -.18, -.09);
-  block(chest, dirtyTape, [.068, .013, .003], [-.121, .174, -.139], .001);
-  block(chest, leather, [.009, .287, .006], [.006, .127, -.133], .002).rotation.x = -.08;
-  block(chest, dirtyTape, [.006, .018, .005], [.006, .152, -.143], .001);
-  scarTissue(chest, lesions, [.037, .083, .007], [.127, .137, -.124]);
-  const tornFront = part(chest, tornClothGeometry(.082, .171, .011), coveralls, [.098, .175, -.140]);
-  tornFront.rotation.set(-.14, .45, -.20);
-  rod(chest, leather, [-.170, .287, -.075], [-.073, -.065, -.119], .013, .010, 12);
-  block(chest, leather, [.084, .102, .028], [-.114, -.009, .119], .010).rotation.z = .12;
-  for (let stitch = 0; stitch < 17; stitch++) {
-    const y = -.09 + stitch * .022;
-    block(chest, dirtyTape, [.001, .004, .001], [-.062, y, -.129 + Math.abs(y) * .07]);
+  // Fractured diving helmet and a bioluminescent jaw on the animated face bones.
+  shell(head,ivory,[0,0,0],[[-.005,.077,.072,0],[.06,.138,.117,0],[.183,.148,.122,.009],[.244,.096,.087,.024]]);
+  shell(head,visor,[0,.045,-.055],[[0,.069,.059,-.016],[.048,.130,.091,-.009],[.114,.132,.082,0],[.14,.099,.053,0]]);
+  for(const side of [-1,1]) {
+    const eye=block(head,core,[.078,.02,.012],[side*.064,.134,-.153],.006);
+    eye.rotation.z=side*.24;
+    const fang=shell(jaw,lesions,[side*.075,0,-.073],[[-.043,.009,.013,-.018],[.047,.042,.043,0],[.077,.031,.034,0]]);
+    fang.rotation.z=side*.19;
   }
-  // A distorted respirator strap and split industrial collar connect the face to its former workwear.
-  for (const side of [-1, 1]) {
-    const collar = block(chest, coveralls, [.081, .047, .016], [side * .066, .297, -.073], .006);
-    collar.rotation.z = side * -.31;
+  for(const [x,y,h,lean] of [[-.10,.17,.19,.38],[.10,.16,.092,-.26],[-.034,.21,.12,.20]]) {
+    const shard=shell(head,lesions,[x,y,.022],[[0,.052,.044,0],[h*.37,.044,.042,.015],[h,.005,.006,.054]]);
+    shard.rotation.z=lean;
   }
-  block(hips, leather, [0.329, 0.047, 0.192], [0, 0.028, 0], 0.02);
-  block(hips, dirtyTape, [.038, .025, .009], [-.043, .027, -.110], .004);
-
-  const skull = part(head, infectedHeadGeometry(), faceSkin, [0, 0, 0]);
-  skull.name = 'infected-head';
-  const sclera = surface(0x9d9d84, .38);
-  const iris = surface(0x494c3b, .46);
-  for (const side of [-1, 1]) {
-    // Flattened eyes seated inside the sculpted socket, with a narrow lid opening.
-    oval(head, socket, [.014, .005, .004], [side * .033 + .003, .128, -.066]);
-    oval(head, sclera, [.0105, .0032, .004], [side * .033 + .003, .128, -.070]);
-    oval(head, iris, [.0035, .0034, .0018], [side * .033 + .002, .128, -.074]);
-    oval(head, socket, [.0016, .0021, .001], [side * .033 + .002, .128, -.0758]);
-    for (const lid of [-1, 1]) curvedSkin(head, skin,
-      [[side * .033 - .012, .128, -.069], [side * .033 + .003, .128 + lid * .005, -.074],
-        [side * .033 + .017, .128, -.067]], [.001, .0025, .001], 12);
-    oval(head, socket, [.0037, .002, .002], [side * .010, .085, -.102]);
-  }
-  curvedSkin(head, socket, [[-.025, .043, -.078], [.004, .042, -.083], [.030, .045, -.074]],
-    [.0006, .0016, .0006], 16);
-  for (const side of [-1, 1]) {
-    const ear = new THREE.SphereGeometry(1, 16, 16);
-    ear.scale(.012, .027, .016);
-    part(head, ear, skin, [side * .083, .112, .003]).rotation.z = side * -.10;
-    curvedSkin(head, lesions, [[side * .090, .13, -.005], [side * .094, .109, -.010], [side * .087, .092, -.005]],
-      [.0015, .002, .001, .0005], 8);
-  }
-  const respirator = surface(0x2b332f, .86);
-  // The torn respirator hangs below the chin from a thin woven strap.
-  curvedSkin(head, leather, [[-.077, .13, .004], [-.083, .026, -.027], [-.035, -.031, -.052], [.071, .015, -.009]],
-    [.003, .003, .003, .001], 10);
-  const mask = oval(head, respirator, [.040, .023, .020], [-.033, -.023, -.059]);
-  mask.rotation.z = -.35;
-  const filter = rod(head, respirator, [-.049, -.023, -.066], [-.059, -.028, -.092], .012, .015, 24);
-  filter.rotation.z = -.25;
-  for (let slit = -2; slit <= 2; slit++) {
-    block(head, socket, [.015, .0013, .002], [-.059, -.028 + slit * .004, -.093], .0004);
-  }
-
+  shell(chest,ivory,[0,.09,-.015],[[0,.114,.125,0],[.13,.207,.135,0],[.207,.188,.108,.005]]);
+  shell(chest,core,[0,.12,-.155],[[0,.018,.013,0],[.069,.047,.026,0],[.113,.026,.017,0]]);
+  shell(hips,leather,[0,.01,0],[[0,.173,.109,0],[.058,.185,.119,0]]);
   for (const [index, { shoulder, elbow, hand }] of arms.entries()) {
     const side = index === 0 ? -1 : 1;
     const bulk = index === 0 ? .073 : .077;
@@ -246,15 +150,14 @@ export function makeInfected(group: THREE.Group) {
       [1.01, side * 0.272, -0.028, 0.046, 0.045, 1],
       [0.93, side * 0.278, -0.033, 0.034, 0.032, 1],
     ]);
-    if (index === 1) {
-      const sleeve = part(shoulder, tornClothGeometry(.125, .15, .008), coveralls, [.009, -.052, -.060]);
-      sleeve.rotation.set(.04, .1, -.10);
-      for (let node = 0; node < 4; node += 1) {
-        scarTissue(shoulder, lesions,
-          [.006, .027, .003], [.009 + node * .011, -.096 - node * .023, -.068 + node * .003]);
+    const armor=index===1?lesions:ivory;
+    const cap=shell(shoulder,armor,[side*.011,0,0],[[-.123,.078,.087,0],[-.012,.115,.112,0],[.064,.067,.070,.009]]);
+    cap.rotation.z=side*.24;
+    if(index===1) {
+      for(const [y,h] of [[-.045,.17],[-.14,.12]]) {
+        const spur=shell(elbow,lesions,[.055,y,.012],[[0,.047,.046,0],[h*.4,.033,.037,0],[h,.004,.005,.024]]);
+        spur.rotation.z=-.78;
       }
-    } else {
-      block(shoulder, dirtyTape, [0.020, 0.044, 0.076], [-0.067, -0.095, -0.008], 0.006);
     }
     oval(hand, skin, [.034, .060, .023], [0, -.039, -.001]);
     for (let finger = 0; finger < 4; finger += 1) {
@@ -287,20 +190,11 @@ export function makeInfected(group: THREE.Group) {
       [0.210, side * 0.133, 0.005, 0.058, 0.053, 1],
       [0.108, side * 0.130, -0.009, 0.049, 0.052, 1],
     ]);
-    const pocket = part(thigh, tornClothGeometry(.112, .163), trousers, [side * .046, -.173, -.083]);
-    pocket.rotation.y = side * -.35;
-    rod(thigh, leather, [side * .071, -.052, .028], [side * .056, -.30, .025], .0025, .002, 8);
-    block(knee, leather, [.099, .101, .022], [0, .004, -.061], .023).rotation.z = side * .11;
-    block(knee, trousers, [.074, .073, .006], [0, .005, -.077], .014).rotation.z = side * .11;
-    rod(knee, leather, [-.068, .034, 0], [.068, .034, 0], .009, .009, 12);
-    for (let lace = 0; lace < 4; lace++) {
-      const z = -.10 + lace * .026;
-      rod(foot, dirtyTape, [-.035, .025, z], [.035, .023, z + .02], .0024, .0024, 6);
-    }
+    shell(knee,ivory,[0,0,-.032],[[-.14,.046,.046,0],[-.03,.079,.062,-.006],[.045,.063,.050,0]]);
     block(foot, leather, [0.119, 0.091, 0.214], [0, -0.024, -0.049], 0.025);
     block(foot, leather, [.085, .062, .135], [0, .009, -.054], .022);
-    for (let tread = 0; tread < 5; tread++) block(foot, socket, [.103,.009,.017], [0,-.083,-.132+tread*.038], .003);
-    block(foot, socket, [0.121, 0.021, 0.217], [0, -0.073, -0.049], 0.007);
+    for (let tread = 0; tread < 5; tread++) block(foot, visor, [.103,.009,.017], [0,-.083,-.132+tread*.038], .003);
+    block(foot, visor, [0.121, 0.021, 0.217], [0, -0.073, -0.049], 0.007);
     rod(foot, leather, [0, -.011, .016], [0, .079, .016], .054, .045, 24);
     curvedSkin(foot, trousers, [[-.048, -.038, -.137], [0, -.023, -.149], [.048, -.038, -.137]],
       [.001, .0015, .0015, .001], 8);
@@ -346,7 +240,7 @@ export function makeInfected(group: THREE.Group) {
     const stride = Math.sin(phase) * gait;
 
     rig.position.set(0, 0, 0);
-    rig.rotation.set(dead * -0.09, dead * 1.35, dead * -1.55, 'ZYX');
+    rig.rotation.set(0, dead * Math.PI / 2, -dead * Math.PI / 2, 'ZYX');
     pose(chest,-0.18 + windup * 0.24 - attack * 0.49 - recover + damage * 0.25,
       windup * 0.42 - attack * 0.24 + stride * 0.075, -0.09 - dead * 0.15, dt);
     chest.position.z = THREE.MathUtils.damp(chest.position.z, -attack * .12, 12, dt);
