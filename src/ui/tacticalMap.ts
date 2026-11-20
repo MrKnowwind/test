@@ -2,6 +2,8 @@ import { supplySites } from '../world/supplySites.ts';
 import { mapBounds } from '../world/worldQueries.ts';
 import type { FirstMap, Vec3 } from '../contracts/demo.ts';
 
+import { roads } from '../world/roads.ts';
+
 export function createTacticalMap() {
   const panel = document.querySelector<HTMLElement>('#tactical-map')!;
   const canvas = document.querySelector<HTMLCanvasElement>('#map-canvas')!;
@@ -35,6 +37,12 @@ export function createTacticalMap() {
       ctx.font = '13px monospace';
       ctx.fillStyle = '#a2b9bb';
       ctx.fillText('N ↑   /   SECTOR MAP', 605, 48);
+      ctx.fillStyle = '#477382';
+      for (const road of roads) {
+        const [left, top] = project(road.x1, road.z1);
+        const [right, bottom] = project(road.x2, road.z2);
+        ctx.fillRect(left, top, right - left, bottom - top);
+      }
       for (const region of map.regions ?? []) {
         const [x, z] = project(region.center[0], region.center[2]);
         ctx.fillStyle = region.center[1] < -2 ? '#71d6d01c' : '#9eaaa91b';

@@ -25,14 +25,23 @@ export function createSky() {
       void main() {
         vec3 d=normalize(skyDirection);
         float height=smoothstep(-.07,.8,d.y);
-        vec3 color=mix(vec3(.095,.143,.161),vec3(.009,.024,.043),height);
-        float glow=pow(max(0.,dot(d,normalize(vec3(-.8,.04,.7)))),12.);
-        color+=vec3(.13,.086,.038)*glow;
-        vec2 cloudUV=d.xz/(max(.08,d.y+.24))*2.;
-        float clouds=fbm(cloudUV*1.4);
-        float layer=smoothstep(.40,.72,clouds)*smoothstep(-.02,.19,d.y);
-        color=mix(color,color*.42+vec3(.011,.018,.024),layer*.72);
-        color+=vec3(.028,.035,.038)*smoothstep(.5,.72,clouds)*glow;
+        vec3 color=mix(vec3(.62,.81,.96),vec3(.095,.36,.67),height);
+        vec2 uv=d.xz/max(.11,d.y+.16);
+        float cloud=fbm(uv*vec2(.87,2.2));
+        float edge=smoothstep(.54,.548,cloud)*smoothstep(.0,.13,d.y);
+        vec3 cloudPaint=mix(vec3(.68,.77,.89),vec3(1.,.97,.90),smoothstep(.58,.59,cloud));
+        color=mix(color,cloudPaint,edge*.84);
+        vec3 planet=normalize(vec3(.38,.37,-.85));
+        float disc=dot(planet,d);
+        float band=dot(d-planet,normalize(vec3(.3,.9,.1)));
+        vec3 planetColor=mix(vec3(.60,.67,.89),vec3(.88,.86,.97),step(-.012,band));
+        color=mix(color,planetColor,smoothstep(.9954,.9956,disc)*.85);
+        vec3 axis=normalize(vec3(1.,-.25,.28));
+        vec3 across=normalize(cross(axis,planet));
+        vec2 ring=vec2(dot(d,axis)-dot(planet,axis),dot(d,across));
+        float ellipse=length(ring/vec2(.158,.025));
+        if(disc>.97 && (disc<.9955 || ring.y<0.))
+          color=mix(color,vec3(.94,.87,.88),1.-smoothstep(.04,.12,abs(ellipse-1.)));
         gl_FragColor=vec4(color,1.);
         #include <tonemapping_fragment>
         #include <colorspace_fragment>

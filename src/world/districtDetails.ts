@@ -9,7 +9,7 @@ type SolidBuilder = (at: Vec3, size: Vec3, material: THREE.Material, bevel?: num
 export function addDistrictDetails(root: THREE.Group, m: Materials, solid: SolidBuilder) {
   const paint = m.steel, trim = m.zinc;
   const glass = new THREE.MeshStandardMaterial({ color: 0x587276, metalness: .2, roughness: .28 });
-  const b = (at: Vec3, size: Vec3, mat = paint, bevel = .015) => box(root, mat, ...size, ...at, bevel);
+  const b = (at: Vec3, size: Vec3, mat: THREE.Material = paint, bevel = .015) => box(root, mat, ...size, ...at, bevel);
   const beam = (a: Vec3, c: Vec3, width = .12) => strut(root, trim, new THREE.Vector3(...a), new THREE.Vector3(...c), width);
   function sign(x: number, y: number, z: number, title: string, note: string) {
     const plate = label(root, 4.8, 1.15, (ctx,w,h) => {
@@ -46,12 +46,15 @@ export function addDistrictDetails(root: THREE.Group, m: Materials, solid: Solid
       solid([x+side*w/2,4.1,z],[.14,3.8,d],paint,.02);
       for(let dz=-d/2;dz<=d/2;dz+=5) {
         solid([x+side*w/2,3.1,z+dz],[.22,6.2,.24],trim,.012);
-        b([x+side*(w/2+.1),3.6,z+dz+2],[.05,.9,2.7],glass);
+        if (dz + 3.35 < d/2) b([x+side*(w/2+.1),3.6,z+dz+2],[.05,.9,2.7],glass);
       }
       for(const y of [2.3,5.9]) b([x+side*(w/2+.15),y,z],[.09,.1,d+.5],trim);
       const roof=b([x+side*w/4,6.5,z],[w/2+.6,.17,d+.9],paint);
       roof.rotation.z=-side*.08;
-      for(let dz=-d/2;dz<d/2;dz+=2) b([x+side*w/4,6.65,z+dz],[w/2+.5,.08,.06],trim);
+      for(let dz=-d/2;dz<d/2;dz+=5) {
+        const rib=b([x+side*w/4,6.61,z+dz],[w/2+.5,.08,.12],trim);
+        rib.rotation.z=roof.rotation.z;
+      }
       // Two generous openings: loading at either end of the same aisle.
       for(const dz of [-d/2,d/2]) solid([x+side*(w/4+2),2.9,z+dz],[w/2-4,5.8,.25],paint,.02);
     }
@@ -100,7 +103,7 @@ export function addDistrictDetails(root: THREE.Group, m: Materials, solid: Solid
     b([-78,5.51,z],[1.3,.03,.28],lens);
   }
   bench(-84,-13); cabinet(-92,17); cabinet(-64,-13);
-  for(const [x,z] of [[-97,29],[-100,32],[-63,29],[-58,-25],[-104,-28]]) pallet(x,0,z);
+  for(const [x,z] of [[-97,36],[-100,38],[-64,38],[-58,-25],[-104,-28]]) pallet(x,0,z);
   // Workshop lean-to opens toward the transfer road, with real structural support.
   solid([-48,1.7,7],[.2,3.4,14],m.concrete,.03);
   solid([-41,1.7,0],[14,3.4,.2],paint,.02);
@@ -127,7 +130,7 @@ export function addDistrictDetails(root: THREE.Group, m: Materials, solid: Solid
 
 /** Visual-only world beyond the walkable boundary. No downloaded maps or models. */
 export function addPortHorizon(root: THREE.Group,m: Materials) {
-  const ocean = new THREE.MeshStandardMaterial({ color:0x2c434b, metalness:.32, roughness:.32 });
+  const ocean = new THREE.MeshStandardMaterial({ color:0x46a8b5, metalness:.32, roughness:.32 });
   const water = new THREE.PlaneGeometry(900,1800,100,150);
   water.rotateX(-Math.PI/2);
   const p=water.getAttribute('position');
@@ -159,7 +162,7 @@ export function addPortHorizon(root: THREE.Group,m: Materials) {
     for(let i=0;i<12;i++)strut(root,m.steel,new THREE.Vector3(-302+i*8,42+i*.58,z),new THREE.Vector3(-294+i*8,45+(i+1)*.58,z),.2);
     cable(root,m.rubber,[[-218,48,z],[-218,27,z],[-218,12,z]],.065);
   }
-  const rock=new THREE.MeshStandardMaterial({color:0x46564e,roughness:1});
+  const rock=new THREE.MeshStandardMaterial({color:0x8496b8,roughness:1});
   for(const [cx,cz,yaw] of [[25,-320,0],[328,-20,Math.PI/2],[20,285,0]]) {
     const terrain=new THREE.PlaneGeometry(680,210,80,24);terrain.rotateX(-Math.PI/2);
     const points=terrain.getAttribute('position');
@@ -172,20 +175,4 @@ export function addPortHorizon(root: THREE.Group,m: Materials) {
     terrain.computeVertexNormals();
     const object=mesh(root,terrain,rock,cx,-5,cz);object.rotation.y=yaw;
   }
-  // Sparse dry growth breaks up unused ground; road approaches and buildings remain clear.
-  const grass=new THREE.MeshStandardMaterial({color:0x65654d,roughness:1,side:THREE.DoubleSide});
-  const vertices:number[]=[];
-  for(let x=-145;x<220;x+=18) for(let z=-200;z<150;z+=19) {
-    if([-115,60,175,-24,-4,-120,149,-129,-151].some(r=>Math.abs(x-r)<5) ||
-      [155,95,27,-42,-100].some(r=>Math.abs(z-r)<6)) continue;
-    if((x<-30&&z>-40&&z<80)||(x>-24&&x<55&&z>-30&&z<60)||
-      (x>70&&x<155&&z>-180&&z<0)||(x>-14&&x<50&&z<-95&&z>-180)) continue;
-    for(let blade=0;blade<18;blade++) {
-      const bx=x+Math.sin(blade*7+x)*2,bz=z+Math.cos(blade*11+z)*2;
-      const h=.16+(.5+.5*Math.sin(blade*4.1+x))*.35;
-      vertices.push(bx-.035,.02,bz,bx+.035,.02,bz,bx+.12,h,bz+.08);
-    }
-  }
-  const growth=new THREE.BufferGeometry();growth.setAttribute('position',new THREE.Float32BufferAttribute(vertices,3));growth.computeVertexNormals();
-  mesh(root,growth,grass);
 }

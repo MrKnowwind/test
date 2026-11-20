@@ -172,3 +172,27 @@ test('districts retain alternate approaches from the opposite side of the road n
  walk([116,0,-56],[[116,-10]]);
  walk([-4,0,-90],[[-4,-95],[40.5,-95],[40.5,-132]]);
 });
+
+test('lab threshold has no rendered panel in the traversable opening at eye height', async()=>{
+  const {Raycaster,Vector3}=await import('three');
+  map.scene.updateMatrixWorld(true);
+  for(const x of [38.55,40.5,40.9,42.5]) {
+    const origin=[x,-3.75,-152.5],direction=[0,0,1];
+    assert.equal(map.blockedDistance(origin,direction,3),null);
+    const ray=new Raycaster(new Vector3(...origin),new Vector3(...direction),0,3);
+    assert.equal(ray.intersectObject(map.scene,true).length,0,'rendered obstruction at '+x);
+  }
+});
+
+test('every search case rests on a support surface and remains level after searching',async()=>{
+  const {addSearchContainers}=await import('../src/app/containers.ts');
+  const cases=addSearchContainers(map);
+  for(const item of map.interactions.filter(item=>item.kind==='loot')){
+    const drop=map.blockedDistance(item.position,[0,-1,0],1);
+    assert.notEqual(drop,null,'no surface below '+item.id);
+    const model=map.scene.getObjectByName('container-'+item.id);
+    assert.ok(Math.abs(model.position.y+drop-item.position[1])<.001,item.id);
+    cases.searched(item.id);
+    assert.equal(model.rotation.z,0,item.id);
+  }
+});

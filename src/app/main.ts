@@ -16,7 +16,7 @@ import { createBackpackView } from '../ui/backpackView.ts';
 import { addSearchContainers } from './containers.ts';
 import type { ItemId } from '../contracts/demo.ts';
 import { itemSpecs } from '../raid/backpack.ts';
-import { createPuddles } from './puddles.ts';
+import { styleCharacter } from '../presentation/celShading.ts';
 import { presentationMaterialsReady } from '../presentation/finishes.ts';
 import '../ui/game.css';
 
@@ -37,8 +37,8 @@ function startGame() {
   renderer.autoClear = false;
   renderer.info.autoReset = false;
   const worldScene = new THREE.Scene();
-  worldScene.background = new THREE.Color(0x3a505c);
-  worldScene.fog = new THREE.FogExp2(0x3a505c, 0.003);
+  worldScene.background = new THREE.Color(0xb2cde1);
+  worldScene.fog = new THREE.FogExp2(0xb2cde1, 0.0042);
 
   const weaponScene = new THREE.Scene();
   const camera = new THREE.PerspectiveCamera(62, 1, 0.035, 1100);
@@ -111,8 +111,6 @@ function startGame() {
   function prepareRun() {
     const seed = nextSeed();
     const map = createFirstMap(seed);
-    const puddles = createPuddles();
-    map.scene.add(puddles);
     const containers = addSearchContainers(map);
     map.scene.traverse((object) => {
       if (!(object instanceof THREE.Mesh)) return;
@@ -125,6 +123,7 @@ function startGame() {
     camera.updateProjectionMatrix();
     const viewmodel = createViewmodel();
     viewmodel.group.traverse((object) => object.layers.set(1));
+    styleCharacter(viewmodel.group);
     camera.add(viewmodel.group);
     const frame = combat.snapshot();
     const enemies = new Map<string, ReturnType<typeof createEnemyVisual>>();
@@ -133,6 +132,7 @@ function startGame() {
       visual.group.traverse(object => {
         if (object instanceof THREE.Mesh) object.castShadow = object.receiveShadow = true;
       });
+      styleCharacter(visual.group);
       enemies.set(enemy.id, visual);
       map.scene.add(visual.group);
       updateEnemy(visual, enemy, 0);
@@ -143,9 +143,7 @@ function startGame() {
     notice = '';
     accumulator = noticeTime = hitTime = hurtTime = 0;
     dirty = true;
-    puddles.castShadow = puddles.receiveShadow = false;
-    puddles.visible = document.querySelector<HTMLSelectElement>('#quality')!.value === 'high';
-    return { map, raid, combat, player, viewmodel, enemies, frame, containers, puddles, searched: new Set<string>() };
+    return { map, raid, combat, player, viewmodel, enemies, frame, containers, searched: new Set<string>() };
   }
 
   function disposeRun() {
@@ -229,7 +227,6 @@ function startGame() {
   window.addEventListener('storage', refreshMarket);
   document.querySelector<HTMLSelectElement>('#quality')!.addEventListener('change', (event) => {
     rendering.setQuality((event.target as HTMLSelectElement).value);
-    run.puddles.visible = (event.target as HTMLSelectElement).value === 'high';
     resize();
   });
   canvas.addEventListener('webglcontextlost', (event) => {

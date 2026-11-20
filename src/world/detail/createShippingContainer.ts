@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { box, cylinder, label, mergeRigidDetails, mesh } from './geometry.ts';
 import type { Materials } from './materialLibrary.ts';
-import { createProceduralMaterialSet } from './proceduralMaps.ts';
+import { enamel } from './materialLibrary.ts';
 import { randomSequence } from './noise.ts';
 
 export const containerSize = { w: 2.44, h: 2.59, d: 6.06 };
@@ -30,7 +30,7 @@ export function foldedSheet(width: number, height: number, ribs: number, rise: n
   return geometry;
 }
 
-const sideSheet = foldedSheet(5.84, 2.31, 22, .037);
+const sideSheet = foldedSheet(5.84, 2.31, 5, .037);
 const backSheet = foldedSheet(2.22, 2.31, 8, .035);
 const doorSheet = foldedSheet(1.02, 2.04, 3, .022);
 const roofSheet = foldedSheet(5.83, 2.22, 21, .028);
@@ -39,9 +39,8 @@ const cornerSlot = new THREE.MeshStandardMaterial({ color: 0x11191b, roughness: 
 export function createShippingContainer(materials: Materials, { code, seed, tint, doors = true }: Options) {
   const root = new THREE.Group();
   const { w, h, d } = containerSize;
-  const skin = createProceduralMaterialSet({ kind: 'paint', seed, tint, size: 512 });
-  const frame = createProceduralMaterialSet({ kind: 'paint', seed: seed + 15,
-    tint: tint.map(c => Math.round(c * .74)) as [number, number, number] });
+  const skin = enamel(new THREE.Color(`rgb(${tint.join(',')})`));
+  const frame = materials.steel;
   const panels: THREE.Mesh[] = [];
   const body = box(root, frame, w - .151, h - .13, d - .12, 0, h / 2, 0);
   body.castShadow = true;
@@ -49,6 +48,13 @@ export function createShippingContainer(materials: Materials, { code, seed, tint
     const panel = mesh(root, sideSheet, skin, side * (w / 2 - .062), h / 2, 0);
     panel.rotation.y = side * Math.PI / 2;
     panels.push(panel);
+    for (const z of [-2.1, 2.1]) {
+      const rib = box(root, materials.ceramic, .12, 2.24, .23, side * 1.19, 1.29, z, .04);
+      rib.rotation.x = z < 0 ? -.18 : .18;
+    }
+    box(root, frame, .13, .45, 2.3, side * 1.17, 1.44, 0, .07);
+    box(root, materials.safety, .025, .085, 1.78, side * 1.245, 1.47, 0);
+
     for (const y of [.107, h - .098]) {
       box(root, frame, .108, .15, d - .17, side * (w / 2 - .061), y, 0, .009);
       box(root, skin, .021, .024, d - .22, side * (w / 2 - .006), y + .052, 0, .004);

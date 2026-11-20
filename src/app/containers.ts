@@ -1,38 +1,36 @@
 import * as THREE from 'three';
-import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
-import type { FirstMap } from '../contracts/demo.ts';
+import type { FirstMap, ItemId } from '../contracts/demo.ts';
+import { box } from '../world/detail/geometry.ts';
+import { enamel, emissive } from '../world/detail/materialLibrary.ts';
 
 export function addSearchContainers(map: FirstMap & { scene: THREE.Group }) {
-  const shell = new THREE.MeshStandardMaterial({ color: 0x48534b, roughness: .57, metalness: .34 });
-  const band = new THREE.MeshStandardMaterial({ color: 0x9b9b84, roughness: .5, metalness: .66 });
-  const rubber = new THREE.MeshStandardMaterial({ color: 0x202828, roughness: .87 });
-  const panels = new Map<string, THREE.Group>();
-  const geometry = new RoundedBoxGeometry(.64, .24, .4, 2, .025);
-  for (const interaction of map.interactions) {
-    if (interaction.kind !== 'loot') continue;
-    const item = map.scene.getObjectByName(interaction.id);
-    if (item) item.visible = false;
-    const root = new THREE.Group();
-    root.position.set(...interaction.position);
-    root.position.y -= .05;
-    root.name = `container-${interaction.id}`;
-    const body = new THREE.Mesh(geometry, shell);
-    body.castShadow = body.receiveShadow = true;
-    root.add(body);
-    for (const x of [-.24, .24]) {
-      const strap = new THREE.Mesh(new THREE.BoxGeometry(.043, .263, .421), band);
-      strap.position.x = x; root.add(strap);
-      const latch = new THREE.Mesh(new RoundedBoxGeometry(.075, .071, .035, 1, .006), rubber);
-      latch.position.set(x, .03, .218); root.add(latch);
-    }
-    const handle = new THREE.Mesh(new THREE.TorusGeometry(.066, .011, 8, 14, Math.PI), band);
-    handle.position.set(0, .075, .221);
-    root.add(handle);
+  const shell=enamel(0xdde9eb), seal=enamel(0x263957);
+  const colors: Record<ItemId,number> = {
+    'service-card':0xf3bc5a, 'medkit':0x56d7cc, 'salvage':0x87acc1,
+    'research-sample':0xb399ef, 'pistol-ammo':0xff875f,
+  };
+  const bands = new Map(Object.entries(colors).map(([k,v])=>[k,enamel(v)]));
+  const live = emissive(0x8affdc,.6), idle=enamel(0x486079);
+  const indicators = new Map<string,THREE.Mesh>();
+  for(const item of map.interactions) {
+    if(item.kind!=='loot') continue;
+    const loose=map.scene.getObjectByName(item.id);
+    if(loose) loose.visible=false;
+    const root=new THREE.Group();
+    root.name='container-'+item.id;
+    root.position.set(...item.position);
+    const support=map.blockedDistance(item.position,[0,-1,0],1);
+    if(support!==null) root.position.y-=support;
+    const accent=bands.get(item.item)!;
+    box(root,seal,.64,.07,.4,0,.035,0,.023);
+    box(root,shell,.67,.18,.42,0,.146,0,.045).castShadow=true;
+    box(root,accent,.69,.072,.435,0,.236,0,.026);
+    for(const x of [-.24,.24]) box(root,seal,.059,.1,.035,x,.194,.21,.009);
+    indicators.set(item.id,box(root,live,.17,.035,.025,0,.153,.211,.007));
     map.scene.add(root);
-    panels.set(interaction.id, root);
   }
-  return { searched(id: string) {
-    const root = panels.get(id);
-    if (root) root.rotation.z = -.07;
-  } };
+  return {searched(id:string) {
+    const indicator=indicators.get(id);
+    if(indicator) indicator.material=idle;
+  }};
 }

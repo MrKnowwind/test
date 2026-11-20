@@ -21,8 +21,8 @@ export function createRendering(renderer: THREE.WebGLRenderer, world: THREE.Scen
   world.environmentIntensity = .22;
   weapons.environmentIntensity = .65;
   world.add(createSky());
-  const sky = new THREE.HemisphereLight(0xaac8dc, 0x4b4438, .68);
-  const sun = new THREE.DirectionalLight(0xeacda6, 1.3);
+  const sky = new THREE.HemisphereLight(0xd9f5ff, 0x9d9dc4, 1.2);
+  const sun = new THREE.DirectionalLight(0xffecd0, 2.0);
   sun.castShadow = true;
   sun.shadow.mapSize.set(2048, 2048);
   sun.shadow.camera.left = sun.shadow.camera.bottom = -38;
@@ -72,7 +72,7 @@ export function createRendering(renderer: THREE.WebGLRenderer, world: THREE.Scen
     render(underground: boolean) {
       // A roof suppresses directional sky and sun underground. Indoor fixtures provide local light.
       sun.visible = !underground;
-      sky.intensity = underground ? .10 : .68;
+      sky.intensity = underground ? .65 : 1.2;
       world.environmentIntensity = underground ? .10 : .22;
       sun.target.position.set(camera.position.x, 0, camera.position.z);
       sun.position.set(camera.position.x - 38, 68, camera.position.z + 22);
