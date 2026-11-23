@@ -92,7 +92,7 @@ export function addSearchContainers(map: FirstMap & { scene: THREE.Group }) {
     remove(id: string) {
       const g = loose.get(id);
       if (g) {
-        g.visible = false;
+        g.removeFromParent();
         loose.delete(id);
       }
     },

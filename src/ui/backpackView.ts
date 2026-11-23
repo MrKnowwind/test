@@ -113,7 +113,7 @@ export function createBackpackView(actions: Action) {
     old.textContent = '落地 · ' + itemSpecs[bag.equipped.item].name;
     next.textContent = '穿戴 · ' + itemSpecs[item].name;
     area.append(old, next);
-    const contents = bag.entries.filter((e) => !pockets.some((s) => s.id === e.section));
+    const contents = bag.entries.filter(e => !(from==='carried' && e.id===id) && !pockets.some(s=>s.id===e.section));
     diagram(old, bag.sections.slice(3), contents);
     diagram(next, packs[item], id === undefined && target?.kind === 'loose' ? (source?.entries ?? []) : []);
     const note = document.createElement('p');
@@ -213,7 +213,7 @@ export function createBackpackView(actions: Action) {
       b.draggable = true;
       b.ondragstart = (event) => {
         dragging = true;
-        choose();
+        if(selected?.from!==from || selected.id!==e.id)choose();
         event.dataTransfer?.setData('text/plain', String(e.id));
       };
       b.ondblclick = () => {
@@ -376,7 +376,7 @@ export function createBackpackView(actions: Action) {
       if (e) b.prepend(itemIcon(key));
       b.draggable = !!e;
       b.ondragstart = (ev) => {
-        choose();
+        if(selected?.from!=='slot'||selected.entry.item!==key)choose();
         dragging = true;
         ev.dataTransfer?.setData('text/plain', key);
       };

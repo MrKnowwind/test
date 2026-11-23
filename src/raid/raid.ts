@@ -151,6 +151,14 @@ export function createRaid(runId: string, seed: number, map: RaidMap) {
     ground.set(id, c);
     return t;
   }
+  function removeGround(id: string) {
+    ground.delete(id);
+    search.containers.delete(id);
+    if(id.startsWith('drop-')){
+      const index=targets.findIndex(t=>t.id===id);
+      if(index!==-1)targets.splice(index,1);
+    }else consumed.add(id);
+  }
   function groundContainer(id: string) {
     const c = ground.get(id);
     if (!c || !isPack(c.item)) return;
@@ -186,9 +194,7 @@ export function createRaid(runId: string, seed: number, map: RaidMap) {
       const owner = ground.get(from);
       if (owner) owner.contents = owner.contents?.filter((entry) => entry.id !== id);
     } else {
-      ground.delete(from);
-      consumed.add(from);
-      search.containers.delete(from);
+      removeGround(from);
     }
     log.first ??= itemSpecs[c.item].name;
     const old = backpack.swap(c);
@@ -200,9 +206,7 @@ export function createRaid(runId: string, seed: number, map: RaidMap) {
     const c = ground.get(id);
     if (result || !c || !backpack.receive(c)) return false;
     log.first ??= itemSpecs[c.item].name;
-    ground.delete(id);
-    consumed.add(id);
-    search.containers.delete(id);
+    removeGround(id);
     return true;
   }
   function dropCarried(id: number, at: Vec3) {
