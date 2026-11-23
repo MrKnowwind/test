@@ -8,9 +8,10 @@ export interface BagEntry extends Placement {
   issued?: number;
   instance?: string;
   loaded?: number;
+  durability?:number;
   contents?: BagEntry[];
 }
-export type Cargo = Pick<BagEntry, 'item' | 'quantity' | 'issued' | 'instance' | 'loaded' | 'contents'>;
+export type Cargo = Pick<BagEntry, 'item' | 'quantity' | 'issued' | 'instance' | 'loaded' | 'durability' | 'contents'>;
 export function dimensions(entry: Pick<BagEntry, 'item' | 'rotated'>) {
   const { w, h } = itemSpecs[entry.item];
   return entry.rotated ? [h, w] : [w, h];
@@ -80,6 +81,7 @@ export function createBackpack(width = 6, height = 5, personal = false) {
       const quantity = Math.min(n, limit),
         free = Math.min(quantity, issued);
       const cargo: Cargo = { item: c.item, quantity, issued: free, instance: c.instance, loaded: c.loaded };
+      if(c.item==='healing-injector')cargo.durability=c.durability??3;
       const spot = p
         ? { ...cargo, x: p.x, y: p.y, rotated: p.rotated, id: -1, section: locate(p.section)?.id }
         : firstRoom(cargo, draft);

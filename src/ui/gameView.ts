@@ -77,7 +77,8 @@ export function createGameView() {
         ? (list(result.items) || '本局携带栏为空。')
         : '未带出：'+(list(result.lost??{})||'空'));
       summary.textContent+='　出击 '+Math.floor(result.seconds??0)+' 秒 · 搜索 '+(result.visited?.length??0)+' 处'+(result.damage?' · 最近受伤：'+result.damage:'');
-      const value=Object.entries(result.items).reduce((n,[id,q])=>n+itemSpecs[id as ItemId].price*q,0);
+      const wear=(result.instances??[]).reduce((v,e)=>v+(e.item==='healing-injector'?30*(3-(e.durability??3)):0),0);
+      const value=-wear+Object.entries(result.items).reduce((n,[id,q])=>n+itemSpecs[id as ItemId].price*q,0);
       if(result.outcome==='extracted')summary.textContent+=' · 预计变卖 '+value+' 券';
       const log=result.log;
       if(log)summary.textContent+='　种子 '+result.seed+' · '+(spawnNames[result.spawn??'']??'')+' · 首件 '+(log.first??'无')+' · 实发 '+log.shots+' / 命中 '+log.hits+' / 击倒 '+log.kills+' / 用药 '+log.heals+(log.cancellations.length?' · 计时取消：'+log.cancellations.join('、'):'');

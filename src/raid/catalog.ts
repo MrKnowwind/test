@@ -9,6 +9,7 @@ function spec(name: string, w: number, h: number, price: number, tag: Tag, rank:
 }
 export const itemSpecs = {
   'pistol-ammo': spec('9mm 弹药', 1, 1, 8, 'ammo', 0, 60),
+  'healing-injector': spec('基础治疗针剂',1,2,90,'medical',1),
   medkit: spec('急救包', 2, 2, 75, 'medical', 1),
   'service-card': spec('维修卡', 1, 1, 40, 'shipping', 0),
   salvage: spec('工业零件', 2, 2, 140, 'mechanical', 2),

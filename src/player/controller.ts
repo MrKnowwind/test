@@ -41,7 +41,7 @@ export function createPlayer(camera: PerspectiveCamera, world: WorldQueries, spa
       yaw -= input.lookX * sensitivity * lookScale;
       pitch = MathUtils.clamp(pitch - input.lookY * sensitivity * lookScale, -1.45, 1.45);
       const { strafe, forward } = input;
-      const speed = aiming ? 2.55 : input.running && forward > 0 ? 6.25 : 4.15;
+      const speed = input.quiet ? 2 : aiming ? 2.55 : input.running && forward > 0 ? 6.25 : 4.15;
       const scale = speed * dt / Math.max(1, Math.hypot(strafe, forward));
       const previous = feet;
       if (world.moveBody && world.groundHeight) {
@@ -101,7 +101,7 @@ export function findInteraction(
     const [x, y, z] = interaction.position;
     const dx = x - eye[0], dy = y - eye[1], dz = z - eye[2];
     const distance = Math.hypot(dx, dy, dz);
-    if (distance < 0.01 || distance > 2.7) continue;
+    if (distance < 0.01 || distance > 3) continue;
     const direction: Vec3 = [dx / distance, dy / distance, dz / distance];
     const alignment = direction[0] * aim[0] + direction[1] * aim[1] + direction[2] * aim[2];
     const score = alignment - distance * 0.08;

@@ -14,7 +14,7 @@ type Action = {
   close(): void;
   take(id: string, entry: number, p?: Placement): boolean;
   use(id: number): boolean;
-  discard(id: number): void;
+  discard(id: number): boolean;
   equip(from: string, id?: number): boolean;
   fold(from: string): boolean;
   unpack(): boolean;
@@ -30,7 +30,7 @@ export function createBackpackView(actions: Action) {
   <div class="bag-columns"><div class="equipment"><h3>装备</h3><canvas class="operator-portrait"></canvas><div id="loadout"></div></div>
   <div><h3>随身空间 <span id="bag-size"></span></h3><div id="carry-grids"></div></div>
   <div class="bag-container"><h3 id="container-title">物品详情</h3><div id="container-content"></div><div id="selected-item"></div><div class="bag-actions"></div></div></div>
-  <p class="bag-help">单击选择、再点格子放置，或拖放 · R 旋转 · 双击已揭示物品快取</p><p id="bag-feedback" role="status"></p>
+  <p id="bag-danger" role="status"></p><p class="bag-help">单击选择、再点格子放置，或拖放 · R 旋转 · 双击已揭示物品快取</p><p id="bag-feedback" role="status"></p>
   <dialog class="swap-preview"><h3>确认换包</h3><div class="swap-comparison"></div><button value="cancel">返回</button> <button value="confirm">确认装备</button></dialog></div>`;
   document.body.append(panel);
   const q = (s: string) => panel.querySelector<HTMLElement>(s)!;
@@ -140,6 +140,7 @@ export function createBackpackView(actions: Action) {
       ' 格 · ' +
       spec.price +
       ' 券' +
+      (s.entry.durability!==undefined?' · 剩余 '+s.entry.durability+'/3':'')+
       (s.entry.loaded !== undefined ? ' · 弹匣 ' + s.entry.loaded : '');
     const bar = q('.bag-actions');
     bar.replaceChildren();
@@ -156,11 +157,8 @@ export function createBackpackView(actions: Action) {
       return;
     }
     if (spec.tag === 'weapon') action('放回武器栏', () => actions.holster(s.id));
-    if (s.entry.item === 'medkit') action('使用', () => actions.use(s.id));
-    action('放到地上', () => {
-      actions.discard(s.id);
-      return true;
-    });
+    if (['medkit','healing-injector'].includes(s.entry.item)) action('使用', () => actions.use(s.id));
+    button(bar,'放到地上',()=>{if(actions.discard(s.id)){clearSelection();refresh();msg('已放到地上');}else msg('附近地面物品太多，请换个位置');});
   }
   function transfer(p?: Placement) {
     const s = selected;
@@ -222,7 +220,7 @@ export function createBackpackView(actions: Action) {
         choose();
         if (from === 'source') transfer();
         else if (isPack(e.item)) requestEquip(e.item, 'carried', e.id);
-        else if (e.item === 'medkit' && actions.use(e.id)) {
+        else if (['medkit','healing-injector'].includes(e.item) && actions.use(e.id)) {
           clearSelection();
           refresh();
         }
@@ -431,6 +429,7 @@ export function createBackpackView(actions: Action) {
       panel.hidden = false;
       refresh();
     },
+    risk(message:string){q('#bag-danger').textContent=message;},
     hide() {
       if (dialog.open) dialog.close();
       panel.hidden = true;

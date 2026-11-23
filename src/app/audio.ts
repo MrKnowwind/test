@@ -21,7 +21,7 @@ export function createAudio() {
     }
     return context;
   }
-  function burst(duration: number, volume: number, cutoff: number, tone?: number) {
+  function burst(duration: number, volume: number, cutoff: number, tone?: number, pan=0) {
     if (!context || context.state !== 'running' || !noise) return;
     const at = context.currentTime;
     const source = context.createBufferSource();
@@ -32,7 +32,8 @@ export function createAudio() {
     const gain = context.createGain();
     gain.gain.setValueAtTime(volume, at);
     gain.gain.exponentialRampToValueAtTime(.0001, at + duration);
-    source.connect(filter).connect(gain).connect(context.destination);
+    const stereo=context.createStereoPanner();stereo.pan.value=Math.max(-1,Math.min(1,pan));
+    source.connect(filter).connect(gain).connect(stereo).connect(context.destination);
     source.start(at); source.stop(at + duration);
     if (tone) {
       const oscillator = context.createOscillator();
@@ -55,7 +56,7 @@ export function createAudio() {
     footstep(surface: 'metal' | 'concrete' | 'gravel') {
       burst(surface==='metal'?.13:.08,.018,surface==='metal'?2100:surface==='concrete'?1300:700,surface==='metal'?220:undefined);
     },
-    warning(mechanical: boolean, distance: number) { burst(.17,.04*Math.max(0,1-distance/25),mechanical?2600:600,mechanical?780:90); },
+    warning(mechanical: boolean, distance: number, pan:number) { burst(.17,.04*Math.max(0,1-distance/25),mechanical?2600:600,mechanical?780:90,pan); },
     environment(active: boolean, underground: boolean, coast: boolean) {
       if(!context||!ambience||!environmentFilter) return;
       ambience.gain.setTargetAtTime(active?(underground?.0018:coast?.008:.003):0,context.currentTime,.5);

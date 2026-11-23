@@ -1,5 +1,7 @@
 import type { Combat, CombatFrame, CombatInput, EnemySpawn, WeaponState, WorldQueries } from '../contracts/demo.ts';
 import { createEnemy } from '../enemies/createEnemy.ts';
+import {soundPath,distance} from '../enemies/perception.ts';
+import type {Vec3} from '../contracts/demo.ts';
 import { strike } from './targeting.ts';
 
 const MAX_HEALTH = 100;
@@ -24,6 +26,15 @@ export function createCombat(world: WorldQueries, spawns: readonly EnemySpawn[],
   };
   const agents = spawns.map((spawn) => createEnemy(world, spawn));
   const enemies = agents.map(({ state }) => state);
+  let hitOrigin:Vec3|undefined,noiseTime=0;
+  let previousNoise:{point:Vec3;time:number;radius:number}|undefined;
+  function emitNoise(point:Vec3,radius:number){
+    if(previousNoise && noiseTime-previousNoise.time<1.5 && radius<=previousNoise.radius && distance(point,previousNoise.point)<2.5)return;
+    previousNoise={point:[...point],time:noiseTime,radius};
+    const listeners=agents.filter(a=>a.state.health>0 && distance(a.state.position,point)<=radius)
+      .map(agent=>({agent,d:soundPath(world,agent.state.position,point)})).filter(a=>a.d<=radius).sort((a,b)=>a.d-b.d);
+    for(const {agent} of listeners.slice(0,2))agent.hear(point);
+  }
   let lastHit:EnemySpawn['kind']|undefined;
   let attackHeld = false;
   let attackCooldown = 0;
@@ -99,6 +110,7 @@ export function createCombat(world: WorldQueries, spawns: readonly EnemySpawn[],
           feedback = 'empty';
         } else {
           weapon.loaded -= 1;
+          emitNoise(input.playerFeet,28);
           attackCooldown = SHOT_INTERVAL;
           startAction('firing', SHOT_INTERVAL);
           feedback = strike(world, enemies, input.eye, input.aimDirection, PISTOL_RANGE, PISTOL_DAMAGE, input.muzzle);
@@ -110,7 +122,7 @@ export function createCombat(world: WorldQueries, spawns: readonly EnemySpawn[],
 
   function snapshot(): CombatFrame {
     const frame: CombatFrame = {
-      health,lastHit,
+      health,lastHit,hitOrigin,
       weapon: { ...weapon },
       enemies: enemies.map((enemy) => ({ ...enemy, position: [...enemy.position] })),
     };
@@ -123,12 +135,14 @@ export function createCombat(world: WorldQueries, spawns: readonly EnemySpawn[],
     update(dt, input) {
       feedback = undefined;
       if (health <= 0) return snapshot();
+      noiseTime+=dt;
+      if(input.stepRadius)emitNoise(input.playerFeet,input.stepRadius);
       syncEquipment();
-      if(!weapon.unarmed)updateWeapon(dt,input);
+      if(input.treating){reloadRequested=false;startAction('ready');weapon.aiming=false;attackHeld=input.attackPressed;}else if(!weapon.unarmed)updateWeapon(dt,input);
       if(kit?.slots.pistol)kit.slots.pistol.loaded=weapon.loaded;
       for (const agent of agents) {
         const damage=agent.update(dt,input);
-        if(damage>0){lastHit=agent.state.kind;health=Math.max(0,health-damage);}
+        if(damage>0){hitOrigin=[...agent.state.position];lastHit=agent.state.kind;health=Math.max(0,health-damage);}
         if (health === 0) {
           reloadRequested = false;
           startAction('ready');

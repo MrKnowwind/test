@@ -10,7 +10,7 @@ const botPosts: readonly Vec3[] = [[20, lab.y, -31.2], [9.7, lab.y, -35.6], [-4,
 function placeEnemies(seed: number): EnemySpawn[] {
   const infected: readonly Vec3[] = [
     [-35, -.8, 0], [-52, -.8, -14], [-42, -.8, -28],
-    [-21, 0, -13], [3, 0, 11], [13, 0, 15], [33, 0, 24], [53, 0, -5],
+    [-21, 0, -13], [3, 0, 11], [-78, 0, -8], [33, 0, 24], [53, 0, -5],
     [12, 0, -33], [28, 0, -36], [5.5, lab.y, -29], [22.5, lab.y, -34],
   ];
   const mixed = Math.imul((seed >>> 0) ^ 0x74e13ca9, 0x45d9f3b);

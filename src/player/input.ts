@@ -8,10 +8,12 @@ export function createInput(canvas: HTMLCanvasElement) {
   let aiming = false;
   let lookX = 0;
   let lookY = 0;
+  let medicineDown:number|undefined,medicineRelease:'quick'|'confirm'|undefined;
   let acceptLook = false;
 
   const locked = () => document.pointerLockElement === canvas;
   function clear() {
+    medicineDown=medicineRelease=undefined;
     keys.clear();
     pressed.clear();
     attack = attackHeld = aiming = false;
@@ -21,11 +23,14 @@ export function createInput(canvas: HTMLCanvasElement) {
   window.addEventListener('keydown', (event) => {
     if (!locked()) return;
     if (event.code === 'Escape') document.exitPointerLock();
-    if (!event.repeat) pressed.add(event.code);
-    if (event.code === 'Tab' || event.code === 'Space') event.preventDefault();
+    if (!event.repeat){pressed.add(event.code);if(event.code==='Digit5')medicineDown=performance.now();}
+    if (event.code === 'Tab' || event.code === 'Space'||event.code.startsWith('Arrow')) event.preventDefault();
     keys.add(event.code);
   });
-  window.addEventListener('keyup', (event) => keys.delete(event.code));
+  window.addEventListener('keyup', event=>{
+    keys.delete(event.code);
+    if(event.code==='Digit5' && medicineDown!==undefined){medicineRelease=performance.now()-medicineDown>=330?'confirm':'quick';medicineDown=undefined;}
+  });
   window.addEventListener('blur', () => {
     clear();
     if (locked()) document.exitPointerLock();
@@ -60,6 +65,11 @@ export function createInput(canvas: HTMLCanvasElement) {
         forward: Number(keys.has('KeyW')) - Number(keys.has('KeyS')),
         strafe: Number(keys.has('KeyD')) - Number(keys.has('KeyA')),
         running: keys.has('ShiftLeft') || keys.has('ShiftRight'),
+        quiet: keys.has('KeyC'),
+        medicineHeld: medicineDown!==undefined && performance.now()-medicineDown>=330,
+        medicineRelease,
+        medicineCycle:Number(pressed.has('ArrowRight')||pressed.has('ArrowDown'))-Number(pressed.has('ArrowLeft')||pressed.has('ArrowUp')),
+        healPressed: pressed.has('KeyH'),
         lookX, lookY, aiming, switchTo,
         attackPressed: attack || attackHeld,
         reloadPressed: pressed.has('KeyR'),
@@ -68,7 +78,7 @@ export function createInput(canvas: HTMLCanvasElement) {
         backpackPressed: pressed.has('Tab'),
         jumpPressed: pressed.has('Space'),
       };
-      pressed.clear();
+      medicineRelease=undefined;pressed.clear();
       attack = false;
       lookX = lookY = 0;
       return frame;

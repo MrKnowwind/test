@@ -10,7 +10,18 @@ export function createWarehouse(getStorage: () => Storage) {
   function account() {
     const raw = getStorage().getItem(accountKey);
     const parsed = raw ? JSON.parse(raw) : {};
-    return { credits: Math.max(0, Number(parsed.credits) || 0), sold: (parsed.sold ?? {}) as Inventory };
+    return { credits: Math.max(0, Number(parsed.credits) || 0), sold: (parsed.sold ?? {}) as Inventory, used: (parsed.used??[]) as string[] };
+  }
+  function injectors(){
+    const storage=getStorage(),used=new Set(account().used),stock:{instance:string;durability:number}[]=[];
+    for(let i=0;i<storage.length;i++){
+      const key=storage.key(i);if(!key?.startsWith(prefix))continue;
+      let data;try{data=JSON.parse(storage.getItem(key)??'null');}catch{continue;}
+      for(const entry of Array.isArray(data?.instances)?data.instances:[]){
+        if(entry.item==='healing-injector' && entry.instance && !used.has(entry.instance))stock.push(entry);
+      }
+    }
+    return stock;
   }
   let pending = Promise.resolve(true);
   function sellOne(item: ItemId) {
@@ -18,7 +29,12 @@ export function createWarehouse(getStorage: () => Storage) {
       if (!itemSpecs[item] || (api.read()?.[item] ?? 0) < 1) return false;
       const current = account();
       current.sold[item] = (current.sold[item] ?? 0) + 1;
-      current.credits += itemSpecs[item].price;
+      let price=itemSpecs[item].price;
+      if(item==='healing-injector'){
+        const next=injectors()[0];if(!next)return false;
+        price=30*next.durability;current.used.push(next.instance);
+      }
+      current.credits+=price;
       getStorage().setItem(accountKey, JSON.stringify(current));
       return true;
     } catch { return false; }
@@ -63,6 +79,7 @@ export function createWarehouse(getStorage: () => Storage) {
         return undefined;
       }
     },
+    price(item:ItemId){try{return item==='healing-injector'?(injectors()[0]?.durability??0)*30:itemSpecs[item].price;}catch{return 0;}},
     credits() {
       try { return account().credits; } catch { return 0; }
     },

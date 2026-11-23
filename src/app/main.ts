@@ -1,4 +1,7 @@
 import * as THREE from 'three';
+import {createMedicineWheel} from '../ui/medicineWheel.ts';
+import {createTreatment} from '../combat/treatment.ts';
+import {soundPath} from '../enemies/perception.ts';
 import { createCombat } from '../combat/createCombat.ts';
 import type { EnemyState, MapInteraction } from '../contracts/demo.ts';
 import { createPlayer, findInteraction } from '../player/controller.ts';
@@ -64,6 +67,7 @@ function startGame() {
   camera.add(weaponLight, weaponLight.target);
   const rendering = createRendering(renderer, worldScene, camera, weaponScene);
   const audio = createAudio();
+  const medicineWheel=createMedicineWheel();
   const tacticalMap = createTacticalMap();
 
   const input = createInput(canvas);
@@ -106,20 +110,17 @@ function startGame() {
     unpack(){const t=run.raid.unpack(dropPoint());if(!t)return false;run.containers.spawn(t);return true;},
     stow:(slot,p)=>run.raid.stow(slot,p),holster:id=>run.raid.holster(id),
     use(id) {
-      const entry = run.raid.backpack.entries.find(entry => entry.id === id);
-      if (!entry) return false;
-      if (entry.item === 'medkit' && run.combat.snapshot().health < 100) run.combat.heal(40);
-      else return false;
-      run.raid.log.heals++;
-      run.raid.backpack.remove(id);
+      if(!run.treatment.start(id,run.frame.health))return false;
+      bag.hide();void canvas.requestPointerLock()?.catch(()=>view.showPaused());
       return true;
     },
-    discard(id) { const t=run.raid.dropCarried(id,dropPoint());if(t)run.containers.spawn(t); },
+    discard(id) { const t=run.raid.dropCarried(id,dropPoint());if(t)run.containers.spawn(t);return !!t; },
   });
   renderOperatorPortrait(renderer);
   let run = prepareRun();
 
   function prepareRun() {
+    medicineWheel.reset();
     const seed = nextSeed();
     const map = createFirstMap(seed);
     const containers = addSearchContainers(map);
@@ -154,7 +155,7 @@ function startGame() {
     notice = '';
     accumulator = noticeTime = hitTime = hurtTime = 0;
     dirty = true;
-    return { discovered:new Set<string>(), nextSurvey:0, map, raid, combat, player, viewmodel, enemies, frame, containers, searched: new Set<string>() };
+    return { treatment:createTreatment(raid.backpack), nearWall:false, damageNotice:'', discovered:new Set<string>(), nextSurvey:0, map, raid, combat, player, viewmodel, enemies, frame, containers, searched: new Set<string>() };
   }
 
   function reachable(id:string){
@@ -162,12 +163,20 @@ function startGame() {
     const t=run.raid.targets.find(t=>t.id===id);if(!t)return false;
     const eye=run.player.eye,d=new THREE.Vector3(...t.position).sub(new THREE.Vector3(...eye));
     const distance=d.length();d.normalize();
-    return distance<=2.85 && run.map.blockedDistance(eye,[d.x,d.y,d.z],Math.max(0,distance-.24))===null;
+    return distance<=3 && run.map.blockedDistance(eye,[d.x,d.y,d.z],Math.max(0,distance-.24))===null;
   }
   function dropPoint():readonly [number,number,number]{
     const [x,y,z]=run.player.feet;
-    const pos=run.map.moveGrounded([x,y,z],-Math.sin(run.player.yaw)*.75,-Math.cos(run.player.yaw)*.75,.22,.65);
-    return [pos[0],(run.map.groundHeight?.(pos,.1)??pos[1])+.15,pos[2]];
+    const near=run.raid.targets.filter(t=>t.id.startsWith('drop-') && run.raid.ground.has(t.id) && Math.hypot(t.position[0]-x,t.position[2]-z)<3);
+    for(const radius of [.8,1.25,1.55]){
+      for(const offset of [0,-.42,.42,-.85,.85,-1.4,1.4,Math.PI]){
+        const a=run.player.yaw+offset;
+        const pos=run.map.moveGrounded([x,y,z],-Math.sin(a)*radius,-Math.cos(a)*radius,.22,.65);
+        if(near.every(t=>Math.hypot(t.position[0]-pos[0],t.position[2]-pos[2])>.4))
+          return [pos[0],pos[1]+.15,pos[2]];
+      }
+    }
+    return [x,y+.15,z];
   }
   function disposeRun() {
     const roots = [run.map.scene, run.viewmodel.group];
@@ -241,6 +250,7 @@ function startGame() {
     } else if (bag.open) {
       view.showPlaying();
     } else if (entered) {
+      run.treatment.cancel();
       view.showPaused();
       refreshMarket();
     }
@@ -266,7 +276,7 @@ function startGame() {
     for (const [id, quantity] of Object.entries(inventory ?? {})) {
       const item = id as ItemId;
       const button = document.createElement('button');
-      button.textContent = `变卖 ${itemName(item)} ×1 · ${itemSpecs[item].price} 券（持有 ${quantity}）`;
+      button.textContent = `变卖 ${itemName(item)} ×1 · ${warehouse.price(item)} 券（持有 ${quantity}）`;
       button.prepend(itemIcon(item));
       button.dataset.sell = item;
       button.onclick = async () => {
@@ -306,6 +316,15 @@ function startGame() {
   function step(dt: number) {
     const { player, raid, map, combat, viewmodel } = run;
     const control = input.sample();
+    const chosen=medicineWheel.update(control,run.treatment.available());
+    if(control.healPressed||control.medicineRelease==='quick'){
+      if(run.treatment.remaining)run.treatment.cancel();
+      else {
+        if(chosen===undefined||!run.treatment.start(chosen,run.frame.health))notify(chosen===undefined?'未携带药物':'当前无法治疗');
+      }
+    }
+    if(control.backpackPressed||control.switchTo)run.treatment.cancel();
+    if(control.quiet||run.treatment.remaining)control.running=false;
     if (control.mapPressed) tacticalMap.toggle();
     if (control.backpackPressed) {
       bag.show(raid.backpack);
@@ -315,6 +334,7 @@ function startGame() {
     const moving = player.move(dt, control, run.frame.weapon.aiming);
     const target = findInteraction(map, raid.targets, raid.consumed, player.eye, player.direction);
     if (control.interactPressed && target) {
+      run.treatment.cancel();
       if (target.kind === 'switch') use(target);
       else if(target.kind==='loose'&&!isPack(target.item)){
         if(raid.collect(target.id)){run.containers.remove(target.id);audio.pickup();notify('已拾取 '+itemSpecs[target.item].name);}
@@ -341,10 +361,18 @@ function startGame() {
     const previousActions = new Map(run.frame.enemies.map(enemy=>[enemy.id,enemy.action]));
     const previousHealth = run.frame.health;
     const previousWeapon = run.frame.weapon;
+    footstepTime-=dt;
+    const sprinting=control.running && control.forward>0 && !previousWeapon.aiming;
+    const stepping=moving && player.grounded && footstepTime<=0;
+    if(stepping){
+      audio.footstep(player.feet[1]>2?'metal':player.feet[1]<-2.5?'concrete':'gravel');
+      footstepTime=control.quiet?.58:sprinting?.29:.44;
+    }
+    run.nearWall=previousWeapon.id==='pistol'&&!previousWeapon.unarmed && map.blockedDistance(player.eye,player.direction,.78)!==null;
     run.frame = combat.update(dt, {
       playerFeet: player.feet, eye: player.eye, aimDirection: player.direction,
       muzzle: [muzzlePosition.x, muzzlePosition.y, muzzlePosition.z],
-      ...control,
+      ...control, treating:!!run.treatment.remaining,stepRadius:stepping?(control.quiet?3:sprinting?12:6):undefined,
     });
     const currentWeapon = run.frame.weapon;
     if (currentWeapon.id === previousWeapon.id && currentWeapon.loaded < previousWeapon.loaded) {
@@ -354,12 +382,20 @@ function startGame() {
     }
     if (currentWeapon.action === 'reloading' && previousWeapon.action !== 'reloading') audio.reload();
     if (currentWeapon.action === 'slashing' && previousWeapon.action !== 'slashing') audio.slash();
-    footstepTime -= dt;
-    if (moving && footstepTime <= 0) {
-      audio.footstep(player.feet[1]>2?'metal':player.feet[1]<-2.5?'concrete':'gravel');
-      footstepTime = control.running && !currentWeapon.aiming ? .29 : .44;
+    const damaged=run.frame.health<previousHealth;
+    if(damaged) {
+      hurtTime=1.25;
+      const from=run.frame.hitOrigin??player.feet;
+      const angle=Math.atan2(-(from[0]-player.feet[0]),-(from[2]-player.feet[2]))-player.yaw;
+      const side=Math.round(angle/(Math.PI/2));
+      run.damageNotice=['前方','左侧','后方','右侧'][((side%4)+4)%4]+'受击';
+      raid.hitBy(run.frame.lastHit==='security-bot'?'地下安保机':'感染体');
     }
-    if (run.frame.health < previousHealth) {hurtTime=.38;raid.hitBy(run.frame.lastHit==='security-bot'?'地下安保机':'感染体');}
+    const treating=!!run.treatment.remaining;
+    const recovered=run.treatment.advance(dt,damaged,run.frame.health);
+    if(recovered){combat.heal(recovered);run.frame=combat.snapshot();if(!run.treatment.remaining)notify('治疗完成');}
+    if(recovered && treating && !run.treatment.remaining)raid.log.heals++;
+    if(bag.open)bag.risk(hurtTime>0?run.damageNotice+' · 按 Esc 返回':run.frame.enemies.some(e=>e.action==='windup')?'附近有攻击预警 · 按 Esc 返回':'搜刮时周围敌人仍会行动');
     const message = raid.update(dt, player.feet, run.frame.health, control.interactPressed && !target);
     if (message) notify(message);
     if (run.frame.feedback === 'empty') notify('空仓 · 按 R 换弹');
@@ -371,13 +407,14 @@ function startGame() {
     for (const enemy of run.frame.enemies) {
       if(enemy.action==='dead' && previousActions.get(enemy.id)!=='dead')raid.log.kills++;
       if(enemy.action==='windup' && previousActions.get(enemy.id)!=='windup') {
-        audio.warning(enemy.kind==='security-bot', Math.hypot(...enemy.position.map((v,i)=>v-player.feet[i])));
+        const dx=enemy.position[0]-player.feet[0],dz=enemy.position[2]-player.feet[2];
+        audio.warning(enemy.kind==='security-bot',soundPath(map,enemy.position,player.feet),(dx*Math.cos(player.yaw)-dz*Math.sin(player.yaw))/Math.max(.01,Math.hypot(dx,dz)));
       }
       updateEnemy(run.enemies.get(enemy.id)!, enemy, dt);
     }
     viewmodel.group.visible=!run.frame.weapon.unarmed;
     viewmodel.update(dt, run.frame.weapon, moving, {
-      running: control.running, lookX: control.lookX, lookY: control.lookY,
+      lowered:run.nearWall||!!run.treatment.remaining, running: control.running, lookX: control.lookX, lookY: control.lookY,
     });
     player.setAim(dt, run.frame.weapon.aiming);
     if (raid.result) showResult();
@@ -413,7 +450,7 @@ function startGame() {
       }
     }
     tacticalMap.update(map, player.feet, player.yaw, now,run.discovered,raid.consumed);
-    view.feedback(noticeTime ? notice : '', prompt, countdown?.remaining, hitTime > 0, hurtTime / 0.38, frame.weapon.aiming);
+    view.feedback(run.treatment.remaining?'急救中 '+run.treatment.remaining.toFixed(1)+' 秒 · H 取消':hurtTime>0?run.damageNotice:noticeTime?notice:run.nearWall?'枪口接近掩体':'', prompt, countdown?.remaining, hitTime > 0, Math.min(1,hurtTime/.65), frame.weapon.aiming);
   }
 
   let previous = performance.now();

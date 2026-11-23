@@ -64,6 +64,9 @@ export function itemIcon(id: Icon) {
     shape('M17 12L24 7H43L50 13L44 19H21Z','#bce4e3',true);
     shape('M25 12L29 10H40L42 13L38 15H27Z','#354969');
     shape('M24 52H41V57H24Z','#bce4e3',true);
+  } else if(id==='healing-injector'){
+    shape('M9 46L18 36L15 33L35 12L43 20L23 41L20 39L11 49Z','#baeae4',true);
+    shape('M22 31L34 19L39 24L27 36Z','#54b99f');shape('M34 11L38 7L49 18L45 22Z','#415675',true);
   } else if(id==='pistol') {
     shape('M7 18L12 13H48L57 19L51 29H32L27 47L18 51L13 47L19 28H9Z','#d7e4eb',true);
     shape('M12 18H40L36 23H10ZM20 32H28L24 45L17 47Z','#459aaa');

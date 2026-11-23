@@ -63,6 +63,7 @@ export interface WeaponState {
 }
 
 export interface EnemyState extends EnemySpawn {
+  intent?:'patrol'|'investigate'|'chase'|'search';
   health: number;
   action: 'idle' | 'moving' | 'windup' | 'attacking' | 'recovering' | 'dead';
   actionProgress: number;
@@ -73,6 +74,8 @@ export interface CombatInput {
   eye: Vec3;
   aimDirection: Vec3;
   muzzle: Vec3;
+  stepRadius?:number;
+  treating?:boolean;
   attackPressed: boolean;
   reloadPressed: boolean;
   aiming: boolean;
@@ -81,6 +84,7 @@ export interface CombatInput {
 
 export interface CombatFrame {
   lastHit?:EnemyKind;
+  hitOrigin?:Vec3;
   health: number;
   weapon: WeaponState;
   enemies: readonly EnemyState[];

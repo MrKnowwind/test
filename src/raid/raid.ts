@@ -87,7 +87,10 @@ export function createRaid(runId: string, seed: number, map: RaidMap) {
   }
   const search = createContainerSearch(seed, map.interactions);
   for (const box of search.containers.values()) {
-    for (const entry of box.entries) if (entry.instance) entry.instance = runId + '/' + entry.instance;
+    for (const entry of box.entries) {
+      if(entry.item==='healing-injector')entry.instance=box.id+'/'+entry.id;
+      if(entry.instance)entry.instance=runId+'/'+entry.instance;
+    }
   }
   const consumed = new Set<string>();
   const flags = new Set<FlagId>();
@@ -129,6 +132,11 @@ export function createRaid(runId: string, seed: number, map: RaidMap) {
     return true;
   }
 
+  const floorLimit=12;
+  function canDrop(at:Vec3,leaving?:string) {
+    return targets.filter(t=>t.id!==leaving && t.id.startsWith('drop-') && ground.has(t.id)
+      && Math.hypot(t.position[0]-at[0],t.position[1]-at[1],t.position[2]-at[2])<=3).length<floorLimit;
+  }
   function drop(c: Cargo, at: Vec3) {
     const id = 'drop-' + ++serial;
     const t: MapInteraction = {
@@ -170,7 +178,7 @@ export function createRaid(runId: string, seed: number, map: RaidMap) {
         : id === undefined
           ? ground.get(from)
           : e;
-    if (!c || !isPack(c.item)) return;
+    if (!c || !isPack(c.item) || backpack.equipped && !canDrop(at,id===undefined?from:undefined)) return;
     if (from === 'carried') backpack.remove(id!);
     else if (e && box) {
       box.entries.splice(box.entries.indexOf(e), 1);
@@ -198,14 +206,14 @@ export function createRaid(runId: string, seed: number, map: RaidMap) {
     return true;
   }
   function dropCarried(id: number, at: Vec3) {
-    if (result) return;
+    if (result || !canDrop(at)) return;
     const e = backpack.remove(id);
     if (!e) return;
     checkCard();
     return drop(e, at);
   }
   function unpack(at: Vec3) {
-    if (result || !backpack.equipped) return;
+    if (result || !backpack.equipped || !canDrop(at)) return;
     const old = backpack.swap(undefined)!;
     checkCard();
     return drop(old, at);

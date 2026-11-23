@@ -22,6 +22,7 @@ export function createViewmodel() {
   const magazinePoint = new THREE.Vector3();
   let aimBlend = 0;
   let walkBlend = 0;
+  let lowReady = 0;
   let time = 0;
   let lastWeapon = 'pistol';
   let switchBlend = 0;
@@ -40,7 +41,7 @@ export function createViewmodel() {
   }
 
   function update(dt: number, weapon: WeaponState, moving: boolean,
-    motion: { running?: boolean; lookX?: number; lookY?: number } = {}) {
+    motion: { lowered?:boolean; running?: boolean; lookX?: number; lookY?: number } = {}) {
     const firearm = weapon.id === 'pistol' ? pistol : undefined;
     const reloading = Boolean(firearm) && weapon.action === 'reloading';
     const aiming = Boolean(firearm) && weapon.aiming && !reloading;
@@ -60,8 +61,9 @@ export function createViewmodel() {
     const lookScale = aiming ? .12 : 1;
     swayX = THREE.MathUtils.damp(swayX, THREE.MathUtils.clamp((motion.lookX ?? 0) * .0008, -.018, .018) * lookScale, 12, dt);
     swayY = THREE.MathUtils.damp(swayY, THREE.MathUtils.clamp((motion.lookY ?? 0) * .0008, -.015, .015) * lookScale, 12, dt);
-    group.position.set(-swayX, -switchBlend * .19 + swayY, 0);
-    group.rotation.set(switchBlend * -.27, swayX * 1.8, swayX);
+    lowReady = THREE.MathUtils.damp(lowReady,Number(motion.lowered??false),13,dt);
+    group.position.set(-swayX, -switchBlend * .19 + swayY - lowReady*.10, lowReady*.13);
+    group.rotation.set(switchBlend * -.27 - lowReady*.43, swayX * 1.8, swayX);
     aimBlend = THREE.MathUtils.damp(aimBlend, Number(aiming), 22, dt);
     if (aimBlend > 0.999) aimBlend = 1;
     if (aimBlend < 0.001) aimBlend = 0;

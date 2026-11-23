@@ -26,7 +26,7 @@ export const pools: Record<Tag, ItemId[]> = {
   shipping: ['sealbag', 'manual', 'lens', 'recorder'],
   research: ['tray', 'calibration', 'spectrum', 'archive', 'research-sample'],
   ammo: ['pistol-ammo', 'terminal', 'gauge'],
-  medical: ['medkit', 'tray', 'seals'],
+  medical: ['medkit', 'tray', 'seals', 'healing-injector'],
   carry: [],
   weapon: [],
 };

@@ -1,9 +1,10 @@
 import type { CombatInput, EnemySpawn, EnemyState, Vec3, WorldQueries } from '../contracts/demo.ts';
 import { segmentBlocked } from '../combat/geometry.ts';
+import {detour,distance as separation,inView} from './perception.ts';
 import { enemySpecs } from './specs.ts';
 
 const TIME_EPSILON = 1e-8;
-const INFECTED_NOTICE_RANGE = 10;
+const INFECTED_NOTICE_RANGE = 12;
 const INFECTED_MELEE_HEIGHT = 0.9;
 const CHASE_SPEED = 2.05;
 const PATROL_SPEED = 0.85;
@@ -24,6 +25,13 @@ export function createEnemy(world: WorldQueries, spawn: EnemySpawn) {
   let patrolTarget = patrolEnd;
   let lastSeen: Vec3 | undefined;
   let searchRemaining = 0;
+  let investigation:Vec3|undefined, investigationTime=0, scanTime=0;
+  let stuck=0,route:Vec3[]=[],routeGoal:Vec3|undefined;
+  function hear(point:Vec3) {
+    if(state.health<=0||state.action==='windup'||state.action==='attacking'||state.intent==='chase')return;
+    investigation=[...point];investigationTime=6;
+    if(state.kind==='security-bot')state.yaw=Math.atan2(state.position[0]-point[0],state.position[2]-point[2]);
+  }
   let avoidanceSide = spawn.id.charCodeAt(spawn.id.length - 1) % 2 ? 1 : -1;
 
   function begin(action: EnemyState['action']) {
@@ -75,6 +83,18 @@ export function createEnemy(world: WorldQueries, spawn: EnemySpawn) {
     return true;
   }
 
+  function pursue(goal:Vec3,dt:number,speed:number) {
+    if(routeGoal && separation(routeGoal,goal)>2){route=[];routeGoal=undefined;stuck=0;}
+    if(route[0] && separation(state.position,route[0])<.8)route.shift();
+    const before=separation(state.position,goal);
+    const moved=moveToward(route[0]??goal,speed*dt,route.length?.25:.6);
+    if(!route.length && before>1.2){
+      stuck=before-separation(state.position,goal)<speed*dt*.2?stuck+dt:0;
+      if(stuck>=.6){route=detour(world,state.position,goal,spec.radius,spec.height);routeGoal=[...goal];stuck=-1;}
+    }
+    return moved;
+  }
+
   function update(dt: number, input: CombatInput): number {
     if (state.action === 'dead') return 0;
 
@@ -104,12 +124,21 @@ export function createEnemy(world: WorldQueries, spawn: EnemySpawn) {
     const infected = state.kind === 'infected';
     const distance = Math.hypot(dx, dy, dz);
     const noticeRange = infected ? INFECTED_NOTICE_RANGE : spec.range;
-    const canSee = distance <= noticeRange && !segmentBlocked(world, origin, torso);
+    investigationTime=Math.max(0,investigationTime-dt);
+    if(!investigationTime)investigation=undefined;
+    if(!infected && state.action==='idle' && !investigation && !lastSeen){
+      scanTime+=dt;
+      state.yaw=spawn.yaw+Math.sin(scanTime*.62)*.85;
+    }
+    const canSee = distance <= noticeRange && inView(state,input.playerFeet) && !segmentBlocked(world, origin, torso);
     if (canSee) {
+      investigation=undefined;state.intent='chase';
       lastSeen = [...input.playerFeet];
       searchRemaining = SEARCH_TIME;
     } else {
       searchRemaining = Math.max(0, searchRemaining - dt);
+      if(!searchRemaining && lastSeen){lastSeen=undefined;patrolTarget=spawn.position;route=[];stuck=0;}
+      state.intent=lastSeen?'search':investigation?'investigate':'patrol';
     }
     const canAttack = canSee && distance <= spec.range && (!infected || Math.abs(dy) <= INFECTED_MELEE_HEIGHT);
     if (canAttack && (dx !== 0 || dz !== 0)) state.yaw = Math.atan2(-dx, -dz);
@@ -133,8 +162,8 @@ export function createEnemy(world: WorldQueries, spawn: EnemySpawn) {
     if (canAttack) {
       begin('windup');
     } else if (infected && dt > 0) {
-      if (canSee || (lastSeen && searchRemaining > 0)) {
-        begin(moveToward(canSee ? input.playerFeet : lastSeen!, CHASE_SPEED * dt, 0.9) ? 'moving' : 'idle');
+      if (lastSeen || investigation) {
+        begin(pursue(lastSeen??investigation!,dt,lastSeen?CHASE_SPEED:1.45)?'moving':'idle');
       } else {
         const moved = moveToward(patrolTarget, PATROL_SPEED * dt);
         if (!moved) patrolTarget = patrolTarget === patrolEnd ? spawn.position : patrolEnd;
@@ -144,5 +173,5 @@ export function createEnemy(world: WorldQueries, spawn: EnemySpawn) {
     return 0;
   }
 
-  return { state, update };
+  return { state, update, hear };
 }

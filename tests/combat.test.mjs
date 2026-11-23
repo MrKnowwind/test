@@ -20,7 +20,7 @@ const openWorld = {
 
 const update = (combat, dt = 0, input = {}) => combat.update(dt, { ...player, ...input });
 const infected = (id, position) => ({ id, kind: 'infected', position, yaw: 0 });
-const securityBot = (position) => ({ id: 'bot', kind: 'security-bot', position, yaw: 0 });
+const securityBot = (position) => ({ id: 'bot', kind: 'security-bot', position, yaw: Math.PI });
 
 function wallAtZ(z, covers = () => true) {
   return {
@@ -241,7 +241,7 @@ test('an infected telegraphs its strike, and stepping out of reach prevents the 
 });
 
 test('an infected pursues a visible player and uses the world movement constraints', () => {
-  const target = infected('infected', [0, 0, -4]);
+  const target = {...infected('infected', [0, 0, -4]),yaw:Math.PI};
   const chase = createCombat(openWorld, [target]);
   const moving = update(chase, 0.5).enemies[0];
   assert.equal(moving.action, 'moving');
@@ -253,7 +253,7 @@ test('an infected pursues a visible player and uses the world movement constrain
 
   const concealed = createCombat(wallAtZ(-2), [target]);
   const patrol = update(concealed, 0.5).enemies[0];
-  assert.ok(patrol.position[2] < target.position[2]);
+  assert.ok(patrol.intent === 'patrol' && moving.position[2] > patrol.position[2]);
   assert.equal(update(concealed, 0.5).health, 100);
 });
 
@@ -261,7 +261,7 @@ test('an infected routes around low cover instead of staying against its front e
   const world = createWorldQueries([{
     min: [-0.8, 0, -3.0], max: [0.8, 0.7, -1.7],
   }]);
-  const combat = createCombat(world, [infected('blocked', [0, 0, -4.0])]);
+  const combat = createCombat(world, [{...infected('blocked', [0, 0, -4.0]),yaw:Math.PI}]);
   let reached = false;
   for (let frame = 0; frame < 360; frame++) {
     const enemy = update(combat, 1 / 60).enemies[0];
@@ -273,7 +273,7 @@ test('an infected routes around low cover instead of staying against its front e
 test('losing sight searches the last observed position without tracking through cover', () => {
   let hidden = false;
   const world = { ...openWorld, blockedDistance: () => hidden ? 0.5 : null };
-  const combat = createCombat(world, [infected('searching', [0, 0, -5])]);
+  const combat = createCombat(world, [{...infected('searching', [0, 0, -5]),yaw:Math.PI}]);
   update(combat, 0);
   hidden = true;
   const searching = update(combat, 0.5, { playerFeet: [7, 0, 0], eye: [7, 1.65, 0] });
@@ -283,7 +283,8 @@ test('losing sight searches the last observed position without tracking through 
   assert.ok(searching.enemies[0].position[2] > -5);
   const forgotten = update(combat, 5.1, { playerFeet: [7, 0, 0], eye: [7, 1.65, 0] });
   assert.equal(forgotten.health, 100);
-  assert.ok(forgotten.enemies[0].position[2] < searching.enemies[0].position[2]);
+  assert.equal(forgotten.enemies[0].intent,'patrol');
+  assert.ok(forgotten.enemies[0].position[2] <= searching.enemies[0].position[2]);
 });
 
 test('solid cover cancels a security bot lock, and peeking starts a fresh warning', () => {
