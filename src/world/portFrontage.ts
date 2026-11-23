@@ -78,6 +78,41 @@ function litWindow(type: number) {
 }
 
 const plane = new THREE.PlaneGeometry();
+// The signs and workstations share each tenant's visual identity.
+function serviceConsole(type:number){
+  const service=services[type];
+  return paintedPanel(service.dark,ctx=>{
+    ctx.fillStyle='#1b344a';ctx.fillRect(0,0,640,256);
+    ctx.fillStyle=service.accent;ctx.fillRect(0,0,640,8);
+    ctx.fillStyle='#e9f3ea';ctx.font='bold 29px sans-serif';
+    ctx.fillText(['泵组压力监测','港务维修工单','冷藏药品监测'][type],22,50);
+    ctx.fillStyle=service.accent;ctx.font='18px monospace';ctx.fillText(service.english,440,47);
+    ctx.strokeStyle='#3e6170';ctx.lineWidth=2;
+    for(let i=0;i<12;i++){ctx.beginPath();ctx.moveTo(24+i*53,69);ctx.lineTo(24+i*53,232);ctx.stroke();}
+    for(let i=0;i<5;i++){ctx.beginPath();ctx.moveTo(20,75+i*37);ctx.lineTo(620,75+i*37);ctx.stroke();}
+    ctx.strokeStyle=ctx.fillStyle=service.accent;ctx.lineWidth=5;ctx.lineCap='round';
+    if(type===0){
+      for(let i=0;i<3;i++){
+        const x=108+i*204;
+        ctx.beginPath();ctx.arc(x,186,59,Math.PI,2*Math.PI);ctx.stroke();
+        ctx.beginPath();ctx.moveTo(x,186);ctx.lineTo(x-31+i*28,143);ctx.stroke();
+        ctx.font='15px monospace';ctx.fillText(['INTAKE','FILTER','OUTLET'][i],x-28,219);
+      }
+    }else if(type===1){
+      for(let i=0;i<3;i++){
+        const y=98+i*45;
+        ctx.strokeRect(30,y-10,19,19);
+        ctx.fillRect(72,y-4,240-i*35,6);ctx.fillRect(343,y-4,45+i*28,6);
+        ctx.font='17px monospace';ctx.fillText(['C-12','M-04','H-21'][i],515,y+5);
+      }
+    }else{
+      ctx.beginPath();ctx.moveTo(26,154);
+      for(let x=26;x<454;x+=6)ctx.lineTo(x,150+Math.sin(x*.037)*10+(x%130>96?-26:0));
+      ctx.stroke();ctx.font='bold 39px monospace';ctx.fillText('04°C',477,165);
+    }
+  });
+}
+
 export function createFrontage(root: THREE.Group, m: Materials) {
   const boards = services.map((_, type) => serviceBillboard(type));
   const glass = services.map((_, type) => litWindow(type));
@@ -88,7 +123,7 @@ export function createFrontage(root: THREE.Group, m: Materials) {
     sign.scale.set(width, height, 1);
   }
   return {
-    glass, panel,
+    glass, panel, consoles:services.map((_,type)=>serviceConsole(type)),
     shop(type: number, x: number, z: number, width: number, depth: number, accent: THREE.Material) {
       // Both long elevations address the street. Furniture stays against the sealed service core.
       for (const side of [-1, 1]) {

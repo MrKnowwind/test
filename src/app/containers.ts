@@ -22,7 +22,7 @@ export function addSearchContainers(map: FirstMap & { scene: THREE.Group }) {
     return m;
   }
   function spawn(t: MapInteraction) {
-    if (t.kind === 'switch') return;
+    if (t.kind !== 'loot' && t.kind !== 'loose') return;
     const root = new THREE.Group(),
       accent = paint(t.item);
     root.position.set(...t.position);

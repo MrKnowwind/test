@@ -7,6 +7,8 @@ import type { EnemyState, MapInteraction } from '../contracts/demo.ts';
 import { createPlayer, findInteraction } from '../player/controller.ts';
 import { createInput } from '../player/input.ts';
 import { createEnemyVisual } from '../presentation/enemyVisuals.ts';
+import { createShotEffects } from '../presentation/shotEffects.ts';
+import { createCreativeView } from '../ui/creativeView.ts';
 import { createViewmodel } from '../presentation/viewmodel.ts';
 import { createRaid } from '../raid/raid.ts';
 import { createWarehouse } from '../raid/warehouse.ts';
@@ -90,6 +92,28 @@ function startGame() {
   let statsTime = 0;
   let sampledFrames = 0;
   let fps = 0;
+  const creativeView=createCreativeView(on=>{
+    run.raid.setCreative(on);run.combat.setCreative(on);
+    run.frame=run.combat.snapshot();run.treatment.cancel();hurtTime=0;dirty=true;
+  },(item,qty,ground)=>{
+    const at=ground?dropPoint(true):undefined;
+    const generated=run.raid.generateItem(item,qty,at);
+    if(!generated)return ground?'附近地面已满，请移动后再试':run.raid.backpack.failure(item);
+    if(typeof generated==='object')run.containers.spawn(generated);
+    dirty=true;
+    return itemName(item)+' ×'+qty+(ground?' 已生成在脚边':' 已放入背包');
+  });
+  const receipt=document.querySelector<HTMLElement>('#pickup-receipt')!;
+  let receiptTimer=0;
+  function pickedUp(item:ItemId,count:number){
+    audio.pickup();run.viewmodel.pickup();
+    receipt.hidden=false;receipt.style.setProperty('--receipt-color',itemSpecs[item].color);
+    receipt.replaceChildren(itemIcon(item),document.createTextNode('已拾取　'+itemName(item)+' ×'+count));
+    receipt.getAnimations().forEach(a=>a.cancel());
+    receipt.animate([{opacity:0,transform:'translateY(6px)'},{opacity:1,transform:'translateY(0)'}],{duration:130});
+    window.clearTimeout(receiptTimer);
+    receiptTimer=window.setTimeout(()=>{receipt.hidden=true;},1400);
+  }
   const bag = createBackpackView({
     close() {
       bag.hide();
@@ -97,20 +121,28 @@ function startGame() {
     },
     take(id,entry,placement) {
       if(!reachable(id))return false;
-      const taken=run.raid.takeContainerItem(id,entry,placement);if(taken)audio.pickup();return taken;
+      const source=run.raid.containers.get(id)?.entries.find(e=>e.id===entry);
+      const taken=run.raid.takeContainerItem(id,entry,placement);
+      if(taken && source)pickedUp(source.item,source.quantity);
+      return taken;
     },
     equip(from,id) {
       if(from!=='carried'&&!reachable(from))return false;
       const changed=run.raid.equipPack(from,id,dropPoint());if(!changed)return false;
       if(changed.dropped)run.containers.spawn(changed.dropped);
       if(id===undefined)run.containers.remove(from);
+      if(run.raid.backpack.equipped)pickedUp(run.raid.backpack.equipped.item,1);
       return true;
     },
-    fold(id){if(!reachable(id)||!run.raid.collect(id))return false;run.containers.remove(id);return true;},
+    fold(id){
+      const cargo=run.raid.ground.get(id);
+      if(!cargo||!reachable(id)||!run.raid.collect(id))return false;
+      run.containers.remove(id);pickedUp(cargo.item,cargo.quantity);return true;
+    },
     unpack(){const t=run.raid.unpack(dropPoint());if(!t)return false;run.containers.spawn(t);return true;},
     stow:(slot,p)=>run.raid.stow(slot,p),holster:id=>run.raid.holster(id),
     use(id) {
-      if(!run.treatment.start(id,run.frame.health))return false;
+      if(!run.treatment.start(id,run.frame.health,run.raid.creative))return false;
       bag.hide();void canvas.requestPointerLock()?.catch(()=>view.showPaused());
       return true;
     },
@@ -120,7 +152,7 @@ function startGame() {
   let run = prepareRun();
 
   function prepareRun() {
-    medicineWheel.reset();
+    medicineWheel.reset();creativeView.reset();receipt.hidden=true;
     const seed = nextSeed();
     const map = createFirstMap(seed);
     const containers = addSearchContainers(map);
@@ -155,7 +187,7 @@ function startGame() {
     notice = '';
     accumulator = noticeTime = hitTime = hurtTime = 0;
     dirty = true;
-    return { treatment:createTreatment(raid.backpack), nearWall:false, damageNotice:'', discovered:new Set<string>(), nextSurvey:0, map, raid, combat, player, viewmodel, enemies, frame, containers, searched: new Set<string>() };
+    return { effects:createShotEffects(map.scene), treatment:createTreatment(raid.backpack), nearWall:false, damageNotice:'', discovered:new Set<string>(), nextSurvey:0, map, raid, combat, player, viewmodel, enemies, frame, containers, searched: new Set<string>() };
   }
 
   function reachable(id:string){
@@ -165,8 +197,9 @@ function startGame() {
     const distance=d.length();d.normalize();
     return distance<=3 && run.map.blockedDistance(eye,[d.x,d.y,d.z],Math.max(0,distance-.24))===null;
   }
-  function dropPoint():readonly [number,number,number]{
-    const [x,y,z]=run.player.feet;
+  function dropPoint(settle=false):readonly [number,number,number]{
+    const [x,feetY,z]=run.player.feet;
+    const y=settle?(run.map.groundHeight?.(run.player.feet,.2)??feetY):feetY;
     const near=run.raid.targets.filter(t=>t.id.startsWith('drop-') && run.raid.ground.has(t.id) && Math.hypot(t.position[0]-x,t.position[2]-z)<3);
     for(const radius of [.8,1.25,1.55]){
       for(const offset of [0,-.42,.42,-.85,.85,-1.4,1.4,Math.PI]){
@@ -320,7 +353,7 @@ function startGame() {
     if(control.healPressed||control.medicineRelease==='quick'){
       if(run.treatment.remaining)run.treatment.cancel();
       else {
-        if(chosen===undefined||!run.treatment.start(chosen,run.frame.health))notify(chosen===undefined?'未携带药物':'当前无法治疗');
+        if(chosen===undefined||!run.treatment.start(chosen,run.frame.health,raid.creative))notify(chosen===undefined?'未携带药物':'当前无法治疗');
       }
     }
     if(control.backpackPressed||control.switchTo)run.treatment.cancel();
@@ -331,13 +364,18 @@ function startGame() {
       document.exitPointerLock();
     }
     if (control.switchTo === 'rifle' || control.switchTo === 'shotgun') notify('该主武器槽为空');
-    const moving = player.move(dt, control, run.frame.weapon.aiming);
+    map.doors.update(dt,player.feet,run.frame.enemies);
+    run.effects.update(dt);
+    const moving = player.move(dt, control, run.frame.weapon.aiming,raid.creative?creativeView.settings:undefined);
     const target = findInteraction(map, raid.targets, raid.consumed, player.eye, player.direction);
     if (control.interactPressed && target) {
       run.treatment.cancel();
-      if (target.kind === 'switch') use(target);
+      if(target.kind==='door'){
+        if(map.doors.toggle(target.id,player.feet,run.frame.enemies))audio.door(map.doors.isOpen(target.id));
+        else notify('门口有人，请让开后关门');
+      }else if (target.kind === 'switch') use(target);
       else if(target.kind==='loose'&&!isPack(target.item)){
-        if(raid.collect(target.id)){run.containers.remove(target.id);audio.pickup();notify('已拾取 '+itemSpecs[target.item].name);}
+        if(raid.collect(target.id)){run.containers.remove(target.id);pickedUp(target.item,target.quantity);}
         else notify(raid.backpack.failure(target.item));
       }else {
         const contents=target.kind==='loose'?raid.groundContainer(target.id):raid.containers.get(target.id);
@@ -375,12 +413,14 @@ function startGame() {
       ...control, treating:!!run.treatment.remaining,stepRadius:stepping?(control.quiet?3:sprinting?12:6):undefined,
     });
     const currentWeapon = run.frame.weapon;
-    if (currentWeapon.id === previousWeapon.id && currentWeapon.loaded < previousWeapon.loaded) {
+    if (run.frame.shot) {
+      run.effects.fire(run.frame.shot);
       raid.log.shots++;
       audio.shot(currentWeapon.id);
-      player.kick(currentWeapon.id === 'shotgun' ? .024 : .011);
+      player.kick(currentWeapon.aiming?.009:.016);
     }
     if (currentWeapon.action === 'reloading' && previousWeapon.action !== 'reloading') audio.reload();
+    if(currentWeapon.action==='reloading' && currentWeapon.actionProgress>=.76 && previousWeapon.actionProgress<.76)audio.magazineSeat();
     if (currentWeapon.action === 'slashing' && previousWeapon.action !== 'slashing') audio.slash();
     const damaged=run.frame.health<previousHealth;
     if(damaged) {
@@ -391,7 +431,10 @@ function startGame() {
       run.damageNotice=['前方','左侧','后方','右侧'][((side%4)+4)%4]+'受击';
       raid.hitBy(run.frame.lastHit==='security-bot'?'地下安保机':'感染体');
     }
-    const treating=!!run.treatment.remaining;
+    const treatmentPose=run.treatment.pose;
+    const treating=!!treatmentPose;
+    if(treatmentPose && (treatmentPose.elapsed===0 || (treatmentPose.item==='healing-injector' &&
+      Math.floor(treatmentPose.elapsed+dt+1e-8)>Math.floor(treatmentPose.elapsed+1e-8))))audio.treat(treatmentPose.item==='medkit');
     const recovered=run.treatment.advance(dt,damaged,run.frame.health);
     if(recovered){combat.heal(recovered);run.frame=combat.snapshot();if(!run.treatment.remaining)notify('治疗完成');}
     if(recovered && treating && !run.treatment.remaining)raid.log.heals++;
@@ -412,9 +455,9 @@ function startGame() {
       }
       updateEnemy(run.enemies.get(enemy.id)!, enemy, dt);
     }
-    viewmodel.group.visible=!run.frame.weapon.unarmed;
+    viewmodel.group.visible=!run.frame.weapon.unarmed || !!run.treatment.remaining;
     viewmodel.update(dt, run.frame.weapon, moving, {
-      lowered:run.nearWall||!!run.treatment.remaining, running: control.running, lookX: control.lookX, lookY: control.lookY,
+      treatment:run.treatment.pose,lowered:run.nearWall && !run.treatment.remaining, running: control.running, lookX: control.lookX, lookY: control.lookY,
     });
     player.setAim(dt, run.frame.weapon.aiming);
     if (raid.result) showResult();
@@ -433,13 +476,13 @@ function startGame() {
     const exit = raid.exitAt(player.feet);
     const reason = exit && raid.blockedReason(exit);
     const prompt = countdown ? `${countdown.exit.label} · ${countdown.remaining.toFixed(1)} 秒`
-      : target ? `E · ${target.kind === 'loot' ? '搜索容器 / ' : target.kind==='loose'?'拾取 / ':''}${target.label}`
+      : target ? `E · ${target.kind === 'loot' ? '搜索容器 / ' : target.kind==='loose'?'拾取 / ':target.kind==='door'?(map.doors.isOpen(target.id)?'关门 / ':'开门 / '):''}${target.label}`
       : exit ? `${exit.label} · ${reason ?? '按 E 撤离'}` : '';
     const region = map.regions?.filter((entry) => Math.abs(entry.center[1] - player.feet[1]) < 4)
       .sort((a, b) => Math.hypot(a.center[0] - player.feet[0], a.center[2] - player.feet[2]) -
         Math.hypot(b.center[0] - player.feet[0], b.center[2] - player.feet[2]))[0];
     view.updateRoutes(map.exits, raid.blockedReason, player.feet);
-    view.updateHud(frame, raid.spawn.id, underground, raid.items, region?.label);
+    view.updateHud(frame, raid.spawn.id, underground, raid.items, region?.label,run.treatment.pose);
     const now=performance.now();
     if(entered && now>=run.nextSurvey){
       run.nextSurvey=now+250;
@@ -450,7 +493,7 @@ function startGame() {
       }
     }
     tacticalMap.update(map, player.feet, player.yaw, now,run.discovered,raid.consumed);
-    view.feedback(run.treatment.remaining?'急救中 '+run.treatment.remaining.toFixed(1)+' 秒 · H 取消':hurtTime>0?run.damageNotice:noticeTime?notice:run.nearWall?'枪口接近掩体':'', prompt, countdown?.remaining, hitTime > 0, Math.min(1,hurtTime/.65), frame.weapon.aiming);
+    view.feedback(run.treatment.pose?(run.treatment.pose.preview?'演示 · ':'')+itemName(run.treatment.pose.item)+' '+run.treatment.remaining.toFixed(1)+' 秒 · H 取消':hurtTime>0?run.damageNotice:noticeTime?notice:run.nearWall?'枪口接近掩体':'', prompt, countdown?.remaining, hitTime > 0, Math.min(1,hurtTime/.65), frame.weapon.aiming);
   }
 
   let previous = performance.now();

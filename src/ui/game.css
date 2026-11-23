@@ -195,3 +195,21 @@ button:disabled { opacity: .5; cursor: default; }
 .radial-option .item-icon { width: 36px; height: 29px; }
 .radial-option small { font-size: 12px; font-weight:600; font-variant-numeric: tabular-nums; }
 .radial-menu[hidden]{display:none}
+
+#creative-panel {margin:12px 0;padding:12px;border-left:4px solid #367f83;background:#cde2df;color:#234154}
+#creative-panel p {font-size:12px;margin:6px 0 0}
+#creative-panel button {padding:6px 11px;border-radius:4px;cursor:pointer}
+#creative-toggle[aria-pressed="true"] {background:#166960}
+#creative-options {display:grid;gap:8px;margin-top:10px;font-size:13px}
+#creative-options label {display:inline-flex;align-items:center;gap:6px}
+#creative-options input[type="range"] {width:48%;accent-color:#247a78}
+#creative-options select,#creative-options input[type="number"] {max-width:150px;color:#183749;background:#f4f8f4;border:1px solid #7a9b9e;padding:3px}
+#creative-options input[type="number"] {width:48px}
+.creative-stock {display:flex;gap:12px;flex-wrap:wrap}
+#creative-feedback:empty {display:none}
+#pickup-receipt {pointer-events:none;position:fixed;right:4vw;top:30%;z-index:12;display:flex;align-items:center;gap:8px;padding:8px 13px;color:#e2fff7;background:#203c50ed;border-left:3px solid var(--receipt-color,#8ee4d0);font-size:14px}
+#pickup-receipt .item-icon {width:30px;height:30px}
+
+#crosshair[data-hit] {border:0;background:transparent;width:19px;height:19px}
+#crosshair[data-hit]::before,#crosshair[data-hit]::after {content:'';position:absolute;left:8px;top:0;width:2px;height:19px;background:linear-gradient(#d7fff6 0 30%,transparent 30% 70%,#d7fff6 70%);filter:drop-shadow(0 1px 1px #142b42);transform:rotate(45deg)}
+#crosshair[data-hit]::after {transform:rotate(-45deg)}

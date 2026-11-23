@@ -35,16 +35,22 @@ export function createPlayer(camera: PerspectiveCamera, world: WorldQueries, spa
     pose(position: Vec3, angle: number, tilt = 0) {
       feet = position; yaw = angle; pitch = tilt; recoil = verticalSpeed = 0; climbing = undefined; syncCamera();
     },
-    move(dt: number, input: InputFrame, aiming: boolean) {
+    move(dt: number, input: InputFrame, aiming: boolean, creative?:{flight:boolean;speed:number}) {
       recoil = MathUtils.damp(recoil, 0, 9, dt);
       const lookScale = aiming ? 0.72 : 1;
       yaw -= input.lookX * sensitivity * lookScale;
       pitch = MathUtils.clamp(pitch - input.lookY * sensitivity * lookScale, -1.45, 1.45);
       const { strafe, forward } = input;
       const speed = input.quiet ? 2 : aiming ? 2.55 : input.running && forward > 0 ? 6.25 : 4.15;
-      const scale = speed * dt / Math.max(1, Math.hypot(strafe, forward));
+      const scale = speed * (creative?.speed??1) * dt / Math.max(1, Math.hypot(strafe, forward));
       const previous = feet;
-      if (world.moveBody && world.groundHeight) {
+      if (creative?.flight && world.moveBody) {
+        verticalSpeed=0;climbing=undefined;
+        const lift=input.lift??0;
+        const travel=6*creative.speed*dt/Math.max(1,Math.hypot(strafe,forward,lift));
+        feet=world.moveBody(feet,(Math.cos(yaw)*strafe-Math.sin(yaw)*forward)*travel,
+          lift*travel,(-Math.sin(yaw)*strafe-Math.cos(yaw)*forward)*travel,.36,1.8);
+      } else if (world.moveBody && world.groundHeight) {
         const floor = world.groundHeight(feet, .36);
         const grounded = floor !== null && Math.abs(feet[1] - floor) < .04 && verticalSpeed <= 0;
         if (input.jumpPressed && !climbing) {

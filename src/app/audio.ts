@@ -21,9 +21,9 @@ export function createAudio() {
     }
     return context;
   }
-  function burst(duration: number, volume: number, cutoff: number, tone?: number, pan=0) {
+  function burst(duration: number, volume: number, cutoff: number, tone?: number, pan=0,delay=0) {
     if (!context || context.state !== 'running' || !noise) return;
-    const at = context.currentTime;
+    const at = context.currentTime+delay;
     const source = context.createBufferSource();
     source.buffer = noise;
     const filter = context.createBiquadFilter();
@@ -46,8 +46,12 @@ export function createAudio() {
   return {
     ready,
     reveal() { burst(.08,.016,1800,620); },
-    pickup() { burst(.07,.022,2200,360); },
+    pickup() { burst(.035,.022,1800,490);burst(.07,.016,2600,780,0,.035); },
+    door(open:boolean){burst(.21,.026,open?1150:800,open?190:125);burst(.045,.025,1500,100,0,.34);},
+    treat(dressing:boolean){burst(dressing?.14:.065,dressing?.025:.02,dressing?1500:2900,dressing?undefined:450);},
+    magazineSeat(){burst(.055,.052,2900,170);},
     shot(id: WeaponId) {
+      burst(.023,.10,5600);
       burst(id === 'shotgun' ? .3 : .17, .21, id === 'rifle' ? 5500 : 3300, id === 'shotgun' ? 110 : 165);
     },
     reload() { burst(.14, .055, 3900); },

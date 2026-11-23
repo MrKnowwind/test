@@ -65,6 +65,9 @@ type Profile = {
   extra?: ItemId[];
 };
 export function caseProfile(id: string, item: ItemId): Profile {
+  if(id.startsWith('room-pump-'))return {kind:'panel',tag:'electronics'};
+  if(id.startsWith('room-workshop-'))return {kind:'tool',tag:'mechanical'};
+  if(id.startsWith('room-clinic-'))return {kind:'medical',tag:'medical'};
   switch (id) {
     case 'triage-stock':
       return { kind: 'medical', tag: 'medical', task: 'medkit' };

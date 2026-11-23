@@ -20,6 +20,7 @@ const TIME_EPSILON = 1e-8;
 
 export function createCombat(world: WorldQueries, spawns: readonly EnemySpawn[], kit?:ReturnType<typeof import('../raid/backpack.ts').createBackpack>): Combat {
   let health = MAX_HEALTH;
+  let creative=false;
   const weapon: WeaponState = {
     id: 'pistol', aiming: false, action: 'ready', actionProgress: 0,
     loaded: MAGAZINE_SIZE, reserve: STARTING_RESERVE,
@@ -29,6 +30,7 @@ export function createCombat(world: WorldQueries, spawns: readonly EnemySpawn[],
   let hitOrigin:Vec3|undefined,noiseTime=0;
   let previousNoise:{point:Vec3;time:number;radius:number}|undefined;
   function emitNoise(point:Vec3,radius:number){
+    if(creative)return;
     if(previousNoise && noiseTime-previousNoise.time<1.5 && radius<=previousNoise.radius && distance(point,previousNoise.point)<2.5)return;
     previousNoise={point:[...point],time:noiseTime,radius};
     const listeners=agents.filter(a=>a.state.health>0 && distance(a.state.position,point)<=radius)
@@ -41,7 +43,14 @@ export function createCombat(world: WorldQueries, spawns: readonly EnemySpawn[],
   let actionRemaining = 0;
   let actionDuration = 0;
   let reloadRequested = false;
+  let shot:CombatFrame['shot'];
   let feedback: CombatFrame['feedback'];
+
+  function contact(input:CombatInput,range:number,damage:number,firearm:boolean){
+    const trace=strike(world,enemies,input.eye,input.aimDirection,range,damage,firearm?input.muzzle:undefined);
+    if(firearm)shot=trace;
+    feedback=trace?.surface==='cover'?'blocked':trace && trace.surface!=='air'?'hit':undefined;
+  }
 
   function startAction(action: WeaponState['action'], duration = 0) {
     weapon.action = action;
@@ -69,7 +78,7 @@ export function createCombat(world: WorldQueries, spawns: readonly EnemySpawn[],
     actionRemaining -= dt;
     if (weapon.action === 'slashing' && previous > KNIFE_CONTACT_REMAINING + TIME_EPSILON
       && actionRemaining <= KNIFE_CONTACT_REMAINING + TIME_EPSILON) {
-      feedback = strike(world, enemies, input.eye, input.aimDirection, KNIFE_RANGE, KNIFE_DAMAGE);
+      contact(input,KNIFE_RANGE,KNIFE_DAMAGE,false);
     }
     if (actionRemaining > TIME_EPSILON) {
       weapon.actionProgress = 1 - actionRemaining / actionDuration;
@@ -113,7 +122,7 @@ export function createCombat(world: WorldQueries, spawns: readonly EnemySpawn[],
           emitNoise(input.playerFeet,28);
           attackCooldown = SHOT_INTERVAL;
           startAction('firing', SHOT_INTERVAL);
-          feedback = strike(world, enemies, input.eye, input.aimDirection, PISTOL_RANGE, PISTOL_DAMAGE, input.muzzle);
+          contact(input,PISTOL_RANGE,PISTOL_DAMAGE,true);
         }
       }
     }
@@ -122,18 +131,24 @@ export function createCombat(world: WorldQueries, spawns: readonly EnemySpawn[],
 
   function snapshot(): CombatFrame {
     const frame: CombatFrame = {
-      health,lastHit,hitOrigin,
+      health:creative?MAX_HEALTH:health,creative,lastHit,hitOrigin,
       weapon: { ...weapon },
       enemies: enemies.map((enemy) => ({ ...enemy, position: [...enemy.position] })),
     };
+    if(shot)frame.shot=shot;
     if (feedback) frame.feedback = feedback;
     return frame;
   }
 
   return {
     snapshot,
+    setCreative(active){
+      creative=active;
+      previousNoise=undefined;
+      if(active)for(const agent of agents)agent.forgetPlayer();
+    },
     update(dt, input) {
-      feedback = undefined;
+      shot = feedback = undefined;
       if (health <= 0) return snapshot();
       noiseTime+=dt;
       if(input.stepRadius)emitNoise(input.playerFeet,input.stepRadius);
@@ -141,8 +156,8 @@ export function createCombat(world: WorldQueries, spawns: readonly EnemySpawn[],
       if(input.treating){reloadRequested=false;startAction('ready');weapon.aiming=false;attackHeld=input.attackPressed;}else if(!weapon.unarmed)updateWeapon(dt,input);
       if(kit?.slots.pistol)kit.slots.pistol.loaded=weapon.loaded;
       for (const agent of agents) {
-        const damage=agent.update(dt,input);
-        if(damage>0){hitOrigin=[...agent.state.position];lastHit=agent.state.kind;health=Math.max(0,health-damage);}
+        const damage=agent.update(dt,input,creative);
+        if(!creative && damage>0){hitOrigin=[...agent.state.position];lastHit=agent.state.kind;health=Math.max(0,health-damage);}
         if (health === 0) {
           reloadRequested = false;
           startAction('ready');

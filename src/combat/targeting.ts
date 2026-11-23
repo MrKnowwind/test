@@ -1,6 +1,5 @@
-import type { CombatFrame, EnemyState, Vec3, WorldQueries } from '../contracts/demo.ts';
+import type { ShotTrace, EnemyState, Vec3, WorldQueries } from '../contracts/demo.ts';
 import { enemySpecs } from '../enemies/specs.ts';
-import { segmentBlocked } from './geometry.ts';
 
 function hitDistance(enemy: EnemyState, origin: Vec3, direction: Vec3, limit: number) {
   const { radius, height } = enemySpecs[enemy.kind];
@@ -28,7 +27,7 @@ function hitDistance(enemy: EnemyState, origin: Vec3, direction: Vec3, limit: nu
 export function strike(
   world: WorldQueries, enemies: readonly EnemyState[], origin: Vec3, aim: Vec3,
   range: number, damage: number, muzzle?: Vec3,
-): CombatFrame['feedback'] {
+): ShotTrace | undefined {
   const length = Math.hypot(...aim);
   if (length === 0) return;
   const direction: Vec3 = [aim[0] / length, aim[1] / length, aim[2] / length];
@@ -41,21 +40,27 @@ export function strike(
     target = enemy;
     distance = hit;
   }
-  if (world.blockedDistance(origin, direction, distance) !== null) return 'blocked';
-  if (muzzle) {
-    const end: Vec3 = [
-      origin[0] + direction[0] * distance,
-      origin[1] + direction[1] * distance,
-      origin[2] + direction[2] * distance,
-    ];
-    if (segmentBlocked(world, origin, muzzle) || segmentBlocked(world, muzzle, end)) return 'blocked';
+  const sightHit=world.blockedDistance(origin,direction,distance);
+  const point=(a:Vec3,v:Vec3,d:number):Vec3=>[a[0]+v[0]*d,a[1]+v[1]*d,a[2]+v[2]*d];
+  const end=point(origin,direction,sightHit??distance);
+  function obstruction(from:Vec3,to:Vec3):ShotTrace|undefined{
+    const dx=to[0]-from[0],dy=to[1]-from[1],dz=to[2]-from[2],length=Math.hypot(dx,dy,dz);
+    if(length<.00001)return;
+    const dir:Vec3=[dx/length,dy/length,dz/length];
+    const hit=world.blockedDistance(from,dir,length);
+    if(hit!==null)return {from,to:point(from,dir,hit),surface:'cover'};
   }
-  if (!target) return;
-
-  target.health = Math.max(0, target.health - damage);
-  if (target.health === 0) {
-    target.action = 'dead';
-    target.actionProgress = 0;
+  if(muzzle){
+    const obstructionHit=obstruction(origin,muzzle)??obstruction(muzzle,end);
+    if(obstructionHit)return obstructionHit;
   }
-  return 'hit';
+  const from=muzzle??origin;
+  if(sightHit!==null)return {from,to:end,surface:'cover'};
+  if(!target)return {from,to:end,surface:'air'};
+  target.health=Math.max(0,target.health-damage);
+  if(target.health===0){
+    target.action='dead';
+    target.actionProgress=0;
+  }
+  return {from,to:end,surface:target.kind};
 }

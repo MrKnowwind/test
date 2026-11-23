@@ -681,18 +681,18 @@ export function createEnvironment() {
     lamp([x, 3.47, z + 2], 0x85efed, 6);
   }
   addArcology(staticRoot, m, solid);
-  buildPortBlocks(staticRoot, m, solids, solid);
+  const rooms=buildPortBlocks(staticRoot, m, solids, solid);
   addPortHorizon(allStatic, m);
   for(const interaction of mapInteractions) addPickup(interaction);
 
   // Merge only static meshes per 20m cell and material. Named pickup groups remain independent.
   batchStatic(allStatic);
-  return { scene, solids };
+  return { scene, solids, rooms };
 
   function rampHeightLocal(z:number) { return slopeHeight(rampSlope,40.5,z - 130); }
 
   function addPickup(target: MapInteraction) {
-    if(target.kind==='switch') return;
+    if(target.kind!=='loot' && target.kind!=='loose') return;
     const group=new THREE.Group();
     group.name=target.id; group.position.set(...target.position); scene.add(group);
     if(target.item==='research-sample') {

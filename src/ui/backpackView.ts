@@ -174,7 +174,7 @@ export function createBackpackView(actions: Action) {
     if (ok) {
       clearSelection();
       refresh();
-      msg('物品已转移');
+      msg(itemSpecs[s.entry.item].name+' ×'+s.entry.quantity+' 已转移');
     } else msg(p ? '该位置有重叠或超出分隔' : bag.failure(s.entry.item));
   }
   function tile(grid: HTMLElement, e: BagEntry, revealed: boolean, from: 'bag' | 'source', active = false) {

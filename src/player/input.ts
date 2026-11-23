@@ -66,6 +66,7 @@ export function createInput(canvas: HTMLCanvasElement) {
         strafe: Number(keys.has('KeyD')) - Number(keys.has('KeyA')),
         running: keys.has('ShiftLeft') || keys.has('ShiftRight'),
         quiet: keys.has('KeyC'),
+        lift:Number(keys.has('Space'))-Number(keys.has('KeyQ')),
         medicineHeld: medicineDown!==undefined && performance.now()-medicineDown>=330,
         medicineRelease,
         medicineCycle:Number(pressed.has('ArrowRight')||pressed.has('ArrowDown'))-Number(pressed.has('ArrowLeft')||pressed.has('ArrowUp')),

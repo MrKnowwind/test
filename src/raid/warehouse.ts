@@ -41,7 +41,7 @@ export function createWarehouse(getStorage: () => Storage) {
   }
   const api = {
     commit(result: RaidResult) {
-      if (result.outcome !== 'extracted' || !Object.keys(result.items).length) return true;
+      if (result.practice || result.outcome !== 'extracted' || !Object.keys(result.items).length) return true;
       try {
         const storage = getStorage();
         const key = prefix + result.runId;

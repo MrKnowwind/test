@@ -2,6 +2,8 @@ import type { EnemySpawn, FirstMap, Vec3 } from '../contracts/demo.ts';
 import { createEnvironment, mapInteractions } from './environment.ts';
 import { createWorldQueries, lab } from './worldQueries.ts';
 import { loosePoints } from './loosePoints.ts';
+import { createShopDoors } from './shopDoors.ts';
+import { roll } from '../raid/loot.ts';
 import { supplySites } from './supplySites.ts';
 
 import { districtPoint, highwayPosition, servicePosition } from './layout.ts';
@@ -25,17 +27,26 @@ function placeEnemies(seed: number): EnemySpawn[] {
   ];
 }
 
-export function createFirstMap(seed: number): FirstMap & { scene: import('three').Group } {
-  const { scene, solids } = createEnvironment();
+export function createFirstMap(seed: number): FirstMap & { scene: import('three').Group; doors:ReturnType<typeof createShopDoors> } {
+  const { scene, solids, rooms } = createEnvironment();
+  const doors=createShopDoors(scene,solids,rooms.doors);
   const queries=createWorldQueries(solids);
   const loose=loosePoints(seed,mapInteractions,p=>queries.blockedDistance(p,[0,-1,0],3));
-  return {
-    ...queries, scene,
-    spawnPoints: [
+  const spawnPoints = [
       { id: 'south-loading', position: [-24, 0, 143], yaw: -.35 },
       { id: 'warehouse-alley', position: [149, 0, 83], yaw: .38 },
       { id: 'scrap-shelter', position: [-138, -.8, 24], yaw: .37 },
-    ],
+  ] satisfies FirstMap['spawnPoints'];
+  // Spread five indoor encounters over the map, away from every insertion point.
+  const indoor:EnemySpawn[]=[];
+  const candidates=rooms.occupants.filter(e=>spawnPoints.every(s=>Math.hypot(s.position[0]-e.position[0],s.position[2]-e.position[2])>20));
+  candidates.sort((a,b)=>roll(seed,a.id,0)-roll(seed,b.id,0));
+  for(const e of candidates){
+    if(indoor.every(other=>Math.hypot(other.position[0]-e.position[0],other.position[2]-e.position[2])>35))indoor.push(e);
+    if(indoor.length===5)break;
+  }
+  return {
+    ...queries, scene, doors, spawnPoints,
     exits: [
       { id: 'highway', label: '公路出口', position: highwayPosition, radius: 2.2, requirements: [] },
       { id: 'service-passage', label: '维修通道', position: servicePosition, radius: 2,
@@ -51,7 +62,7 @@ export function createFirstMap(seed: number): FirstMap & { scene: import('three'
       { id: 'warehouse', label: '02 物流仓储', center: [-4, 0, 8], radius: 50 },
       { id: 'approach', label: '05 南侧公路', center: [-4, 0, 125], radius: 260 },
     ],
-    interactions: [...mapInteractions,...loose],
-    enemies: placeEnemies(seed),
+    interactions: [...mapInteractions,...loose,...rooms.cases,...doors.targets],
+    enemies: [...placeEnemies(seed),...indoor],
   };
 }

@@ -150,7 +150,8 @@ export function makePistol(parent: THREE.Object3D) {
   const magazine = pivot(grip, [0, -0.090, 0], 'magazine');
   block(magazine, blueSteel, [0.027, 0.082, 0.036], [0, 0.038, 0], 0.003);
   block(magazine, gunRubber, [0.039, 0.009, 0.050], [0, -0.002, 0], 0.003);
-  rod(magazine, brass, [0, 0.077, 0.013], [0, 0.077, -0.011], 0.0043);
+  const topRound=pivot(magazine,[0,0,0]);
+  rod(topRound, brass, [0, 0.077, 0.013], [0, 0.077, -0.011], 0.0043);
 
   const flash = pivot(muzzle, [0, 0, -0.038], 'muzzle-flash');
   const flare = surface(0xffbb55, 1);
@@ -164,8 +165,8 @@ export function makePistol(parent: THREE.Object3D) {
   const right = makeGlove(body, [0.027, -0.102, 0.018], false, true, 'pistol-grip-hand');
   const left = makeGlove(body, [-0.036, -0.116, 0.011], true, false, 'pistol-support-hand');
   left.root.rotation.z = -0.10;
-  for (const group of [body, slide, grip, magazine, flash]) batchRigid(group);
-  return { body, slide, muzzle, grip, magazine, flash, right, left };
+  for (const group of [body, slide, grip, magazine, topRound, flash]) batchRigid(group);
+  return { body, slide, muzzle, grip, magazine, topRound, flash, right, left };
 }
 
 export function makeKnife(parent: THREE.Object3D) {

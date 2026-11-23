@@ -95,7 +95,7 @@ export function createEnemy(world: WorldQueries, spawn: EnemySpawn) {
     return moved;
   }
 
-  function update(dt: number, input: CombatInput): number {
+  function update(dt: number, input: CombatInput, ignorePlayer=false): number {
     if (state.action === 'dead') return 0;
 
     if (state.action === 'attacking' || state.action === 'recovering') {
@@ -130,7 +130,7 @@ export function createEnemy(world: WorldQueries, spawn: EnemySpawn) {
       scanTime+=dt;
       state.yaw=spawn.yaw+Math.sin(scanTime*.62)*.85;
     }
-    const canSee = distance <= noticeRange && inView(state,input.playerFeet) && !segmentBlocked(world, origin, torso);
+    const canSee = !ignorePlayer && distance <= noticeRange && inView(state,input.playerFeet) && !segmentBlocked(world, origin, torso);
     if (canSee) {
       investigation=undefined;state.intent='chase';
       lastSeen = [...input.playerFeet];
@@ -173,5 +173,11 @@ export function createEnemy(world: WorldQueries, spawn: EnemySpawn) {
     return 0;
   }
 
-  return { state, update, hear };
+  function forgetPlayer(){
+    if(state.health<=0)return;
+    lastSeen=investigation=routeGoal=undefined;
+    route=[];stuck=investigationTime=searchRemaining=0;
+    patrolTarget=spawn.position;state.intent='patrol';begin('idle');
+  }
+  return { state, update, hear, forgetPlayer };
 }

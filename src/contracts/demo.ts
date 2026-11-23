@@ -31,6 +31,7 @@ export interface ExitZone {
 export type MapInteraction = { id: string; label: string; position: Vec3 } & (
   | { kind: 'loot'; item: ItemId; quantity: number }
   | { kind: 'loose'; item:ItemId; quantity:number }
+  | { kind: 'door' }
   | { kind: 'switch'; flag: FlagId }
 );
 
@@ -82,7 +83,10 @@ export interface CombatInput {
   switchTo?: WeaponId;
 }
 
+export type ShotTrace = { from:Vec3; to:Vec3; surface:'air'|'cover'|EnemyKind };
 export interface CombatFrame {
+  shot?:ShotTrace;
+  creative?:boolean;
   lastHit?:EnemyKind;
   hitOrigin?:Vec3;
   health: number;
@@ -92,6 +96,7 @@ export interface CombatFrame {
 }
 
 export interface Combat {
+  setCreative(active:boolean):void;
   snapshot(): CombatFrame;
   update(dt: number, input: CombatInput): CombatFrame;
   addReserve(amount: number): void;

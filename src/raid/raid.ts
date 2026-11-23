@@ -21,6 +21,7 @@ export type RaidLog = {
   cancellations: string[];
 };
 export type RaidResult = {
+  practice?:boolean;
   seed?: number;
   spawn?: string;
   log?: RaidLog;
@@ -67,7 +68,9 @@ export function createRaid(runId: string, seed: number, map: RaidMap) {
     damage = '';
   const visited = new Set<string>();
   const log: RaidLog = { shots: 0, hits: 0, kills: 0, heals: 0, cancellations: [] };
+  let creative=false, practice=false, generated=0;
   const record = () => ({
+    practice,
     seed,
     spawn: spawn.id,
     seconds,
@@ -150,6 +153,15 @@ export function createRaid(runId: string, seed: number, map: RaidMap) {
     targets.push(t);
     ground.set(id, c);
     return t;
+  }
+  function generateItem(item:ItemId,quantity:number,at?:Vec3){
+    if(!creative || result || !Number.isSafeInteger(quantity) || quantity<1 || quantity>itemSpecs[item].stack)return false;
+    const cargo:Cargo={item,quantity};
+    if(isPack(item)||item==='pistol'||item==='knife'||item==='healing-injector')cargo.instance=runId+'/creative-'+(++generated);
+    if(item==='pistol')cargo.loaded=8;
+    if(item==='healing-injector')cargo.durability=3;
+    if(at)return canDrop(at)?drop(cargo,at):false;
+    return backpack.receive(cargo);
   }
   function removeGround(id: string) {
     ground.delete(id);
@@ -291,6 +303,9 @@ export function createRaid(runId: string, seed: number, map: RaidMap) {
   return {
     log,
     targets,
+    get creative(){return creative;},
+    setCreative(active:boolean){if(!result){creative=active;practice ||= active;}},
+    generateItem,
     ground,
     groundContainer,
     equipPack,

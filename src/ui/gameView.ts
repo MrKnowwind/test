@@ -1,6 +1,7 @@
 import type { CombatFrame, ExitZone, ItemId, Vec3, WeaponId } from '../contracts/demo.ts';
 import type { Inventory, RaidResult } from '../raid/raid.ts';
 
+import type { TreatmentPose } from '../combat/treatment.ts';
 import { itemSpecs } from '../raid/catalog.ts';
 
 const spawnNames: Record<string, string> = {
@@ -53,10 +54,12 @@ export function createGameView() {
       error.hidden = !message;
     },
     showPlaying() {
+      byId('creative-panel').hidden=true;
       overlay.hidden = true;
       hud.hidden = false;
     },
     showPaused() {
+      byId('creative-panel').hidden=false;
       overlay.hidden = false;
       hud.hidden = true;
       label(stage, '出击中');
@@ -69,6 +72,7 @@ export function createGameView() {
     showResult(result: RaidResult, saved: boolean, exitLabel?: string) {
       overlay.hidden = false;
       hud.hidden = true;
+      byId('creative-panel').hidden=true;
       abandon.hidden = true;
       controls.hidden = true;
       label(stage, exitLabel ?? '出击结算');
@@ -79,7 +83,8 @@ export function createGameView() {
       summary.textContent+='　出击 '+Math.floor(result.seconds??0)+' 秒 · 搜索 '+(result.visited?.length??0)+' 处'+(result.damage?' · 最近受伤：'+result.damage:'');
       const wear=(result.instances??[]).reduce((v,e)=>v+(e.item==='healing-injector'?30*(3-(e.durability??3)):0),0);
       const value=-wear+Object.entries(result.items).reduce((n,[id,q])=>n+itemSpecs[id as ItemId].price*q,0);
-      if(result.outcome==='extracted')summary.textContent+=' · 预计变卖 '+value+' 券';
+      if(result.practice)summary.textContent+=' · 创造练习，物资不入仓';
+      else if(result.outcome==='extracted')summary.textContent+=' · 预计变卖 '+value+' 券';
       const log=result.log;
       if(log)summary.textContent+='　种子 '+result.seed+' · '+(spawnNames[result.spawn??'']??'')+' · 首件 '+(log.first??'无')+' · 实发 '+log.shots+' / 命中 '+log.hits+' / 击倒 '+log.kills+' / 用药 '+log.heals+(log.cancellations.length?' · 计时取消：'+log.cancellations.join('、'):'');
       label(primary, saved ? '再次出击' : '重试入库');
@@ -107,12 +112,18 @@ export function createGameView() {
         label(state.status, (blocked ? (blocked.includes('维修卡') ? '需维修卡' : '未通电') : '可撤离') + distance);
       }
     },
-    updateHud(frame: CombatFrame, spawnId: string, underground: boolean, inventory: Readonly<Inventory>, region?: string) {
+    updateHud(frame: CombatFrame, spawnId: string, underground: boolean, inventory: Readonly<Inventory>, region?: string, treatment?:TreatmentPose) {
       label(floor, underground ? '地下实验室 · B1' : region ?? '盐港隔离区');
-      label(spawn, spawnNames[spawnId] ?? spawnId);
-      label(health, String(frame.health));
+      label(spawn, (frame.creative?'创造模式 · ':'')+(spawnNames[spawnId] ?? spawnId));
+      label(health, frame.creative?'∞':String(frame.health));
       bar.style.width = `${frame.health}%`;
       label(pack, list(inventory) || '局内携带栏为空');
+      if(treatment){
+        label(weapon,itemName(treatment.item));
+        label(ammo,Math.floor(treatment.progress*100)+'%');
+        label(action,treatment.preview?'动作演示':'使用中');
+        return;
+      }
       const state = frame.weapon;
       const names: Record<WeaponId, string> = { rifle: '1 / 制式步枪', shotgun: '2 / 泵动霰弹枪', pistol: '3 / 港卫 P8', knife: '4 / 战术刀' };
       label(weapon,state.unarmed?'未持武器':names[state.id]);
