@@ -3,8 +3,8 @@ import { createEnemy } from '../enemies/createEnemy.ts';
 import { strike } from './targeting.ts';
 
 const MAX_HEALTH = 100;
-const MAGAZINE_SIZE = 6;
-const STARTING_RESERVE = 6;
+const MAGAZINE_SIZE = 8;
+const STARTING_RESERVE = 15;
 const SHOT_INTERVAL = 1 / 2.5;
 const RELOAD_TIME = 1.6;
 const PISTOL_RANGE = 45;
@@ -16,7 +16,7 @@ const KNIFE_INTERVAL = 0.65;
 const KNIFE_CONTACT_REMAINING = KNIFE_INTERVAL * (1 - 0.36);
 const TIME_EPSILON = 1e-8;
 
-export function createCombat(world: WorldQueries, spawns: readonly EnemySpawn[]): Combat {
+export function createCombat(world: WorldQueries, spawns: readonly EnemySpawn[], kit?:ReturnType<typeof import('../raid/backpack.ts').createBackpack>): Combat {
   let health = MAX_HEALTH;
   const weapon: WeaponState = {
     id: 'pistol', aiming: false, action: 'ready', actionProgress: 0,
@@ -24,6 +24,7 @@ export function createCombat(world: WorldQueries, spawns: readonly EnemySpawn[])
   };
   const agents = spawns.map((spawn) => createEnemy(world, spawn));
   const enemies = agents.map(({ state }) => state);
+  let lastHit:EnemySpawn['kind']|undefined;
   let attackHeld = false;
   let attackCooldown = 0;
   let actionRemaining = 0;
@@ -38,6 +39,19 @@ export function createCombat(world: WorldQueries, spawns: readonly EnemySpawn[])
     actionRemaining = duration;
   }
 
+  let equippedId=kit?.slots.pistol?.instance;
+  function syncEquipment() {
+    if(!kit)return;
+    const active=weapon.id==='knife'?kit.slots.knife:kit.slots.pistol;
+    const next=active??kit.slots.pistol??kit.slots.knife;
+    if(next?.instance!==equippedId){
+      startAction('ready');reloadRequested=false;weapon.aiming=false;
+      equippedId=next?.instance;
+      if(next)weapon.id=next.item==='knife'?'knife':'pistol';
+    }
+    weapon.loaded=kit.slots.pistol?.loaded??0;weapon.reserve=kit.ammoCount();
+    weapon.unarmed=!next;
+  }
   function advanceAction(dt: number, input: CombatInput) {
     if (weapon.action === 'ready') return;
     const previous = actionRemaining;
@@ -54,6 +68,7 @@ export function createCombat(world: WorldQueries, spawns: readonly EnemySpawn[])
       const rounds = Math.min(MAGAZINE_SIZE - weapon.loaded, weapon.reserve);
       weapon.loaded += rounds;
       weapon.reserve -= rounds;
+      kit?.takeAmmo(rounds);
     }
     startAction('ready');
   }
@@ -62,9 +77,10 @@ export function createCombat(world: WorldQueries, spawns: readonly EnemySpawn[])
     const attack = input.attackPressed && !attackHeld;
     attackHeld = input.attackPressed;
     attackCooldown = Math.max(0, attackCooldown - dt);
-    const available = input.switchTo === 'knife' || input.switchTo === 'pistol';
+    const available = (input.switchTo === 'knife' || input.switchTo === 'pistol') && (!kit||kit.slots[input.switchTo]);
     if (available && input.switchTo && input.switchTo !== weapon.id) {
       weapon.id = input.switchTo;
+      if(kit&&(input.switchTo==='pistol'||input.switchTo==='knife'))equippedId=kit.slots[input.switchTo]?.instance;
       reloadRequested = false;
       startAction('ready');
     }
@@ -94,7 +110,7 @@ export function createCombat(world: WorldQueries, spawns: readonly EnemySpawn[])
 
   function snapshot(): CombatFrame {
     const frame: CombatFrame = {
-      health,
+      health,lastHit,
       weapon: { ...weapon },
       enemies: enemies.map((enemy) => ({ ...enemy, position: [...enemy.position] })),
     };
@@ -107,9 +123,12 @@ export function createCombat(world: WorldQueries, spawns: readonly EnemySpawn[])
     update(dt, input) {
       feedback = undefined;
       if (health <= 0) return snapshot();
-      updateWeapon(dt, input);
+      syncEquipment();
+      if(!weapon.unarmed)updateWeapon(dt,input);
+      if(kit?.slots.pistol)kit.slots.pistol.loaded=weapon.loaded;
       for (const agent of agents) {
-        health = Math.max(0, health - agent.update(dt, input));
+        const damage=agent.update(dt,input);
+        if(damage>0){lastHit=agent.state.kind;health=Math.max(0,health-damage);}
         if (health === 0) {
           reloadRequested = false;
           startAction('ready');
@@ -120,7 +139,9 @@ export function createCombat(world: WorldQueries, spawns: readonly EnemySpawn[])
       return snapshot();
     },
     addReserve(amount) {
-      if (health > 0 && Number.isFinite(amount) && amount > 0) weapon.reserve += Math.floor(amount);
+      if (health > 0 && Number.isFinite(amount) && amount > 0) {
+        if(kit)kit.add('pistol-ammo',Math.floor(amount));else weapon.reserve+=Math.floor(amount);
+      }
     },
     heal(amount) {
       if (health > 0 && Number.isFinite(amount) && amount > 0) {

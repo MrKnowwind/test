@@ -7,6 +7,7 @@ import { createEnemyVisual } from '../presentation/enemyVisuals.ts';
 import { createViewmodel } from '../presentation/viewmodel.ts';
 import { createRaid } from '../raid/raid.ts';
 import { createWarehouse } from '../raid/warehouse.ts';
+import {isPack} from '../raid/catalog.ts';
 import { itemIcon } from '../ui/itemArt.ts';
 import { createGameView, itemName } from '../ui/gameView.ts';
 import { createFirstMap } from '../world/firstMap.ts';
@@ -90,23 +91,30 @@ function startGame() {
       bag.hide();
       void canvas.requestPointerLock()?.catch(() => view.showPaused());
     },
-    take(id, entry, placement) {
-      const target=run.map.interactions.find(target=>target.id===id);
-      if(!target || Math.hypot(...target.position.map((v,i)=>v-run.player.eye[i]))>3) return false;
-      const taken=run.raid.takeContainerItem(id,entry,placement);
-      if(taken) audio.pickup();
-      return taken;
+    take(id,entry,placement) {
+      if(!reachable(id))return false;
+      const taken=run.raid.takeContainerItem(id,entry,placement);if(taken)audio.pickup();return taken;
     },
+    equip(from,id) {
+      if(from!=='carried'&&!reachable(from))return false;
+      const changed=run.raid.equipPack(from,id,dropPoint());if(!changed)return false;
+      if(changed.dropped)run.containers.spawn(changed.dropped);
+      if(id===undefined)run.containers.remove(from);
+      return true;
+    },
+    fold(id){if(!reachable(id)||!run.raid.collect(id))return false;run.containers.remove(id);return true;},
+    unpack(){const t=run.raid.unpack(dropPoint());if(!t)return false;run.containers.spawn(t);return true;},
+    stow:(slot,p)=>run.raid.stow(slot,p),holster:id=>run.raid.holster(id),
     use(id) {
       const entry = run.raid.backpack.entries.find(entry => entry.id === id);
       if (!entry) return false;
       if (entry.item === 'medkit' && run.combat.snapshot().health < 100) run.combat.heal(40);
-      else if (entry.item === 'pistol-ammo') run.combat.addReserve(entry.quantity);
       else return false;
+      run.raid.log.heals++;
       run.raid.backpack.remove(id);
       return true;
     },
-    discard(id) { run.raid.backpack.remove(id); },
+    discard(id) { const t=run.raid.dropCarried(id,dropPoint());if(t)run.containers.spawn(t); },
   });
   renderOperatorPortrait(renderer);
   let run = prepareRun();
@@ -120,7 +128,7 @@ function startGame() {
       object.receiveShadow = true;
     });
     const raid = createRaid(crypto.randomUUID(), seed, map);
-    const combat = createCombat(map, map.enemies);
+    const combat = createCombat(map, map.enemies,raid.backpack);
     const player = createPlayer(camera, map, raid.spawn);
     camera.fov = 62;
     camera.updateProjectionMatrix();
@@ -146,9 +154,21 @@ function startGame() {
     notice = '';
     accumulator = noticeTime = hitTime = hurtTime = 0;
     dirty = true;
-    return { map, raid, combat, player, viewmodel, enemies, frame, containers, searched: new Set<string>() };
+    return { discovered:new Set<string>(), nextSurvey:0, map, raid, combat, player, viewmodel, enemies, frame, containers, searched: new Set<string>() };
   }
 
+  function reachable(id:string){
+    if(run.raid.result||run.raid.consumed.has(id))return false;
+    const t=run.raid.targets.find(t=>t.id===id);if(!t)return false;
+    const eye=run.player.eye,d=new THREE.Vector3(...t.position).sub(new THREE.Vector3(...eye));
+    const distance=d.length();d.normalize();
+    return distance<=2.85 && run.map.blockedDistance(eye,[d.x,d.y,d.z],Math.max(0,distance-.24))===null;
+  }
+  function dropPoint():readonly [number,number,number]{
+    const [x,y,z]=run.player.feet;
+    const pos=run.map.moveGrounded([x,y,z],-Math.sin(run.player.yaw)*.75,-Math.cos(run.player.yaw)*.75,.22,.65);
+    return [pos[0],(run.map.groundHeight?.(pos,.1)??pos[1])+.15,pos[2]];
+  }
   function disposeRun() {
     const roots = [run.map.scene, run.viewmodel.group];
     const resources = new Set<{ dispose(): void }>();
@@ -293,18 +313,22 @@ function startGame() {
     }
     if (control.switchTo === 'rifle' || control.switchTo === 'shotgun') notify('该主武器槽为空');
     const moving = player.move(dt, control, run.frame.weapon.aiming);
-    const target = findInteraction(map, map.interactions, raid.consumed, player.eye, player.direction);
+    const target = findInteraction(map, raid.targets, raid.consumed, player.eye, player.direction);
     if (control.interactPressed && target) {
       if (target.kind === 'switch') use(target);
-      else {
-        bag.show(raid.backpack, target, raid.containers.get(target.id));
+      else if(target.kind==='loose'&&!isPack(target.item)){
+        if(raid.collect(target.id)){run.containers.remove(target.id);audio.pickup();notify('已拾取 '+itemSpecs[target.item].name);}
+        else notify(raid.backpack.failure(target.item));
+      }else {
+        const contents=target.kind==='loose'?raid.groundContainer(target.id):raid.containers.get(target.id);
+        raid.visited.add(target.id);
+        bag.show(raid.backpack,target,contents);
         document.exitPointerLock();
       }
     }
     if(bag.open && bag.activeContainer) {
       const id=bag.activeContainer;
-      const source=map.interactions.find(t=>t.id===id)!;
-      const paused=Math.hypot(...source.position.map((v,i)=>v-player.eye[i]))>3;
+      const paused=!reachable(id);
       if(!paused) {
         const completed=raid.searchContainer(id,dt);
         if(completed) {audio.reveal();run.containers.searched(id);}
@@ -324,6 +348,7 @@ function startGame() {
     });
     const currentWeapon = run.frame.weapon;
     if (currentWeapon.id === previousWeapon.id && currentWeapon.loaded < previousWeapon.loaded) {
+      raid.log.shots++;
       audio.shot(currentWeapon.id);
       player.kick(currentWeapon.id === 'shotgun' ? .024 : .011);
     }
@@ -334,21 +359,23 @@ function startGame() {
       audio.footstep(player.feet[1]>2?'metal':player.feet[1]<-2.5?'concrete':'gravel');
       footstepTime = control.running && !currentWeapon.aiming ? .29 : .44;
     }
+    if (run.frame.health < previousHealth) {hurtTime=.38;raid.hitBy(run.frame.lastHit==='security-bot'?'地下安保机':'感染体');}
     const message = raid.update(dt, player.feet, run.frame.health, control.interactPressed && !target);
     if (message) notify(message);
     if (run.frame.feedback === 'empty') notify('空仓 · 按 R 换弹');
     if (run.frame.feedback === 'blocked') notify('攻击被掩体阻挡');
-    if (run.frame.feedback === 'hit') { hitTime = 0.16; audio.hit(); }
-    if (run.frame.health < previousHealth) hurtTime = 0.38;
+    if (run.frame.feedback === 'hit') { raid.log.hits++;hitTime = 0.16; audio.hit(); }
     noticeTime = Math.max(0, noticeTime - dt);
     hitTime = Math.max(0, hitTime - dt);
     hurtTime = Math.max(0, hurtTime - dt);
     for (const enemy of run.frame.enemies) {
+      if(enemy.action==='dead' && previousActions.get(enemy.id)!=='dead')raid.log.kills++;
       if(enemy.action==='windup' && previousActions.get(enemy.id)!=='windup') {
         audio.warning(enemy.kind==='security-bot', Math.hypot(...enemy.position.map((v,i)=>v-player.feet[i])));
       }
       updateEnemy(run.enemies.get(enemy.id)!, enemy, dt);
     }
+    viewmodel.group.visible=!run.frame.weapon.unarmed;
     viewmodel.update(dt, run.frame.weapon, moving, {
       running: control.running, lookX: control.lookX, lookY: control.lookY,
     });
@@ -365,18 +392,27 @@ function startGame() {
     camera.layers.set(0);
     rendering.render(underground);
     const countdown = raid.countdown;
-    const target = findInteraction(map, map.interactions, raid.consumed, player.eye, player.direction);
+    const target = findInteraction(map, raid.targets, raid.consumed, player.eye, player.direction);
     const exit = raid.exitAt(player.feet);
     const reason = exit && raid.blockedReason(exit);
     const prompt = countdown ? `${countdown.exit.label} · ${countdown.remaining.toFixed(1)} 秒`
-      : target ? `E · ${target.kind === 'loot' ? '搜索容器 / ' : ''}${target.label}`
+      : target ? `E · ${target.kind === 'loot' ? '搜索容器 / ' : target.kind==='loose'?'拾取 / ':''}${target.label}`
       : exit ? `${exit.label} · ${reason ?? '按 E 撤离'}` : '';
     const region = map.regions?.filter((entry) => Math.abs(entry.center[1] - player.feet[1]) < 4)
       .sort((a, b) => Math.hypot(a.center[0] - player.feet[0], a.center[2] - player.feet[2]) -
         Math.hypot(b.center[0] - player.feet[0], b.center[2] - player.feet[2]))[0];
     view.updateRoutes(map.exits, raid.blockedReason, player.feet);
     view.updateHud(frame, raid.spawn.id, underground, raid.items, region?.label);
-    tacticalMap.update(map, player.feet, player.yaw, performance.now());
+    const now=performance.now();
+    if(entered && now>=run.nextSurvey){
+      run.nextSurvey=now+250;
+      for(const t of map.interactions){
+        if(t.kind!=='loot'||run.discovered.has(t.id))continue;
+        const [x,y,z]=player.eye,dx=t.position[0]-x,dy=t.position[1]-y,dz=t.position[2]-z,d=Math.hypot(dx,dy,dz);
+        if(d>.01 && d<=12 && map.blockedDistance(player.eye,[dx/d,dy/d,dz/d],Math.max(0,d-.24))===null)run.discovered.add(t.id);
+      }
+    }
+    tacticalMap.update(map, player.feet, player.yaw, now,run.discovered,raid.consumed);
     view.feedback(noticeTime ? notice : '', prompt, countdown?.remaining, hitTime > 0, hurtTime / 0.38, frame.weapon.aiming);
   }
 

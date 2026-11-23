@@ -2,7 +2,8 @@
 export type Vec3 = readonly [x: number, y: number, z: number];
 export type WeaponId = 'knife' | 'pistol' | 'rifle' | 'shotgun';
 export type EnemyKind = 'infected' | 'security-bot';
-export type ItemId = 'pistol-ammo' | 'medkit' | 'salvage' | 'research-sample' | 'service-card';
+import type { ItemId } from '../raid/catalog.ts';
+export type { ItemId } from '../raid/catalog.ts';
 export type FlagId = 'lab-power';
 
 export interface SpawnPoint {
@@ -29,6 +30,7 @@ export interface ExitZone {
 
 export type MapInteraction = { id: string; label: string; position: Vec3 } & (
   | { kind: 'loot'; item: ItemId; quantity: number }
+  | { kind: 'loose'; item:ItemId; quantity:number }
   | { kind: 'switch'; flag: FlagId }
 );
 
@@ -51,6 +53,7 @@ export interface FirstMap extends WorldQueries {
 }
 
 export interface WeaponState {
+  unarmed?:boolean;
   id: WeaponId;
   aiming: boolean;
   action: 'ready' | 'firing' | 'reloading' | 'slashing';
@@ -77,6 +80,7 @@ export interface CombatInput {
 }
 
 export interface CombatFrame {
+  lastHit?:EnemyKind;
   health: number;
   weapon: WeaponState;
   enemies: readonly EnemyState[];

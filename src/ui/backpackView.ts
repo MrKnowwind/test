@@ -1,226 +1,452 @@
 import { itemIcon } from './itemArt.ts';
-import type { SearchContainer, Placement } from '../raid/containerSearch.ts';
+import {
+  dimensions,
+  type BagEntry,
+  type Placement,
+  type Cargo,
+  type createBackpack,
+} from '../raid/backpack.ts';
+import { itemSpecs, isPack, packs, pockets, type Section, type ItemId } from '../raid/catalog.ts';
+import type { SearchContainer, SearchEntry } from '../raid/containerSearch.ts';
 import type { MapInteraction } from '../contracts/demo.ts';
-import { itemSpecs, type createBackpack } from '../raid/backpack.ts';
-
-type Backpack = ReturnType<typeof createBackpack>;
-
-export function createBackpackView(callbacks: {
+type Bag = ReturnType<typeof createBackpack>;
+type Action = {
   close(): void;
-  take(id: string, entry: number, placement?: Placement): boolean;
+  take(id: string, entry: number, p?: Placement): boolean;
   use(id: number): boolean;
   discard(id: number): void;
-}) {
+  equip(from: string, id?: number): boolean;
+  fold(from: string): boolean;
+  unpack(): boolean;
+  stow(slot: 'knife' | 'pistol', p?: Placement): boolean;
+  holster(id: number): boolean;
+};
+type Selection = { from: 'bag' | 'source' | 'slot'; id: number; entry: Cargo; rotated: boolean };
+export function createBackpackView(actions: Action) {
   const panel = document.createElement('section');
   panel.id = 'backpack-panel';
   panel.hidden = true;
-  panel.setAttribute('aria-label', '背包和容器');
-  panel.innerHTML = `
-    <div class="bag-window">
-      <header><div><span class="eyebrow">FIELD INVENTORY</span><h2>装备与背包</h2></div><button id="bag-close">返回出击</button></header>
-      <div class="bag-columns">
-        <div class="equipment"><h3>装备</h3><canvas class="operator-portrait" aria-label="出击队员"></canvas><div><kbd>1</kbd> 主武器 I <small>空</small></div><div><kbd>2</kbd> 主武器 II <small>空</small></div><div><kbd>3</kbd> 手枪 <small>已装备</small></div><div><kbd>4</kbd> 战术刀 <small>已装备</small></div></div>
-        <div><h3>随身背包 <span id="bag-size"></span></h3><div id="bag-grid"></div><p class="bag-help">拖动物品移动 · R 旋转 · 双击使用补给</p></div>
-        <div class="bag-container"><h3 id="container-title">物品详情</h3><div id="container-content"></div><div id="selected-item"></div><div class="bag-actions"><button id="bag-use" hidden>使用</button><button id="bag-drop" hidden>丢弃</button></div></div>
-      </div><p id="bag-feedback" role="status"></p>
-    </div>`;
-  const slots=panel.querySelectorAll('.equipment > div');
-  slots[2].prepend(itemIcon('pistol')); slots[3].prepend(itemIcon('knife'));
+  panel.innerHTML = `<div class="bag-window"><header><h2>装备与携带空间</h2><button id="bag-close">返回出击</button></header>
+  <div class="bag-columns"><div class="equipment"><h3>装备</h3><canvas class="operator-portrait"></canvas><div id="loadout"></div></div>
+  <div><h3>随身空间 <span id="bag-size"></span></h3><div id="carry-grids"></div></div>
+  <div class="bag-container"><h3 id="container-title">物品详情</h3><div id="container-content"></div><div id="selected-item"></div><div class="bag-actions"></div></div></div>
+  <p class="bag-help">单击选择、再点格子放置，或拖放 · R 旋转 · 双击已揭示物品快取</p><p id="bag-feedback" role="status"></p>
+  <dialog class="swap-preview"><h3>确认换包</h3><div class="swap-comparison"></div><button value="cancel">返回</button> <button value="confirm">确认装备</button></dialog></div>`;
   document.body.append(panel);
-  const grid = panel.querySelector<HTMLElement>('#bag-grid')!;
-  const size = panel.querySelector('#bag-size')!;
-  const feedback = panel.querySelector('#bag-feedback')!;
-  const content = panel.querySelector('#container-content')!;
-  const detail = panel.querySelector('#selected-item')!;
-  const useButton = panel.querySelector<HTMLButtonElement>('#bag-use')!;
-  const dropButton = panel.querySelector<HTMLButtonElement>('#bag-drop')!;
-  let bag: Backpack;
-  let container: MapInteraction | undefined;
-  let source: SearchContainer | undefined;
-  let sourceSelected: number | undefined;
-  let selected: number | undefined;
-  let revealVersion = -1;
-  let dragging = false;
-  let rotated = false;
-  function message(text: string) { feedback.textContent = text; }
-  function select(id: number) {
-    selected = id;sourceSelected = undefined;
-    const entry = bag.entries.find(entry => entry.id === id);
-    if (entry) {
-      rotated = entry.rotated;
-      const spec = itemSpecs[entry.item];
-      detail.textContent = `${spec.name} × ${entry.quantity} · ${spec.w} × ${spec.h} 格 · 单件售价 ${spec.price} 券`;
-      useButton.hidden = entry.item !== 'medkit' && entry.item !== 'pistol-ammo';
-      dropButton.hidden = false;
+  const q = (s: string) => panel.querySelector<HTMLElement>(s)!;
+  const dialog = panel.querySelector('dialog')!;
+  let bag: Bag,
+    target: MapInteraction | undefined,
+    source: SearchContainer | undefined,
+    selected: Selection | undefined;
+  let count = -1,
+    dragging = false,
+    confirmSwap: (() => void) | undefined;
+  const msg = (s: string) => {
+    q('#bag-feedback').textContent = s;
+  };
+  function button(parent: HTMLElement, label: string, fn: () => void) {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.textContent = label;
+    b.onclick = fn;
+    parent.append(b);
+    return b;
+  }
+  function clearSelection() {
+    selected = undefined;
+    q('#selected-item').textContent = '';
+    q('.bag-actions').replaceChildren();
+  }
+  function action(label: string, fn: () => boolean) {
+    button(q('.bag-actions'), label, () => {
+      if (fn()) {
+        clearSelection();
+        refresh();
+      } else msg('操作未完成，请检查位置、距离或装备栏');
+    });
+  }
+  function diagram(parent: HTMLElement, sections: Section[], entries: readonly BagEntry[]) {
+    for (const s of sections) {
+      const line = document.createElement('p');
+      line.textContent = s.name + ' ' + s.h + '×' + s.w;
+      const g = document.createElement('span');
+      g.className = 'mini-grid';
+      g.style.gridTemplateColumns = 'repeat(' + s.w + ',8px)';
+      for (let y = 0; y < s.h; y++)
+        for (let x = 0; x < s.w; x++) {
+          const cell = document.createElement('i');
+          const e = entries.find((e) => {
+            const [w, h] = dimensions(e);
+            return e.section === s.id && x >= e.x && x < e.x + w && y >= e.y && y < e.y + h;
+          });
+          if (e) cell.style.background = itemSpecs[e.item].color;
+          g.append(cell);
+        }
+      line.append(g);
+      parent.append(line);
     }
   }
-  function refresh() {
-    if (!bag.entries.some(entry => entry.id === selected)) {
-      selected = undefined;
-      detail.textContent = '';
-      useButton.hidden = dropButton.hidden = true;
-    }
-    grid.replaceChildren();
-    grid.style.setProperty('--columns', String(bag.width));
-    grid.style.setProperty('--rows', String(bag.height));
-    let occupied = 0;
-    for (let y = 0; y < bag.height; y++) for (let x = 0; x < bag.width; x++) {
-      const cell = document.createElement('button');
-      cell.className = 'bag-cell';
-      cell.dataset.x = String(x); cell.dataset.y = String(y);
-      cell.setAttribute('aria-label', `背包格 ${x + 1},${y + 1}`);
-      cell.onclick = () => {
-        if (sourceSelected !== undefined) { transfer({x,y,rotated}); return; }
-        if (selected === undefined) return;
-        message(bag.move(selected, x, y, rotated) ? '位置已更新' : '空间不足或与其他物品重叠');
-        refresh();
-      };
-      cell.ondragover = event => event.preventDefault();
-      cell.ondrop = event => {
-        event.preventDefault();
-        const data = event.dataTransfer?.getData('text/plain');
-        if (data?.startsWith('source:')) { sourceSelected=Number(data.slice(7));transfer({x,y,rotated});return; }
-        const id = Number(data);
-        const entry = bag.entries.find(entry => entry.id === id);
-        if (!entry) return;
-        message(bag.move(id, x, y, selected === id ? rotated : entry.rotated) ? '位置已更新' : '放置位置不可用');
-        refresh();
-      };
-      grid.append(cell);
-    }
-    for (const entry of bag.entries) {
-      const spec = itemSpecs[entry.item];
-      const [w, h] = bag.dimensions(entry);
-      occupied += w * h;
-      const button = document.createElement('button');
-      button.className = 'bag-item';
-      button.draggable = true;
-      button.dataset.entry = String(entry.id);
-      button.style.cssText = `left:calc(${entry.x} * var(--cell));top:calc(${entry.y} * var(--cell));width:calc(${w} * var(--cell));height:calc(${h} * var(--cell));--item-color:${spec.color}`;
-      button.setAttribute('aria-label',spec.name+' × '+entry.quantity);
-      button.append(itemIcon(entry.item));
-      if(entry.quantity>1) {
-        const count=document.createElement('b');count.className='stack-count';count.textContent=String(entry.quantity);button.append(count);
+  function requestEquip(item: ItemId, from: string, id?: number) {
+    if (!isPack(item)) return;
+    const apply = () => {
+      if (!actions.equip(from, id)) {
+        msg('装备失败，物品仍在原位');
+        return;
       }
-      button.title = `${spec.name} · ${w}×${h}`;
-      button.onclick = () => { if(sourceSelected!==undefined) transfer({x:entry.x,y:entry.y,rotated});else select(entry.id); };
-      button.ondragstart = event => {
-        if (selected !== entry.id) select(entry.id);
-        event.dataTransfer?.setData('text/plain', String(entry.id));
-      };
-      button.ondblclick = () => {
-        message(callbacks.use(entry.id) ? '补给已使用' : '该物品当前无法使用');
-        refresh();
-      };
-      grid.append(button);
+      if (from !== 'carried' && id === undefined) {
+        target = undefined;
+        source = undefined;
+      }
+      clearSelection();
+      refresh();
+      msg('已装备 ' + itemSpecs[item].name);
+    };
+    if (!bag.equipped) {
+      apply();
+      return;
     }
-    size.textContent = `${occupied} / ${bag.width * bag.height} 格`;
-    renderSource();
-    const preview=document.createElement('div');preview.id='placement-preview';preview.hidden=true;grid.append(preview);
+    const area = q('.swap-comparison');
+    area.replaceChildren();
+    const old = document.createElement('div'),
+      next = document.createElement('div');
+    old.textContent = '落地 · ' + itemSpecs[bag.equipped.item].name;
+    next.textContent = '穿戴 · ' + itemSpecs[item].name;
+    area.append(old, next);
+    const contents = bag.entries.filter((e) => !pockets.some((s) => s.id === e.section));
+    diagram(old, bag.sections.slice(3), contents);
+    diagram(next, packs[item], id === undefined && target?.kind === 'loose' ? (source?.entries ?? []) : []);
+    const note = document.createElement('p');
+    note.textContent =
+      '旧包随包落地：' + (contents.map((e) => itemSpecs[e.item].name + ' ×' + e.quantity).join('、') || '空');
+    old.append(note);
+    confirmSwap = apply;
+    dialog.showModal();
   }
-  function transfer(placement?: Placement) {
-    if(!container || sourceSelected===undefined) return;
-    if(callbacks.take(container.id,sourceSelected,placement)) {
-      sourceSelected=undefined;message('物品已放入背包');
-    } else message('放置失败：空间不足、重叠或物品尚未揭示');
-    dragging=false;refresh();
+  dialog.querySelector('[value=cancel]')!.addEventListener('click', () => dialog.close());
+  dialog.querySelector('[value=confirm]')!.addEventListener('click', () => {
+    dialog.close();
+    confirmSwap?.();
+  });
+  function select(s: Selection) {
+    selected = s;
+    const spec = itemSpecs[s.entry.item];
+    q('#selected-item').textContent =
+      spec.name +
+      ' · ' +
+      spec.h +
+      '×' +
+      spec.w +
+      ' 格 · ' +
+      spec.price +
+      ' 券' +
+      (s.entry.loaded !== undefined ? ' · 弹匣 ' + s.entry.loaded : '');
+    const bar = q('.bag-actions');
+    bar.replaceChildren();
+    if (s.from === 'slot') {
+      action('收进格子', () => actions.stow(s.entry.item as 'pistol' | 'knife'));
+      return;
+    }
+    if (isPack(s.entry.item))
+      button(bar, '直接装备', () =>
+        requestEquip(s.entry.item, s.from === 'bag' ? 'carried' : target!.id, s.id),
+      );
+    if (s.from === 'source') {
+      button(bar, '快取', () => transfer());
+      return;
+    }
+    if (spec.tag === 'weapon') action('放回武器栏', () => actions.holster(s.id));
+    if (s.entry.item === 'medkit') action('使用', () => actions.use(s.id));
+    action('放到地上', () => {
+      actions.discard(s.id);
+      return true;
+    });
+  }
+  function transfer(p?: Placement) {
+    const s = selected;
+    if (!s) return;
+    const ok =
+      s.from === 'source' && target
+        ? actions.take(target.id, s.id, p)
+        : s.from === 'slot'
+          ? actions.stow(s.entry.item as 'pistol' | 'knife', p)
+          : p
+            ? bag.move(s.id, p.x, p.y, p.rotated, p.section)
+            : false;
+    if (ok) {
+      clearSelection();
+      refresh();
+      msg('物品已转移');
+    } else msg(p ? '该位置有重叠或超出分隔' : bag.failure(s.entry.item));
+  }
+  function tile(grid: HTMLElement, e: BagEntry, revealed: boolean, from: 'bag' | 'source', active = false) {
+    const b = document.createElement('button'),
+      [w, h] = dimensions(e),
+      spec = itemSpecs[e.item];
+    b.className = from === 'bag' ? 'bag-item' : 'source-item ' + (revealed ? 'revealed' : 'unknown');
+    b.dataset[from === 'bag' ? 'entry' : 'source'] = String(e.id);
+    b.style.cssText =
+      'left:calc(' +
+      e.x +
+      ' * var(--cell));top:calc(' +
+      e.y +
+      ' * var(--cell));width:calc(' +
+      w +
+      ' * var(--cell));height:calc(' +
+      h +
+      ' * var(--cell));--item-color:' +
+      (revealed ? spec.color : '#78909e');
+    b.title = revealed ? spec.name : '未知物品';
+    b.setAttribute('aria-label', b.title);
+    if (revealed) {
+      b.append(itemIcon(e.item));
+      if (e.quantity > 1) {
+        const n = document.createElement('b');
+        n.className = 'stack-count';
+        n.textContent = String(e.quantity);
+        b.append(n);
+      }
+      const choose = () => select({ from, id: e.id, entry: e, rotated: e.rotated });
+      b.onclick = () => {
+        if (from === 'bag' && selected?.from === 'source')
+          transfer({ section: e.section, x: e.x, y: e.y, rotated: selected.rotated });
+        else choose();
+      };
+      b.draggable = true;
+      b.ondragstart = (event) => {
+        dragging = true;
+        choose();
+        event.dataTransfer?.setData('text/plain', String(e.id));
+      };
+      b.ondblclick = () => {
+        choose();
+        if (from === 'source') transfer();
+        else if (isPack(e.item)) requestEquip(e.item, 'carried', e.id);
+        else if (e.item === 'medkit' && actions.use(e.id)) {
+          clearSelection();
+          refresh();
+        }
+      };
+    } else {
+      b.textContent = '?';
+      if (active) {
+        const r = document.createElement('span');
+        r.className = 'search-ring';
+        b.append(r);
+      }
+    }
+    grid.append(b);
+  }
+  function gridFor(parent: HTMLElement, s: Section, from: 'bag' | 'source', entries: readonly BagEntry[]) {
+    const wrap = document.createElement('section'),
+      title = document.createElement('small');
+    title.textContent = s.name + ' · ' + s.h + '×' + s.w;
+    wrap.append(title);
+    const grid = document.createElement('div');
+    grid.className = 'section-grid';
+    grid.dataset.section = s.id;
+    grid.style.setProperty('--columns', String(s.w));
+    grid.style.setProperty('--rows', String(s.h));
+    wrap.append(grid);
+    parent.append(wrap);
+    const preview = document.createElement('i');
+    preview.className = 'placement-preview';
+    preview.hidden = true;
+    for (let y = 0; y < s.h; y++)
+      for (let x = 0; x < s.w; x++) {
+        const cell = document.createElement(from === 'bag' ? 'button' : 'span');
+        cell.className = from === 'bag' ? 'bag-cell' : 'source-cell';
+        grid.append(cell);
+        cell.dataset.x = String(x);
+        cell.dataset.y = String(y);
+      }
+    if (from === 'bag') {
+      const position = (ev: MouseEvent) => {
+        const r = grid.getBoundingClientRect();
+        return {
+          x: Math.floor(((ev.clientX - r.left) / grid.clientWidth) * s.w),
+          y: Math.floor(((ev.clientY - r.top) / grid.clientHeight) * s.h),
+          rotated: selected?.rotated ?? false,
+          section: s.id,
+        };
+      };
+      const hint = (ev: MouseEvent) => {
+        if (!selected) {
+          preview.hidden = true;
+          return;
+        }
+        const p = position(ev),
+          [w, h] = dimensions({ ...selected.entry, rotated: p.rotated });
+        preview.hidden = false;
+        preview.style.cssText =
+          'left:calc(' +
+          p.x +
+          ' * var(--cell));top:calc(' +
+          p.y +
+          ' * var(--cell));width:calc(' +
+          w +
+          ' * var(--cell));height:calc(' +
+          h +
+          ' * var(--cell))';
+        preview.dataset.valid = String(
+          bag.canPlace(
+            selected.entry.item,
+            p.x,
+            p.y,
+            p.rotated,
+            selected.entry.quantity,
+            s.id,
+            selected.from === 'bag' ? selected.id : -1,
+          ),
+        );
+      };
+      grid.onmousemove = hint;
+      grid.onmouseleave = () => {
+        preview.hidden = true;
+      };
+      grid.ondragover = (ev) => {
+        ev.preventDefault();
+        hint(ev);
+      };
+      grid.ondrop = (ev) => {
+        ev.preventDefault();
+        dragging = false;
+        transfer(position(ev));
+      };
+      grid.onclick = (ev) => {
+        const el = ev.target as HTMLElement;
+        if (el.classList.contains('bag-cell') && selected)
+          transfer({
+            section: s.id,
+            x: Number(el.dataset.x),
+            y: Number(el.dataset.y),
+            rotated: selected.rotated,
+          });
+      };
+    }
+    const active = source?.entries.find((e) => !e.revealed);
+    for (const e of entries)
+      if (e.section === s.id || (!e.section && s.id === 'grid'))
+        tile(grid, e, from === 'bag' || (e as SearchEntry).revealed, from, e === active);
+    grid.append(preview);
   }
   function renderSource() {
-    content.replaceChildren();
-    panel.querySelector('#container-title')!.textContent = container ? container.label : '物品详情';
-    if(!source) {content.textContent='选择背包物品查看详情';return;}
-    const sourceGrid=document.createElement('div');sourceGrid.id='container-grid';
-    sourceGrid.style.setProperty('--columns',String(source.width));sourceGrid.style.setProperty('--rows',String(source.height));
-    content.append(sourceGrid);
-    for(let i=0;i<source.width*source.height;i++) {
-      const cell=document.createElement('span');cell.className='source-cell';sourceGrid.append(cell);
+    const dest = q('#container-content');
+    dest.replaceChildren();
+    q('#container-title').textContent = target?.label ?? '物品详情';
+    if (target?.kind === 'loose' && isPack(target.item)) {
+      const t = target;
+      button(dest, '装备此包', () => requestEquip(t.item, t.id));
+      if (!source?.entries.length)
+        button(dest, '折叠收起', () => {
+          if (actions.fold(t.id)) {
+            source = target = undefined;
+            refresh();
+          } else msg(bag.failure(t.item));
+        });
     }
-    const active=source.entries.find(e=>!e.revealed);
-    for(const entry of source.entries) {
-      const spec=itemSpecs[entry.item], [w,h]=bag.dimensions(entry);
-      const button=document.createElement('button');
-      button.className='source-item '+(entry.revealed?'revealed':'unknown');
-      button.dataset.source=String(entry.id);
-      button.style.cssText=`left:calc(${entry.x} * var(--cell));top:calc(${entry.y} * var(--cell));width:calc(${w} * var(--cell));height:calc(${h} * var(--cell));--item-color:${entry.revealed?spec.color:'#7d8d8b'}`;
-      button.setAttribute('aria-label',entry.revealed?`${spec.name} × ${entry.quantity}`:`未知物品 ${w}×${h} 格`);
-      button.title=button.getAttribute('aria-label')!;
-      button.draggable=entry.revealed;
-      if(entry.revealed) {
-        button.append(itemIcon(entry.item));
-        if(entry.quantity>1) {
-          const count=document.createElement('b');count.className='stack-count';count.textContent=String(entry.quantity);button.append(count);
+    if (!source) return;
+    for (const s of source.sections ?? [{ id: 'grid', name: '容器', w: source.width, h: source.height }])
+      gridFor(dest, s, 'source', source.entries);
+    const status = document.createElement('p');
+    status.id = 'search-status';
+    dest.append(status);
+    count = source.entries.filter((e) => e.revealed).length;
+  }
+  function refresh() {
+    const g = q('#carry-grids');
+    g.replaceChildren();
+    for (const s of bag.sections) gridFor(g, s, 'bag', bag.entries);
+    q('#bag-size').textContent =
+      bag.entries.reduce((n, e) => n + itemSpecs[e.item].w * itemSpecs[e.item].h, 0) +
+      ' / ' +
+      bag.sections.reduce((n, s) => n + s.w * s.h, 0) +
+      ' 格';
+    const kit = q('#loadout');
+    kit.replaceChildren();
+    for (const label of ['1 主武器 I · 空', '2 主武器 II · 空']) {
+      const p = document.createElement('small');
+      p.textContent = label;
+      kit.append(p);
+    }
+    for (const key of ['pistol', 'knife'] as const) {
+      const e = bag.slots[key];
+      const choose = () => {
+        if (e) select({ from: 'slot', entry: e, id: -1, rotated: false });
+      };
+      const b = button(kit, (key === 'pistol' ? '3 · ' : '4 · ') + (e ? itemSpecs[key].name : '空'), choose);
+      if (e) b.prepend(itemIcon(key));
+      b.draggable = !!e;
+      b.ondragstart = (ev) => {
+        choose();
+        dragging = true;
+        ev.dataTransfer?.setData('text/plain', key);
+      };
+      b.ondragover = (ev) => ev.preventDefault();
+      b.ondrop = (ev) => {
+        ev.preventDefault();
+        if (selected?.from === 'bag' && selected.entry.item === key && actions.holster(selected.id)) {
+          clearSelection();
+          refresh();
         }
-        button.onclick=()=>{sourceSelected=entry.id;selected=undefined;rotated=entry.rotated;detail.textContent=`${spec.name} × ${entry.quantity} · ${w}×${h} 格 · 单件 ${spec.price} 券`;useButton.hidden=dropButton.hidden=true;message('点击背包格放入 · R 旋转 · 双击自动放置');};
-        button.ondblclick=()=>{sourceSelected=entry.id;transfer();};
-        button.ondragstart=e=>{if(sourceSelected!==entry.id)rotated=entry.rotated;sourceSelected=entry.id;selected=undefined;e.dataTransfer?.setData('text/plain','source:'+entry.id);};
-      } else {
-        button.textContent='?';
-        if(entry===active) { const ring=document.createElement('span');ring.className='search-ring';button.append(ring); }
+      };
+    }
+    button(kit, bag.equipped ? itemSpecs[bag.equipped.item].name + ' · 卸下' : '背包栏 · 空', () => {
+      if (bag.equipped && actions.unpack()) {
+        clearSelection();
+        refresh();
+        msg('背包和内容已一起放到地面');
       }
-      sourceGrid.append(button);
-    }
-    const status=document.createElement('p');status.id='search-status';content.append(status);
-    revealVersion=source.entries.filter(e=>e.revealed).length;
-    updateSearch();
+    });
+    renderSource();
   }
-  function updateSearch(paused=false) {
-    if(panel.hidden||!source) return;
-    const count=source.entries.filter(e=>e.revealed).length;
-    if(count!==revealVersion && !dragging) {renderSource();return;}
-    const active=source.entries.find(e=>!e.revealed);
-    const ring=content.querySelector<HTMLElement>('.search-ring');
-    ring?.style.setProperty('--progress',String(active?active.progress/active.duration*360:360)+'deg');
-    const status=content.querySelector('#search-status');
-    if(status) status.textContent=paused?'距离过远 · 搜索暂停，靠近后可继续':active?'逐件搜索中 · 已揭示 '+count+' 件':'搜索完成 · '+source.entries.length+' 件可取';
-  }
-  function preview(event: MouseEvent | DragEvent) {
-    const node=grid.querySelector<HTMLElement>('#placement-preview')!;
-    const entry=source?.entries.find(e=>e.id===sourceSelected);
-    if(!entry) {node.hidden=true;return;}
-    const rect=grid.getBoundingClientRect(),cell=rect.width/bag.width;
-    const x=Math.floor((event.clientX-rect.left)/cell),y=Math.floor((event.clientY-rect.top)/cell);
-    const [w,h]=bag.dimensions({...entry,rotated});
-    node.hidden=false;node.style.cssText=`left:${x*cell}px;top:${y*cell}px;width:${w*cell}px;height:${h*cell}px`;
-    node.dataset.valid=String(bag.canPlace(entry.item,x,y,rotated));
-  }
-  panel.addEventListener('dragstart',()=>{dragging=true;});
-  panel.addEventListener('dragend',()=>{dragging=false;updateSearch();});
-  grid.addEventListener('mousemove',preview);grid.addEventListener('dragover',event=>{event.preventDefault();preview(event);});
-  grid.addEventListener('mouseleave',()=>{const p=grid.querySelector<HTMLElement>('#placement-preview');if(p)p.hidden=true;});
-  panel.querySelector('#bag-close')!.addEventListener('click', callbacks.close);
-  useButton.onclick = () => {
-    if (selected !== undefined) {
-      message(callbacks.use(selected) ? '补给已使用' : '当前无法使用');
-      refresh();
-    }
+  panel.ondragend = () => {
+    dragging = false;
   };
-  dropButton.onclick = () => {
-    if (selected !== undefined) callbacks.discard(selected);
-    selected = undefined;
-    dropButton.hidden = useButton.hidden = true;
-    detail.textContent = '';
-    refresh();
-  };
-  window.addEventListener('keydown', event => {
-    if (panel.hidden) return;
-    if (event.code === 'KeyR' && (selected !== undefined || sourceSelected !== undefined)) {
-      rotated = !rotated;
-      message('已旋转放置方向，点击空格完成放置');
+  q('#bag-close').onclick = actions.close;
+  window.addEventListener('keydown', (ev) => {
+    if (panel.hidden || dialog.open) return;
+    if (ev.code === 'KeyR' && selected) {
+      selected.rotated = !selected.rotated;
+      msg('已旋转，点击目标格放置');
     }
-    if (event.code === 'Escape' || event.code === 'Tab') {
-      event.preventDefault();
-      callbacks.close();
+    if (ev.code === 'Escape' || ev.code === 'Tab') {
+      ev.preventDefault();
+      actions.close();
     }
   });
   return {
-    get open() { return !panel.hidden; },
-    get activeContainer() {return container?.id;},
-    updateSearch,
-    show(backpack: Backpack, target?: MapInteraction, contents?: SearchContainer) {
-      bag = backpack; container = target; source = contents; selected = undefined;sourceSelected=undefined;
-      message(''); detail.textContent = ''; dropButton.hidden = useButton.hidden = true;
-      panel.hidden = false;refresh();
+    get open() {
+      return !panel.hidden;
     },
-    hide() { panel.hidden = true; },
+    get activeContainer() {
+      return target?.id;
+    },
+    show(b: Bag, t?: MapInteraction, c?: SearchContainer) {
+      bag = b;
+      target = t;
+      source = c;
+      clearSelection();
+      msg('');
+      panel.hidden = false;
+      refresh();
+    },
+    hide() {
+      if (dialog.open) dialog.close();
+      panel.hidden = true;
+    },
+    updateSearch(paused = false) {
+      if (!source || panel.hidden) return;
+      const n = source.entries.filter((e) => e.revealed).length;
+      if (n !== count && !dragging) renderSource();
+      const e = source.entries.find((e) => !e.revealed),
+        status = q('#search-status');
+      if (status)
+        status.textContent =
+          e && paused ? '视线或距离中断 · 搜索暂停' : e ? '搜索中 · ' + n + ' 件已揭示' : '搜索完成';
+      panel
+        .querySelector<HTMLElement>('.search-ring')
+        ?.style.setProperty('--progress', (e ? (360 * e.progress) / e.duration : 360) + 'deg');
+    },
   };
 }

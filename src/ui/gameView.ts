@@ -1,15 +1,13 @@
 import type { CombatFrame, ExitZone, ItemId, Vec3, WeaponId } from '../contracts/demo.ts';
 import type { Inventory, RaidResult } from '../raid/raid.ts';
 
-const items: Record<ItemId, string> = {
-  'pistol-ammo': '手枪弹药', medkit: '医疗包', salvage: '普通物资',
-  'research-sample': '研究样本', 'service-card': '维修卡',
-};
+import { itemSpecs } from '../raid/catalog.ts';
+
 const spawnNames: Record<string, string> = {
   'south-loading': '南侧卸货口', 'warehouse-alley': '仓库外巷', 'scrap-shelter': '废车棚',
 };
 
-export const itemName = (item: ItemId) => items[item];
+export const itemName = (item: ItemId) => itemSpecs[item].name;
 const list = (inventory: Readonly<Inventory>) => (Object.keys(inventory) as ItemId[])
   .map((item) => `${itemName(item)} × ${inventory[item]}`).join(' · ');
 const byId = <T extends HTMLElement = HTMLElement>(id: string) => document.getElementById(id) as T;
@@ -77,7 +75,12 @@ export function createGameView() {
       label(title, result.outcome === 'extracted' ? '撤离成功' : result.outcome === 'dead' ? '出击失败' : '已放弃出击');
       label(summary, result.outcome === 'extracted'
         ? (list(result.items) || '本局携带栏为空。')
-        : '本局携带的战利品已丢失。');
+        : '未带出：'+(list(result.lost??{})||'空'));
+      summary.textContent+='　出击 '+Math.floor(result.seconds??0)+' 秒 · 搜索 '+(result.visited?.length??0)+' 处'+(result.damage?' · 最近受伤：'+result.damage:'');
+      const value=Object.entries(result.items).reduce((n,[id,q])=>n+itemSpecs[id as ItemId].price*q,0);
+      if(result.outcome==='extracted')summary.textContent+=' · 预计变卖 '+value+' 券';
+      const log=result.log;
+      if(log)summary.textContent+='　种子 '+result.seed+' · '+(spawnNames[result.spawn??'']??'')+' · 首件 '+(log.first??'无')+' · 实发 '+log.shots+' / 命中 '+log.hits+' / 击倒 '+log.kills+' / 用药 '+log.heals+(log.cancellations.length?' · 计时取消：'+log.cancellations.join('、'):'');
       label(primary, saved ? '再次出击' : '重试入库');
     },
     setRoutes(exits: readonly ExitZone[]) {
@@ -110,9 +113,9 @@ export function createGameView() {
       bar.style.width = `${frame.health}%`;
       label(pack, list(inventory) || '局内携带栏为空');
       const state = frame.weapon;
-      const names: Record<WeaponId, string> = { rifle: '1 / 制式步枪', shotgun: '2 / 泵动霰弹枪', pistol: '3 / 手枪', knife: '4 / 战术刀' };
-      label(weapon, names[state.id]);
-      label(ammo, state.id !== 'knife' ? `${state.loaded} / ${state.reserve}` : '近战');
+      const names: Record<WeaponId, string> = { rifle: '1 / 制式步枪', shotgun: '2 / 泵动霰弹枪', pistol: '3 / 港卫 P8', knife: '4 / 战术刀' };
+      label(weapon,state.unarmed?'未持武器':names[state.id]);
+      label(ammo, state.unarmed?'—':state.id !== 'knife' ? `${state.loaded} / ${state.reserve}` : '近战');
       label(action, state.action === 'reloading' ? '换弹中' : state.aiming ? '举枪' : state.action === 'slashing' ? '挥击' : '');
     },
     feedback(message: string, interaction: string, remaining: number | undefined, hit: boolean, damage: number, aiming: boolean) {

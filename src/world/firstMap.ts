@@ -1,6 +1,7 @@
 import type { EnemySpawn, FirstMap, Vec3 } from '../contracts/demo.ts';
 import { createEnvironment, mapInteractions } from './environment.ts';
 import { createWorldQueries, lab } from './worldQueries.ts';
+import { loosePoints } from './loosePoints.ts';
 import { supplySites } from './supplySites.ts';
 
 import { districtPoint, highwayPosition, servicePosition } from './layout.ts';
@@ -26,8 +27,10 @@ function placeEnemies(seed: number): EnemySpawn[] {
 
 export function createFirstMap(seed: number): FirstMap & { scene: import('three').Group } {
   const { scene, solids } = createEnvironment();
+  const queries=createWorldQueries(solids);
+  const loose=loosePoints(seed,mapInteractions,p=>queries.blockedDistance(p,[0,-1,0],3));
   return {
-    ...createWorldQueries(solids), scene,
+    ...queries, scene,
     spawnPoints: [
       { id: 'south-loading', position: [-24, 0, 143], yaw: -.35 },
       { id: 'warehouse-alley', position: [149, 0, 83], yaw: .38 },
@@ -48,7 +51,7 @@ export function createFirstMap(seed: number): FirstMap & { scene: import('three'
       { id: 'warehouse', label: '02 物流仓储', center: [-4, 0, 8], radius: 50 },
       { id: 'approach', label: '05 南侧公路', center: [-4, 0, 125], radius: 260 },
     ],
-    interactions: mapInteractions,
+    interactions: [...mapInteractions,...loose],
     enemies: placeEnemies(seed),
   };
 }

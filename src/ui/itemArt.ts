@@ -1,3 +1,4 @@
+import {itemSpecs} from '../raid/catalog.ts';
 import type { ItemId } from '../contracts/demo.ts';
 
 type Icon = ItemId | 'pistol' | 'knife';
@@ -67,10 +68,27 @@ export function itemIcon(id: Icon) {
     shape('M7 18L12 13H48L57 19L51 29H32L27 47L18 51L13 47L19 28H9Z','#d7e4eb',true);
     shape('M12 18H40L36 23H10ZM20 32H28L24 45L17 47Z','#459aaa');
     shape('M43 16H50L54 19L50 23H40Z','#ff9176');
-  } else {
+  } else if(id==='knife') {
     shape('M9 50L23 35L19 31L24 26L29 29L42 13L57 6L52 25L35 36L38 40L33 45L28 41L15 56Z','#8bf6e4',true);
     shape('M27 34L56 8L47 23L34 35Z','#dffefb');
     shape('M10 50L23 36L29 41L16 55Z','#ea8a66',true);
+  } else {
+    const spec=itemSpecs[id],tint=spec.color;
+    if(spec.tag==='carry') {
+      shape('M22 19V14Q22 9 29 9H36Q44 9 44 17V21H38V17H28V20Z',light,true);
+      shape('M13 21L21 15H45L52 23L54 48L48 55H17L11 48Z',tint,true);
+      shape('M17 37H47L46 50H18Z','#40536a',true);
+    } else if(['coil','seals','valve','turbine','lens','spectrum'].includes(id)) {
+      shape('M8 25L17 14L37 10L52 18L57 34L49 49L31 55L15 48L7 38Z',tint,true);
+      shape('M20 28L29 21L39 21L46 30L42 41L32 46L22 42L17 35Z','#35495e',true);
+    } else {
+      shape('M8 23L20 12H49L56 20V44L46 53H14L8 46Z',tint,true);
+      shape('M14 25L23 18H47L50 23L44 28H15Z',light);
+    }
+    const marks:Record<string,string>={coil:'Cu',seals:'O',valve:'V',turbine:'T',terminal:'±',board:'PCB',servo:'S',core:'μ',
+      sealbag:'封',manual:'册',lens:'L',recorder:'航',tray:'盘',calibration:'Δ',spectrum:'λ',archive:'档',pump:'泵',rail:'轨',wrench:'W',gauge:'Ω',
+      sling:'10',daypack:'16',repairpack:'修',tube:'长',school:'30',alpine:'54',longpack:'56'};
+    c.fillStyle='#22394d';c.fillRect(18,32,28,14);c.fillStyle=light;c.font='bold 12px sans-serif';c.textAlign='center';c.fillText(marks[id]??'',32,43);
   }
   cache.set(id,canvas);
   return canvas;

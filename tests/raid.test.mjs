@@ -18,7 +18,10 @@ function collect(raid,id) {
  raid.searchContainer(id,30);
  const entries=[...raid.containers.get(id).entries];
  const item=entries[0].item;
- for(const entry of entries.filter(e=>e.item===item)) raid.takeContainerItem(id,entry.id);
+ let quantity=0;
+ for(const entry of entries.filter(e=>e.item===item)) if(raid.takeContainerItem(id,entry.id))quantity+=entry.quantity;
+ assert.ok(quantity>0);
+ return {[item]:quantity};
 }
 
 test('a fixed seed always chooses the same complete candidate and different seeds cover all candidates', () => {
@@ -34,7 +37,7 @@ test('a fixed seed always chooses the same complete candidate and different seed
 
 test('leave the road exit to cancel, then restart the full count and settle the pickup once', () => {
   const raid = createRaid('road-run', 1, map);
-  collect(raid,'crate');
+  const picked=collect(raid,'crate');
   assert.equal(raid.interact('crate'), undefined);
   raid.update(0, [0, 0, 0], 100, true);
   raid.update(4.9, [0, 0, 0], 100);
@@ -45,7 +48,9 @@ test('leave the road exit to cancel, then restart the full count and settle the 
   raid.update(0.2, [0, 0, 0], 100);
   assert.equal(raid.result, undefined);
   raid.update(4.8, [0, 0, 0], 100);
-  assert.deepEqual(raid.result, { runId: 'road-run', outcome: 'extracted', exitId: 'road', items: { salvage: 2 } });
+  assert.equal(raid.result.exitId,'road');
+  assert.equal(raid.result.outcome,'extracted');
+  assert.deepEqual(raid.result.items,picked);
   const result = raid.result;
   raid.update(1, [0, 0, 0], 0, true);
   assert.equal(raid.result, result);
@@ -60,13 +65,13 @@ test('maintenance checks the carried card and lab power only applies to the curr
     ...map,
     exits: [...map.exits, maintenance, elevator],
     interactions: [
-      { id: 'card', kind: 'loot', item: 'service-card', quantity: 1 },
+      { id: 'duty-card', kind: 'loot', item: 'service-card', quantity: 1 },
       { id: 'breaker', kind: 'switch', flag: 'lab-power' },
     ],
   };
   const raid = createRaid('maintenance', 0, conditionalMap);
-  assert.equal(raid.update(0, maintenance.position, 100, true), '需要携带维修卡');
-  collect(raid,'card');
+  assert.equal(raid.update(0, maintenance.position, 100, true), '维修卡未携带');
+  collect(raid,'duty-card');
   raid.update(0, maintenance.position, 100, true);
   raid.update(5, maintenance.position, 100);
   assert.equal(raid.result.exitId, 'maintenance');
@@ -84,11 +89,13 @@ test('maintenance checks the carried card and lab power only applies to the curr
 
 test('lethal damage on the final tick wins over extraction and discards loot', () => {
   const raid = createRaid('lost', 0, map);
-  collect(raid,'crate');
+  const picked=collect(raid,'crate');
   raid.update(0, [0, 0, 0], 100, true);
   raid.update(5, [0, 0, 0], 0);
   assert.deepEqual(raid.items, {});
-  assert.deepEqual(raid.result, { runId: 'lost', outcome: 'dead', items: {} });
+  assert.equal(raid.result.outcome,'dead');
+  assert.deepEqual(raid.result.items,{});
+  for(const [item,n] of Object.entries(picked))assert.ok(raid.result.lost[item]>=n);
   const abandoned = createRaid('left', 0, map);
   collect(abandoned,'crate');
   abandoned.abandon();
@@ -125,13 +132,14 @@ test('supplies take backpack space and can be carried out with loot', () => {
   const raid = createRaid('primary-supply', 1, {
     ...map,
     interactions: [
-      { id: 'ammo', kind: 'loot', item: 'pistol-ammo', quantity: 20 },
-      { id: 'medkit', kind: 'loot', item: 'medkit', quantity: 1 },
+      { id: 'ammo', kind: 'loose', item: 'pistol-ammo', quantity: 20 },
+      { id: 'medkit', kind: 'loose', item: 'medkit', quantity: 1 },
     ],
   });
-  collect(raid,'ammo');
-  collect(raid,'medkit');
-  assert.deepEqual(raid.items, { 'pistol-ammo': 20, medkit: 1 });
+  assert.ok(raid.collect('ammo'));
+  assert.ok(raid.collect('medkit'));
+  assert.equal(raid.items['pistol-ammo'],35);
+  assert.equal(raid.items.medkit,1);
   raid.update(0, [0, 0, 0], 100, true);
   raid.update(5, [0, 0, 0], 100);
   assert.deepEqual(raid.result.items, { 'pistol-ammo': 20, medkit: 1 });
@@ -157,13 +165,13 @@ test('selling extracted stock credits once and persists after reopening the ware
 test('discarding the required card cancels an active conditional extraction', () => {
   const conditional = {
     ...map,
-    interactions: [{ id: 'key', kind: 'loot', item: 'service-card', quantity: 1 }],
+    interactions: [{ id: 'duty-card', kind: 'loot', item: 'service-card', quantity: 1 }],
     exits: [{ ...map.exits[0], requirements: [{ kind: 'item', id: 'service-card' }] }],
   };
   const raid = createRaid('discard-card', 1, conditional);
-  collect(raid,'key');
+  collect(raid,'duty-card');
   raid.update(0, [0, 0, 0], 100, true);
-  raid.backpack.remove(raid.backpack.entries[0].id);
+  raid.backpack.remove(raid.backpack.entries.find(e=>e.item==='service-card').id);
   raid.update(5, [0, 0, 0], 100);
   assert.equal(raid.result, undefined);
   assert.equal(raid.countdown, undefined);

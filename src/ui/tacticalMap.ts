@@ -16,7 +16,7 @@ export function createTacticalMap() {
 
   return {
     toggle() { panel.hidden = !panel.hidden; lastDraw = 0; },
-    update(map: FirstMap, feet: Vec3, yaw: number, now: number) {
+    update(map: FirstMap, feet: Vec3, yaw: number, now: number,discovered:ReadonlySet<string>,consumed:ReadonlySet<string>) {
       const degrees = ((-yaw * 180 / Math.PI) % 360 + 360) % 360;
       compass.textContent = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'][Math.round(degrees / 45) % 8];
       heading.textContent = `${Math.round(degrees).toString().padStart(3, '0')}°`;
@@ -90,10 +90,10 @@ export function createTacticalMap() {
         ctx.fillText(caption, left + 5, sz + 4);
       }
       for (const target of map.interactions) {
-        if (target.kind !== 'loot') continue;
+        if (target.kind !== 'loot'||!discovered.has(target.id)) continue;
         const [sx, sz] = project(target.position[0], target.position[2]);
-        ctx.fillStyle = target.item === 'research-sample' ? '#a85e92' : '#347c78';
-        ctx.beginPath(); ctx.arc(sx, sz, 2, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle=ctx.strokeStyle='#347c78';
+        ctx.beginPath(); ctx.arc(sx, sz, 2.8, 0, Math.PI * 2); if(consumed.has(target.id))ctx.stroke();else ctx.fill();
       }
       for (const exit of map.exits) {
         const [x, z] = project(exit.position[0], exit.position[2]);
@@ -114,7 +114,7 @@ export function createTacticalMap() {
       ctx.restore();
       ctx.fillStyle = '#345267';
       ctx.font = '14px "Microsoft YaHei",sans-serif';
-      ctx.fillText('▲ 当前位置   □ 撤离点   ■ 补给据点   • 可搜索容器   维修通道需卡 · 货梯需供电', 80, 710);
+      ctx.fillText('▲ 当前位置   □ 撤离点   ■ 补给据点   • 已发现容器（空心为取尽）   维修通道需卡 · 货梯需供电', 80, 710);
     },
   };
 }

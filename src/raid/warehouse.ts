@@ -30,7 +30,7 @@ export function createWarehouse(getStorage: () => Storage) {
         const storage = getStorage();
         const key = prefix + result.runId;
         // Each run has one atomic record, so another tab can save a different run independently.
-        if (storage.getItem(key) === null) storage.setItem(key, JSON.stringify(result.items));
+        if (storage.getItem(key) === null) storage.setItem(key, JSON.stringify({...result.items,...(result.instances?.length?{instances:result.instances}:{})}));
         return true;
       } catch {
         return false;

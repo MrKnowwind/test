@@ -37,13 +37,13 @@ function wallAtZ(z, covers = () => true) {
   };
 }
 
-test('the raid starts at full health with a 6+6 pistol and supports held ADS', () => {
+test('the raid starts at full health with a 8+15 pistol and supports held ADS', () => {
   const combat = createCombat(openWorld, []);
   const start = combat.snapshot();
   assert.equal(start.health, 100);
   assert.equal(start.weapon.id, 'pistol');
-  assert.equal(start.weapon.loaded, 6);
-  assert.equal(start.weapon.reserve, 6);
+  assert.equal(start.weapon.loaded, 8);
+  assert.equal(start.weapon.reserve, 15);
   assert.equal(start.weapon.aiming, false);
 
   assert.equal(update(combat, 0, { aiming: true }).weapon.aiming, true);
@@ -59,7 +59,7 @@ test('empty primary slots never change the pistol or knife and preserve pistol a
   for (const switchTo of ['rifle', 'shotgun']) {
     const unchanged = update(combat, 0, { switchTo });
     assert.equal(unchanged.weapon.id, 'pistol');
-    assert.equal(unchanged.weapon.loaded, 5);
+    assert.equal(unchanged.weapon.loaded, 7);
   }
   update(combat, 0, { switchTo: 'knife' });
   for (const switchTo of ['rifle', 'shotgun']) {
@@ -67,23 +67,23 @@ test('empty primary slots never change the pistol or knife and preserve pistol a
     assert.equal(combat.snapshot().weapon.aiming, false);
   }
   const pistol = update(combat, 0, { switchTo: 'pistol' });
-  assert.equal(pistol.weapon.loaded, 5);
-  assert.equal(pistol.weapon.reserve, 6);
+  assert.equal(pistol.weapon.loaded, 7);
+  assert.equal(pistol.weapon.reserve, 15);
 });
 
 test('the pistol consumes one round per trigger press and enforces the shot interval', () => {
   const combat = createCombat(openWorld, []);
   const shot = update(combat, 0, { attackPressed: true });
   assert.equal(shot.weapon.action, 'firing');
-  assert.equal(shot.weapon.loaded, 5);
-  assert.equal(update(combat, 0.5, { attackPressed: true }).weapon.loaded, 5);
+  assert.equal(shot.weapon.loaded, 7);
+  assert.equal(update(combat, 0.5, { attackPressed: true }).weapon.loaded, 7);
 
   update(combat);
-  assert.equal(update(combat, 0, { attackPressed: true }).weapon.loaded, 4);
+  assert.equal(update(combat, 0, { attackPressed: true }).weapon.loaded, 6);
   update(combat, 0.39);
-  assert.equal(update(combat, 0, { attackPressed: true }).weapon.loaded, 4);
+  assert.equal(update(combat, 0, { attackPressed: true }).weapon.loaded, 6);
   update(combat, 0.01);
-  assert.equal(update(combat, 0, { attackPressed: true }).weapon.loaded, 3);
+  assert.equal(update(combat, 0, { attackPressed: true }).weapon.loaded, 5);
 });
 
 test('reload pressed during shot recovery starts when the pistol is ready, including across empty slots', () => {
@@ -96,11 +96,11 @@ test('reload pressed during shot recovery starts when the pistol is ready, inclu
   const queued = update(combat, 0.1);
   assert.equal(queued.weapon.id, 'pistol');
   assert.equal(queued.weapon.action, 'reloading');
-  assert.equal(queued.weapon.loaded, 5);
+  assert.equal(queued.weapon.loaded, 7);
   const finished = update(combat, 1.6);
   assert.equal(finished.weapon.action, 'ready');
-  assert.equal(finished.weapon.loaded, 6);
-  assert.equal(finished.weapon.reserve, 5);
+  assert.equal(finished.weapon.loaded, 8);
+  assert.equal(finished.weapon.reserve, 14);
 });
 
 test('switching weapons or dying cancels a queued reload without transferring ammunition', () => {
@@ -110,8 +110,8 @@ test('switching weapons or dying cancels a queued reload without transferring am
   update(combat, 0, { switchTo: 'knife' });
   const returned = update(combat, 0.4, { switchTo: 'pistol' });
   assert.equal(returned.weapon.action, 'ready');
-  assert.equal(returned.weapon.loaded, 5);
-  assert.equal(returned.weapon.reserve, 6);
+  assert.equal(returned.weapon.loaded, 7);
+  assert.equal(returned.weapon.reserve, 15);
 
   const lethal = createCombat(openWorld, Array.from({ length: 4 }, (_, i) => infected('attacker-' + i, [0, 0, -1.2])));
   update(lethal, 0, { attackPressed: true, aimDirection: [1, 0, 0] });
@@ -119,16 +119,16 @@ test('switching weapons or dying cancels a queued reload without transferring am
   const dead = update(lethal, 0.55);
   assert.equal(dead.health, 0);
   assert.equal(dead.weapon.action, 'ready');
-  assert.equal(dead.weapon.loaded, 5);
+  assert.equal(dead.weapon.loaded, 7);
   const later = update(lethal, 2);
   assert.equal(later.weapon.action, 'ready');
-  assert.equal(later.weapon.loaded, 5);
-  assert.equal(later.weapon.reserve, 6);
+  assert.equal(later.weapon.loaded, 7);
+  assert.equal(later.weapon.reserve, 15);
 });
 
 test('an empty pistol reports dry fire and switching interrupts a reload before ammo transfer', () => {
   const combat = createCombat(openWorld, []);
-  for (let shot = 0; shot < 6; shot += 1) {
+  for (let shot = 0; shot < 8; shot += 1) {
     update(combat, 0, { attackPressed: true });
     update(combat, 0.4);
   }
@@ -145,14 +145,14 @@ test('an empty pistol reports dry fire and switching interrupts a reload before 
   assert.equal(halfway.weapon.loaded, 0);
   const cancelled = update(combat, 0, { switchTo: 'knife' });
   assert.equal(cancelled.weapon.action, 'ready');
-  assert.equal(cancelled.weapon.reserve, 6);
+  assert.equal(cancelled.weapon.reserve, 15);
 
   update(combat, 0, { switchTo: 'pistol', reloadPressed: true });
   const finished = update(combat, 1.6, { aiming: true });
   assert.equal(finished.weapon.action, 'ready');
   assert.equal(finished.weapon.aiming, true);
-  assert.equal(finished.weapon.loaded, 6);
-  assert.equal(finished.weapon.reserve, 0);
+  assert.equal(finished.weapon.loaded, 8);
+  assert.equal(finished.weapon.reserve, 7);
 });
 
 test('a pistol hit damages the nearest target and the third hit kills an infected', () => {
@@ -183,7 +183,7 @@ test('a wall blocks shots through the camera ray, beside the muzzle, and behind 
     const shot = update(combat, 0, { attackPressed: true });
     assert.equal(shot.feedback, 'blocked', label);
     assert.equal(shot.enemies[0].health, 90, label);
-    assert.equal(shot.weapon.loaded, 5, label);
+    assert.equal(shot.weapon.loaded, 7, label);
   }
 });
 
@@ -198,7 +198,7 @@ test('a knife swing has short reach, respects cover and leaves the pistol ammo i
   const hit = update(closeCombat, 0.04);
   assert.equal(hit.feedback, 'hit');
   assert.equal(hit.enemies[0].health, 55);
-  assert.equal(hit.weapon.loaded, 6);
+  assert.equal(hit.weapon.loaded, 8);
   assert.equal(update(closeCombat, 0.4).enemies[0].health, 55);
   assert.ok(update(closeCombat, 0, swing).weapon.actionProgress > 0.98);
   update(closeCombat, 0.01);
@@ -331,12 +331,12 @@ test('supplies restore health and reserve, and death ends combat until the next 
   combat.heal(40);
   assert.equal(combat.snapshot().health, 100);
   combat.addReserve(6);
-  assert.equal(combat.snapshot().weapon.reserve, 12);
-  assert.equal(combat.snapshot().weapon.loaded, 6);
+  assert.equal(combat.snapshot().weapon.reserve, 21);
+  assert.equal(combat.snapshot().weapon.loaded, 8);
   combat.heal(-40);
   combat.addReserve(-6);
   assert.equal(combat.snapshot().health, 100);
-  assert.equal(combat.snapshot().weapon.reserve, 12);
+  assert.equal(combat.snapshot().weapon.reserve, 21);
 
   for (let i = 0; i < 4; i += 1) {
     update(combat, 0.75);
@@ -347,8 +347,8 @@ test('supplies restore health and reserve, and death ends combat until the next 
   combat.addReserve(6);
   const dead = update(combat, 1, { attackPressed: true, aiming: true });
   assert.equal(dead.health, 0);
-  assert.equal(dead.weapon.loaded, 6);
-  assert.equal(dead.weapon.reserve, 12);
+  assert.equal(dead.weapon.loaded, 8);
+  assert.equal(dead.weapon.reserve, 21);
   assert.equal(dead.weapon.aiming, false);
   assert.equal(dead.enemies[0].health, 90);
   assert.equal(createCombat(openWorld, enemies).snapshot().health, 100);
@@ -368,7 +368,7 @@ test('the scripted pistol hits and miss give identical results at 30 and 60 FPS'
     return results;
   }
 
-  const expected = [['hit', 5, 60], ['hit', 4, 30], [undefined, 3, 30], ['hit', 2, 0]];
+  const expected = [['hit', 7, 60], ['hit', 6, 30], [undefined, 5, 30], ['hit', 4, 0]];
   assert.deepEqual(play(30), expected);
   assert.deepEqual(play(60), expected);
 });
