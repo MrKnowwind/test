@@ -1,8 +1,13 @@
-import {itemSpecs} from '../raid/catalog.ts';
+import { drawFieldGear } from './fieldGearArt.ts';
 import type { ItemId } from '../contracts/demo.ts';
 
 type Icon = ItemId | 'pistol' | 'knife';
 const cache = new Map<Icon, HTMLCanvasElement>();
+
+function shade(hex:string, factor:number) {
+  const value=parseInt(hex.slice(1),16);
+  return 'rgb('+[16,8,0].map(shift=>Math.round(((value>>shift)&255)*factor)).join(',')+')';
+}
 
 // Hand-authored silhouette, shadow and highlight layers in the same 64-unit icon box.
 export function itemIcon(id: Icon) {
@@ -18,7 +23,9 @@ export function itemIcon(id: Icon) {
   const ink='#1e304a', light='#ecfff7';
   function shape(d:string,fill:string,outline=false) {
     const path=new Path2D(d);
-    c.fillStyle=fill;c.fill(path);
+    const pigment=c.createLinearGradient(12,9,46,55);
+    pigment.addColorStop(0,fill);pigment.addColorStop(.53,fill);pigment.addColorStop(1,shade(fill,.73));
+    c.fillStyle=pigment;c.fill(path);
     if(outline) {c.strokeStyle=ink;c.lineWidth=2.6;c.stroke(path);}
   }
   if(id==='medkit') {
@@ -76,22 +83,32 @@ export function itemIcon(id: Icon) {
     shape('M27 34L56 8L47 23L34 35Z','#dffefb');
     shape('M10 50L23 36L29 41L16 55Z','#ea8a66',true);
   } else {
-    const spec=itemSpecs[id],tint=spec.color;
-    if(spec.tag==='carry') {
-      shape('M22 19V14Q22 9 29 9H36Q44 9 44 17V21H38V17H28V20Z',light,true);
-      shape('M13 21L21 15H45L52 23L54 48L48 55H17L11 48Z',tint,true);
-      shape('M17 37H47L46 50H18Z','#40536a',true);
-    } else if(['coil','seals','valve','turbine','lens','spectrum'].includes(id)) {
-      shape('M8 25L17 14L37 10L52 18L57 34L49 49L31 55L15 48L7 38Z',tint,true);
-      shape('M20 28L29 21L39 21L46 30L42 41L32 46L22 42L17 35Z','#35495e',true);
-    } else {
-      shape('M8 23L20 12H49L56 20V44L46 53H14L8 46Z',tint,true);
-      shape('M14 25L23 18H47L50 23L44 28H15Z',light);
-    }
-    const marks:Record<string,string>={coil:'Cu',seals:'O',valve:'V',turbine:'T',terminal:'±',board:'PCB',servo:'S',core:'μ',
-      sealbag:'封',manual:'册',lens:'L',recorder:'航',tray:'盘',calibration:'Δ',spectrum:'λ',archive:'档',pump:'泵',rail:'轨',wrench:'W',gauge:'Ω',
-      sling:'10',daypack:'16',repairpack:'修',tube:'长',school:'30',alpine:'54',longpack:'56'};
-    c.fillStyle='#22394d';c.fillRect(18,32,28,14);c.fillStyle=light;c.font='bold 12px sans-serif';c.textAlign='center';c.fillText(marks[id]??'',32,43);
+    drawFieldGear(id,c,shape);
+  }
+  if(id==='medkit') {
+    shape('M10 25h7v21h-5ZM47 24h6v22h-6Z','#545c70');
+    shape('M10 32h8v5h-8ZM46 32h8v5h-8Z','#f7cf8b',true);
+  } else if(id==='service-card') {
+    shape('M10 16h13v4H10Z',ink);shape('M12 17h9v1H12Z',light);
+    shape('M46 30h6v5l-3 3 -3 -3Z','#ffe0a0');
+  } else if(id==='research-sample') {
+    shape('M36 25l4 -2v4l-4 2ZM24 38l4 2v3l-4 -2Z',light);
+    for(const x of [23,30,37])shape('M'+x+' 12h3v5h-3Z','#8884ad');
+  } else if(id==='salvage') {
+    shape('M15 20l7 -2v6l-7 2ZM42 40l7 -2v6l-7 2Z','#c7d8cf',true);
+  } else if(id==='pistol-ammo') {
+    shape('M40 41l11 -1v6l-11 2Z','#da5844');
+    shape('M43 42l2 0 -1 4 -2 0Z',light);
+  } else if(id==='pistol') {
+    shape('M24 28H39L35 36H28L29 33H33L35 29H24Z',ink);
+    for(const x of [14,18,22])shape('M'+x+' 17l2 -1 -2 6 -2 1Z','#567486');
+  } else if(id==='knife') {
+    shape('M12 49l8 4 2 -3 -8 -4ZM17 44l8 4 2 -3 -8 -4Z',ink);
+  } else if(id==='healing-injector') {
+    shape('M40 12L46 6L51 11L45 17Z','#9aa9bc',true);
+    shape('M43 7L48 2L58 12L53 17Z','#56bcad',true);
+    shape('M9 47L12 50L5 57Z','#697e94');
+    shape('M24 28l4 4 2 -2 -4 -4ZM29 23l4 4 2 -2 -4 -4Z','#fff5db');
   }
   cache.set(id,canvas);
   return canvas;
