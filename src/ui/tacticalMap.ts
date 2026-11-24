@@ -3,6 +3,7 @@ import { mapBounds } from '../world/worldQueries.ts';
 import type { FirstMap, Vec3 } from '../contracts/demo.ts';
 
 import { arcadeWidth, portBlocks, shopSide } from '../world/portBlocks.ts';
+import { freightHalls, hasGallery } from '../world/upperRoutes.ts';
 import { roads, footpaths } from '../world/roads.ts';
 
 export function createTacticalMap() {
@@ -57,6 +58,11 @@ export function createTacticalMap() {
         ctx.fillRect(left, top, right - left, bottom - top);
       }
       ctx.fillStyle='#8390aa';
+      const stairMark=(x:number,z:number)=>{
+        const [sx,sz]=project(x,z);
+        ctx.fillStyle='#b34f2e';
+        ctx.fillRect(sx-3,sz-1.5,6,3);
+      };
       for(const [index,[x,z,w,d]] of portBlocks.entries()) {
         const [left,top]=project(x-w/2,z-d/2),[right,bottom]=project(x+w/2,z+d/2);
         const gap=(right-left)*arcadeWidth(index)/w;
@@ -66,7 +72,9 @@ export function createTacticalMap() {
         ctx.fillStyle='#b1d8d0';
         const wing=(right-left-gap)/2;
         ctx.fillRect((shopSide(index)<0?left:right-wing)+1,top+1,wing-2,bottom-top-2);
+        if(hasGallery(w,d))stairMark(x-shopSide(index)*(w/2-(w-arcadeWidth(index))/4),z+d/2);
       }
+      for(const [x,z,w,d] of freightHalls)stairMark(x+w/2-1.5,z-d/2+1.2);
       for (const region of map.regions ?? []) {
         const [x, z] = project(region.center[0], region.center[2]);
         ctx.fillStyle = region.center[1] < -2 ? '#8e68a022' : '#65879410';
@@ -118,7 +126,7 @@ export function createTacticalMap() {
       ctx.restore();
       ctx.fillStyle = '#345267';
       ctx.font = '14px "Microsoft YaHei",sans-serif';
-      ctx.fillText('▲ 当前位置   □ 撤离点   ■ 补给据点   • 已发现容器（空心为取尽）   浅绿为可进街屋', 80, 710);
+      ctx.fillText('▲ 当前位置   □ 撤离点   ■ 补给据点   • 已发现容器（空心为取尽）   浅绿 可进街屋   橙线 楼梯入口', 80, 710);
     },
   };
 }

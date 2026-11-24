@@ -5,6 +5,8 @@ import type { MapInteraction, Vec3 } from '../contracts/demo.ts';
 import { box, cable, cylinder, label, mesh, strut } from './detail/geometry.ts';
 import { createMaterialLibrary, enamel, paving, emissive } from './detail/materialLibrary.ts';
 import { createShippingContainer, foldedSheet } from './detail/createShippingContainer.ts';
+import { buildStreetCourts } from './streetCourts.ts';
+import { freightHalls, upperRoutes } from './upperRoutes.ts';
 import { buildPortBlocks } from './portBlocks.ts';
 import { addArcology } from './arcology.ts';
 import { portHauler } from './detail/portHauler.ts';
@@ -561,11 +563,11 @@ export function createEnvironment() {
   }
   const modules = addDistrictDetails(allStatic, m, solid);
   // Apply the same built-space vocabulary to the process and research districts.
-  for(const [x,z,w,d] of [[90,-32,32,36],[120,-76,26,30],[7,-113,30,24],[83,-156,24,28],[-45,63,22,16],[38,35,18,24]]) {
+  for(const [x,z,w,d] of freightHalls.slice(2)) {
     modules.shed(x,z,w,d);
     modules.rack(x-w*.3,z,Math.round(x));
     modules.bench(x-w*.2,z-d*.5+2);
-    modules.cabinet(x+w*.4,z-d*.4);
+    modules.cabinet(x+w*.4,z+d*.14);
     modules.pallet(x+w*.3,0,z+d*.3);
     lamp([x,5.5,z],x>60?0xc7d7cf:0xffc18b,75);
     sign([x,4.6,z+d*.5+.2],4.5,0,x>60?'处理与隔离车间':'维修与后勤设施','双向通道 / 物资容器在工作台');
@@ -681,7 +683,10 @@ export function createEnvironment() {
     lamp([x, 3.47, z + 2], 0x85efed, 6);
   }
   addArcology(staticRoot, m, solid);
-  const rooms=buildPortBlocks(staticRoot, m, solids, solid);
+  const upper=upperRoutes(staticRoot,m,solid,solids);
+  const rooms=buildPortBlocks(staticRoot, m, solids, solid,upper);
+  freightHalls.forEach(([x,z,w,d],i)=>upper.warehouse(x,z,w,d,i,rooms.cases));
+  buildStreetCourts(staticRoot,m,solid);
   addPortHorizon(allStatic, m);
   for(const interaction of mapInteractions) addPickup(interaction);
 

@@ -1,10 +1,11 @@
 import * as THREE from 'three';
 import { batchRigid, block, curvedSkin, ease, oval, part, pivot, rod, surface } from './modelParts.ts';
+import { sweptPlate, tailoring } from './sculpt.ts';
 import { shell, pigment } from './shell.ts';
 import type { Point } from './modelParts.ts';
 import type { EnemyState } from '../contracts/demo.ts';
 
-const armor=pigment(0xc1c8fa), rim=pigment(0xe8f1ff), frame=pigment(0x374468);
+const armor=pigment(0x709ab0), rim=pigment(0xc7e1d9), frame=pigment(0x374468);
 const rubber=pigment(0x29334e), piston=pigment(0x90e4eb), stripe=pigment(0xfd8067), steel=pigment(0x586e95);
 const up = new THREE.Vector3(0, 1, 0);
 const axis = new THREE.Vector3();
@@ -24,6 +25,7 @@ function makeLeg(root: THREE.Group, side: number, end: number) {
   block(upper, armor, [0.119, 0.69, 0.138], [0, 0.47, 0], 0.022);
   block(upper, steel, [0.130, 0.39, 0.070], [0, 0.49, 0.063 * end], 0.011);
   block(upper, stripe, [0.123, 0.12, 0.004], [0, 0.62, 0.071 * end], 0.002);
+  sweptPlate(upper,rim,[[0,.11,0,.054,.042],[side*.032,.29,end*.025,.089,.061],[side*.061,.62,end*.018,.088,.065],[side*.048,.86,-end*.014,.027,.032]],[side,0,-end*.36]);
   rod(lower, steel, [0, 0.02, 0], [0, 0.95, 0], 0.043, 0.037, 8);
   rod(lower, frame, [0, 0.38, 0], [0, 0.84, 0], 0.056, 0.052, 8);
   rod(lower, piston, [0.034 * side, 0.05, 0.037], [0.035 * side, 0.95, 0.037], 0.013, 0.013, 8);
@@ -40,9 +42,9 @@ function makeLeg(root: THREE.Group, side: number, end: number) {
   for (const piece of [upper, lower, knee, foot]) batchRigid(piece);
 
   return (height: number, stride: number, lift: number, lock: number, down: number) => {
-    const shoe: Point = [side * (0.327 + lock * 0.030), lift, end * 0.269 + stride];
+    const shoe: Point = [side * (0.375 + lock * 0.030), lift, end * 0.332 + stride];
     const hip: Point = [side * 0.197, height - 0.025, end * 0.198];
-    const bend: Point = [side * (0.346 + down * 0.025), height * 0.58 + lift * 0.24, end * (0.333 + down * 0.067) + stride * 0.48];
+    const bend: Point = [side * (0.388 + down * 0.025), height * 0.58 + lift * 0.24, end * (0.333 + down * 0.067) + stride * 0.48];
     knee.position.set(...bend);
     foot.position.set(...shoe);
     positionLink(upper, hip, bend);
@@ -61,14 +63,10 @@ export function makeSecurityBot(group: THREE.Group) {
   const legs: ReturnType<typeof makeLeg>[] = [];
   for (const side of [-1, 1]) {
     for (const end of [-1, 1]) legs.push(makeLeg(group, side, end));
-    const shield = pivot(turret, [side * 0.237, 0.046, -0.011], side < 0 ? 'security-left-shield' : 'security-right-shield');
-    block(shield, armor, [0.051, 0.231, 0.232], [side * 0.023, -0.037, 0.011], 0.019);
-    block(shield, stripe, [0.005, 0.058, 0.120], [side * 0.050, 0.006, -0.006], 0.002);
-    block(shield, frame, [0.032, 0.059, 0.156], [side * 0.006, -0.124, 0.006], 0.008);
-    const wing=shell(shield,armor,[side*.05,.02,.012],[
-      [-.18,.037,.09,0],[.05,.079,.19,.024],[.16,.056,.14,.061],[.22,.018,.055,.12]]);
-    wing.rotation.z=-side*.32;
-    block(shield,piston,[.031,.045,.17],[side*.108,.043,.028],.012);
+    const shield = pivot(turret, [side * 0.202, 0.01, -0.011], side < 0 ? 'security-left-shield' : 'security-right-shield');
+    sweptPlate(shield,frame,[[side*.009,-.045,-.161,.055,.046],[side*.054,.026,-.044,.132,.064],[side*.095,.060,.097,.137,.061],[side*.126,.120,.239,.066,.038],[side*.136,.164,.299,.009,.008]],[side*.85,.55,0]);
+    sweptPlate(shield,armor,[[side*.014,-.012,-.171,.029,.032],[side*.099,.058,-.022,.092,.064],[side*.127,.098,.093,.105,.059],[side*.143,.152,.216,.052,.029],[side*.141,.179,.283,.004,.003]],[side*.8,.75,0]);
+    sweptPlate(shield,stripe,[[side*.134,.095,-.082,.011,.010],[side*.162,.118,.009,.013,.009],[side*.178,.137,.098,.003,.003]],[side*.8,.7,0]);
     batchRigid(shield);
     shields.push(shield);
     block(deck, frame, [0.151, 0.147, 0.547], [side * 0.194, -0.030, 0.001], 0.023);
@@ -80,16 +78,25 @@ export function makeSecurityBot(group: THREE.Group) {
   shell(deck,frame,[0,0,.04],[[-.13,.17,.23,0],[.045,.314,.32,0],[.15,.23,.26,.021]]);
   for(const side of [-1,1]) {
     shell(deck,armor,[side*.22,.07,.13],[[0,.095,.15,0],[.12,.106,.155,.02],[.18,.073,.091,.05]]);
-    rod(turret,rim,[side*.10,.14,.052],[side*.18,.32,.13],.034,.012,6);
+
   }
-  block(deck, armor, [0.478, 0.223, 0.524], [0, 0, 0], 0.053);
+  tailoring(deck,armor,[0,0,0],[[-.11,.17,.21,0],[-.045,.276,.292,-.01],[.059,.29,.291,.008],[.118,.22,.245,.02],[.142,.12,.16,.024]]);
+  for(let n=0;n<3;n++){
+    const z=.068+n*.075;
+    sweptPlate(deck,rim,[[-.21,.084,z,.035,.025],[0,.153,z+.035,.044,.028],[.21,.084,z,.035,.025]],[0,1,0]);
+  }
   block(deck, frame, [0.242, 0.091, 0.460], [0, -0.111, 0.003], 0.025);
   block(deck, stripe, [0.331, 0.031, 0.012], [0, 0.016, -0.265], 0.004);
   rod(deck, steel, [0, 0.069, -0.019], [0, 0.277, -0.019], 0.153, 0.123, 10);
   rod(deck, frame, [0, 0.174, -0.019], [0, 0.211, -0.019], 0.155, 0.155, 10);
-  block(turret, frame, [0.477, 0.254, 0.342], [0, 0.007, -0.008], 0.045);
-  block(turret, armor, [0.445, 0.156, 0.278], [0, 0.085, 0.018], 0.035);
-  block(turret, rim, [0.271, 0.034, 0.161], [0, 0.159, 0.016], 0.013);
+  tailoring(turret,frame,[0,0,-.01],[[-.108,.13,.12,-.01],[-.057,.191,.171,-.022],[.060,.204,.168,-.015],[.123,.135,.135,0]]);
+  sweptPlate(turret,armor,[[0,.028,-.21,.079,.035],[0,.112,-.142,.153,.046],[0,.142,-.014,.174,.049],[0,.105,.116,.125,.041],[0,.068,.194,.026,.014]],[0,1,0]);
+  const opticalRing=new THREE.Mesh(new THREE.TorusGeometry(.059,.012,7,24),rim);
+  opticalRing.position.set(0,.044,-.230);turret.add(opticalRing);
+  sensor.scale.set(.57,1.46,1);sensor.position.set(0,.044,-.234);
+  for(const side of [-1,1]){
+    sweptPlate(turret,rim,[[side*.032,.050,-.213,.021,.012],[side*.113,.075,-.166,.027,.022],[side*.193,.065,-.064,.018,.015],[side*.211,.050,-.01,.004,.006]],[0,.65,-1]);
+  }
   for (const side of [-1, 1]) {
     const cheek = block(turret, armor, [.043, .127, .142], [side * .211, .029, -.083], .013);
     cheek.rotation.z = side * -.18;

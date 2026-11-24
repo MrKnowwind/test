@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { batchRigid, block, curvedSkin, oval, part, pivot, rod, surface } from './modelParts.ts';
 import type { Point } from './modelParts.ts';
 import { pigment, shell } from './shell.ts';
+import { tailoring } from './sculpt.ts';
 import { fingerGeometry, palmGeometry } from './handGeometry.ts';
 
 const slideSteel=pigment(0xe6eef1), wornSteel=pigment(0x9cb5d3), blueSteel=pigment(0x34466c);
@@ -292,7 +293,11 @@ export function makeForearm(parent: THREE.Object3D) {
   }
   sleeveGeometry.computeVertexNormals();
   part(arm, sleeveGeometry, sleeve, [0, 0, 0]);
-  shell(arm,knuckle,[0,0,0],[[.21,.048,.051,0],[.30,.052,.056,0],[.66,.042,.047,0],[.79,.032,.037,0]]);
+  tailoring(arm,knuckle,[0,0,0],[[.20,.041,.048,0],[.255,.048,.053,-.001],[.36,.05,.056,-.002],[.56,.043,.050,-.001],[.69,.037,.044,0],[.76,.032,.037,0]]);
+  for(const t of [.30,.34,.38]){
+    const stripe=block(arm,sleeve,[.022,.017,.003],[.012,t,.053],.001);
+    stripe.rotation.z=-.23;
+  }
   shell(arm,webbing,[0,0,0],[[.66,.041,.047,0],[.70,.042,.046,0]]);
   for(const side of [-1,1]) {
     block(arm,blueSteel,[.012,.22,.037],[side*.041,.51,.01],.005);

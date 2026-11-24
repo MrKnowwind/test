@@ -1,12 +1,13 @@
 import * as THREE from 'three';
 import { batchRigid, block, curvedSkin, ease, oval, pivot, rod } from './modelParts.ts';
+import { sweptPlate, tailoring } from './sculpt.ts';
 import { pigment, shell } from './shell.ts';
 import type { Point } from './modelParts.ts';
 import type { EnemyState } from '../contracts/demo.ts';
 
-const coveralls=pigment(0x364277), trousers=pigment(0x394061), leather=pigment(0x222940);
-const skin=pigment(0xa884cc), tendon=pigment(0xff9e96), lesions=pigment(0xad4c99);
-const ivory=pigment(0xe9dee3), visor=pigment(0x35244e), core=pigment(0xff676d,.65);
+const coveralls=pigment(0x35576a), trousers=pigment(0x334658), leather=pigment(0x222940);
+const skin=pigment(0x8e9fa3), tendon=pigment(0xe2ad94), lesions=pigment(0x53647f);
+const ivory=pigment(0xc9d0b7), visor=pigment(0x263b45), core=pigment(0xff824d,.65);
 type Ring = readonly [height: number, x: number, z: number, radiusX: number, radiusZ: number, blend: number];
 
 function bone(parent: THREE.Object3D, at: Point) {
@@ -120,22 +121,34 @@ export function makeInfected(group: THREE.Group) {
     [0.84, 0, 0.002, 0.136, 0.084, 0],
   ]);
   rod(chest, skin, [.017, .286, -.022], [.017, .423, -.032], .068, .050, 28);
-  // Fractured diving helmet and a bioluminescent jaw on the animated face bones.
-  shell(head,ivory,[0,0,0],[[-.005,.077,.072,0],[.06,.138,.117,0],[.183,.148,.122,.009],[.244,.096,.087,.024]]);
-  shell(head,visor,[0,.045,-.055],[[0,.069,.059,-.016],[.048,.130,.091,-.009],[.114,.132,.082,0],[.14,.099,.053,0]]);
-  for(const side of [-1,1]) {
-    const eye=block(head,core,[.078,.02,.012],[side*.064,.134,-.153],.006);
-    eye.rotation.z=side*.24;
-    const fang=shell(jaw,lesions,[side*.075,0,-.073],[[-.043,.009,.013,-.018],[.047,.042,.043,0],[.077,.031,.034,0]]);
-    fang.rotation.z=side*.19;
+  // A broken pressure hood has one working porthole. Salt shell has overgrown its opposite half.
+  const pearl=pigment(0xbab9a6),rust=pigment(0xb66c56),deep=pigment(0x475364);
+  tailoring(head,deep,[0,.009,0],[[-.033,.058,.059,-.020],[.012,.104,.098,-.028],[.084,.139,.130,-.008],[.169,.130,.125,.012],[.22,.088,.088,.022],[.234,.027,.039,.020]]);
+  oval(head,visor,[.102,.084,.046],[-.033,.094,-.113]);
+  const port=pivot(head,[-.056,.111,-.147]);port.rotation.y=.18;port.rotation.z=-.13;
+  const ring=new THREE.Mesh(new THREE.TorusGeometry(.048,.010,7,22),rust);port.add(ring);
+  oval(port,core,[.033,.029,.009],[0,0,-.007]);
+  block(port,visor,[.066,.007,.008],[0,-.008,-.017]);
+  for(let i=0;i<3;i++){
+    const y=.067+i*.042;
+    sweptPlate(head,i===1?pearl:ivory,[[.092,y+.054,.046,.026,.028],[.115,y+.028,-.046,.050,.035],[.079,y,-.119,.049,.028],[.017,y-.024,-.150,.009,.008]],[.38,.26,-1]);
   }
-  for(const [x,y,h,lean] of [[-.10,.17,.19,.38],[.10,.16,.092,-.26],[-.034,.21,.12,.20]]) {
-    const shard=shell(head,lesions,[x,y,.022],[[0,.052,.044,0],[h*.37,.044,.042,.015],[h,.005,.006,.054]]);
-    shard.rotation.z=lean;
+  sweptPlate(jaw,deep,[[-.080,.051,-.085,.028,.022],[-.081,.008,-.125,.024,.023],[-.037,-.038,-.15,.019,.021],[.036,-.042,-.137,.008,.008]],[0,0,-1]);
+  for(const x of [.024,.060,.094])sweptPlate(jaw,pearl,[[x,.053,-.114,.013,.017],[x-.004,.009,-.143,.010,.013],[x-.013,-.035,-.159,.001,.003]],[0,0,-1]);
+  // Interlocking shell scutes travel from the shoulder ridge to the striking forearm.
+  for(const [i,k] of [[0,-.08],[1,-.005],[2,.064]]){
+    sweptPlate(chest,i===1?ivory:lesions,[[.015,.239,k,.049,.039],[.118,.296,k+.018,.082,.057],[.242,.358,k+.041,.087,.054],[.361,.391,k+.087,.013,.010]],[.6,1,-.18]);
   }
-  shell(chest,ivory,[0,.09,-.015],[[0,.114,.125,0],[.13,.207,.135,0],[.207,.188,.108,.005]]);
-  shell(chest,core,[0,.12,-.155],[[0,.018,.013,0],[.069,.047,.026,0],[.113,.026,.017,0]]);
-  shell(hips,leather,[0,.01,0],[[0,.173,.109,0],[.058,.185,.119,0]]);
+  for(const side of [-1,1]){
+    const strap=sweptPlate(chest,side<0?rust:deep,[[side*.114,.30,.045,.029,.028],[side*.154,.24,-.087,.037,.028],[side*.107,.10,-.147,.028,.024],[side*.069,-.015,-.128,.021,.015]],[0,0,-1]);
+    strap.name='salvage-harness';
+  }
+  for(let row=0;row<3;row++)
+    sweptPlate(chest,row===0?ivory:deep,[[-.098,.20-row*.062,-.113,.022,.021],[.004,.183-row*.060,-.162,.038,.028],[.105,.19-row*.053,-.115,.025,.021]],[0,.15,-1]);
+  curvedSkin(chest,leather,[[-.095,.34,-.041],[-.189,.247,-.104],[-.201,.128,-.098],[-.157,.097,.02],[-.107,.127,.117]],[.020,.022,.018,.016],10);
+  tailoring(chest,rust,[-.09,.137,.106],[[0,.058,.058,.004],[.042,.077,.076,.012],[.19,.074,.076,.013],[.226,.054,.055,.007]]);
+  tailoring(hips,leather,[0,.01,0],[[0,.173,.109,0],[.058,.185,.119,0]]);
+  block(hips,rust,[.081,.083,.038],[-.112,.009,-.084],.009);
   for (const [index, { shoulder, elbow, hand }] of arms.entries()) {
     const side = index === 0 ? -1 : 1;
     const bulk = index === 0 ? .073 : .077;
@@ -150,14 +163,16 @@ export function makeInfected(group: THREE.Group) {
       [1.01, side * 0.272, -0.028, 0.046, 0.045, 1],
       [0.93, side * 0.278, -0.033, 0.034, 0.032, 1],
     ]);
-    const armor=index===1?lesions:ivory;
-    const cap=shell(shoulder,armor,[side*.011,0,0],[[-.123,.078,.087,0],[-.012,.115,.112,0],[.064,.067,.070,.009]]);
-    cap.rotation.z=side*.24;
-    if(index===1) {
-      for(const [y,h] of [[-.045,.17],[-.14,.12]]) {
-        const spur=shell(elbow,lesions,[.055,y,.012],[[0,.047,.046,0],[h*.4,.033,.037,0],[h,.004,.005,.024]]);
-        spur.rotation.z=-.78;
+    if(index===1){
+      tailoring(elbow,lesions,[.038,-.093,0],[[-.130,.048,.044,-.013],[-.084,.087,.069,-.008],[-.020,.103,.079,.005],[.039,.096,.071,.008],[.103,.059,.052,.002]]);
+      for(let i=0;i<3;i++){
+        const dy=-i*.071;
+        sweptPlate(elbow,i%2?deep:ivory,[[.012,.025+dy,-.032,.052,.046],[.068,-.019+dy,-.018,.076,.055],[.132,-.001+dy,.039,.068,.046],[.187,.052+dy,.084,.009,.008]],[1,.26,-.12]);
       }
+      sweptPlate(hand,pearl,[[.019,.024,-.004,.055,.049],[.052,-.067,-.012,.065,.042],[.061,-.136,-.054,.043,.034],[.032,-.194,-.103,.014,.017],[-.008,-.208,-.132,.002,.003]],[1,0,-.4]);
+    }else{
+      tailoring(shoulder,deep,[0,0,0],[[-.119,.066,.071,0],[-.049,.082,.085,0],[.021,.080,.081,.002],[.048,.050,.05,.006]]);
+      rod(elbow,rust,[0,-.127,0],[0,-.161,0],.057,.056,14);
     }
     oval(hand, skin, [.034, .060, .023], [0, -.039, -.001]);
     for (let finger = 0; finger < 4; finger += 1) {
@@ -241,11 +256,11 @@ export function makeInfected(group: THREE.Group) {
 
     rig.position.set(0, 0, 0);
     rig.rotation.set(0, dead * Math.PI / 2, -dead * Math.PI / 2, 'ZYX');
-    pose(chest,-0.18 + windup * 0.24 - attack * 0.49 - recover + damage * 0.25,
+    pose(chest,-0.34 + windup * 0.24 - attack * 0.49 - recover + damage * 0.25,
       windup * 0.42 - attack * 0.24 + stride * 0.075, -0.09 - dead * 0.15, dt);
     chest.position.z = THREE.MathUtils.damp(chest.position.z, -attack * .12, 12, dt);
-    pose(head,0.04 + windup * 0.22 + attack * 0.29 - damage * 0.28,
-      -0.10 - windup * 0.28 - stride * 0.09, 0.11 + Math.sin(time * 1.9) * 0.03, dt);
+    pose(head,0.18 + windup * 0.22 + attack * 0.29 - damage * 0.28,
+      -0.10 - windup * 0.28 - stride * 0.09, 0.17 + Math.sin(time * 1.9) * 0.045, dt);
     jaw.rotation.x = 0.14 + windup * 0.44 + attack * 0.38;
     pose(arms[0].shoulder,0.17 + stride * 0.35 + windup * 0.49 + attack * 1.20, 0, -0.14 - windup * 0.43, dt);
     pose(arms[1].shoulder,0.33 - stride * 0.35 + windup * 1.24 + attack * 1.12, windup * -0.30, 0.19 + windup * 0.72, dt);
@@ -254,8 +269,8 @@ export function makeInfected(group: THREE.Group) {
     pose(arms[1].hand,0.07 + windup * 0.32 - attack * 0.24,0,0,dt);
     for (const [index, leg] of legs.entries()) {
       const step = index === 0 ? stride : -stride;
-      leg.thigh.rotation.set(step * 0.53 + attack * (index === 0 ? 0.45 : -0.28) + dead * 0.05, 0, index === 0 ? -0.02 : 0.06);
-      leg.knee.rotation.x = -0.13 - Math.max(0, step) * 0.58 - dead * 0.15;
+      leg.thigh.rotation.set(0.19 * (1-dead) + step * 0.53 + attack * (index === 0 ? 0.45 : -0.28) + dead * 0.05, 0, index === 0 ? -0.02 : 0.06);
+      leg.knee.rotation.x = -0.13 - .21*(1-dead) - Math.max(0, step) * 0.58 - dead * 0.15;
       leg.foot.rotation.x = -leg.thigh.rotation.x - leg.knee.rotation.x;
     }
     initialized = true;

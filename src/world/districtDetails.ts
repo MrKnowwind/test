@@ -102,7 +102,7 @@ export function addDistrictDetails(root: THREE.Group, m: Materials, solid: Solid
     const lens = new THREE.MeshStandardMaterial({color:0xffd3a0,emissive:0xffd3a0,emissiveIntensity:2});
     b([-78,5.51,z],[1.3,.03,.28],lens);
   }
-  bench(-84,-13); cabinet(-92,17); cabinet(-64,-13);
+  bench(-84,-13); cabinet(-92,17); cabinet(-64,14);
   for(const [x,z] of [[-97,36],[-100,38],[-64,38],[-58,-25],[-104,-28]]) pallet(x,0,z);
   // Workshop lean-to opens toward the transfer road, with real structural support.
   solid([-48,1.7,7],[.2,3.4,14],m.concrete,.03);

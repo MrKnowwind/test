@@ -12,6 +12,7 @@ export interface Solid {
   min: Vec3;
   max: Vec3;
   floor?: true;
+  walkSurface?: true;
   slope?: Slope;
 }
 
@@ -46,8 +47,21 @@ function floorAt(x: number, y: number, z: number) {
   return 0;
 }
 
+function supportHeight(solid:Solid,x:number,z:number){
+  if(!solid.slope)return solid.max[1];
+  // The capsule can overlap the last tread after its centre has reached the flat landing.
+  if(solid.walkSurface){
+    x=Math.max(solid.min[0],Math.min(solid.max[0],x));
+    z=Math.max(solid.min[2],Math.min(solid.max[2],z));
+  }
+  return slopeHeight(solid.slope,x,z);
+}
+
 function blocksBody(solid: Solid, x: number, y: number, z: number, radius: number, height: number) {
   if (solid.max[1] <= y + .001 || solid.min[1] >= y + height) return false;
+  // A capsule on a stair touches the adjoining landing edge before its feet reach the top.
+  if(solid.walkSurface && !solid.slope && y>=solid.max[1]-.29 &&
+      (x<solid.min[0] || x>solid.max[0] || z<solid.min[2] || z>solid.max[2]))return false;
   const dx = Math.max(solid.min[0] - x, 0, x - solid.max[0]);
   const dz = Math.max(solid.min[2] - z, 0, z - solid.max[2]);
   return dx * dx + dz * dz <= radius * radius;
@@ -75,6 +89,7 @@ function rayHit(solid: Solid, origin: Vec3, direction: Vec3, limit: number) {
 }
 
 export function createWorldQueries(solids: readonly Solid[]): WorldQueries {
+  const walkSurfaces=solids.filter(s=>s.walkSurface);
   const obstacles = solids.filter(solid => !solid.floor);
   function groundHeight(from: Vec3, radius: number) {
     const [x, y, z] = from;
@@ -83,7 +98,7 @@ export function createWorldQueries(solids: readonly Solid[]): WorldQueries {
     for (const solid of solids) {
       if (x < solid.min[0] - radius * .35 || x > solid.max[0] + radius * .35 ||
           z < solid.min[2] - radius * .35 || z > solid.max[2] + radius * .35) continue;
-      const top = solid.slope ? slopeHeight(solid.slope, x, z) : solid.max[1];
+      const top = supportHeight(solid,x,z);
       if (top <= y + .13 && (ground === null || top > ground)) ground = top;
     }
     return ground;
@@ -93,7 +108,7 @@ export function createWorldQueries(solids: readonly Solid[]): WorldQueries {
         !inside(mapBounds, at[0] + radius, at[2] + radius)) return true;
     return solids.some(solid => {
       if (!solid.slope) return blocksBody(solid, ...at, radius, height);
-      const local: Vec3 = [at[0], at[1] - slopeHeight(solid.slope, at[0], at[2]), at[2]];
+      const local: Vec3 = [at[0], at[1] - supportHeight(solid, at[0], at[2]), at[2]];
       return blocksBody(solid, ...local, radius, height);
     });
   }
@@ -144,7 +159,12 @@ export function createWorldQueries(solids: readonly Solid[]): WorldQueries {
       const steps = Math.max(1, Math.ceil(Math.hypot(dx, dz) / .16));
       let [x, y, z] = from;
       function tryStep(toX: number, toZ: number) {
-        const toY = floorAt(toX, y, toZ);
+        let toY = floorAt(toX, y, toZ);
+        for(const s of walkSurfaces){
+          if(toX<s.min[0] || toX>s.max[0] || toZ<s.min[2] || toZ>s.max[2])continue;
+          const top=supportHeight(s,toX,toZ);
+          if(Math.abs(top-y)<=.12 && (toY===null || top>toY))toY=top;
+        }
         if (toY === null || Math.abs(toY - y) > .12) return false;
         if (obstacles.some(solid => blocksBody(solid, toX, toY, toZ, radius, height))) return false;
         x = toX; y = toY; z = toZ;

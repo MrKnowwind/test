@@ -1,6 +1,8 @@
 import * as THREE from 'three';
-import { batchRigid, block, oval, pivot, rod } from './modelParts.ts';
-import { pigment, shell } from './shell.ts';
+import { batchRigid, block, curvedSkin, oval, pivot, rod } from './modelParts.ts';
+import { sweptPlate, tailoring } from './sculpt.ts';
+import { makeGlove } from './viewmodelModels.ts';
+import { pigment } from './shell.ts';
 import { styleCharacter } from './celShading.ts';
 
 // The face is painted directly onto the head surface so eyelids and the mouth
@@ -10,7 +12,7 @@ function operatorFace() {
   canvas.width = 1024;
   canvas.height = 512;
   const ctx = canvas.getContext('2d')!;
-  ctx.fillStyle = '#ffd1b5';
+  const tone=ctx.createLinearGradient(0,50,0,498);tone.addColorStop(0,'#f6b69d');tone.addColorStop(.48,'#ffdec3');tone.addColorStop(1,'#f8c5ad');ctx.fillStyle=tone;
   ctx.fillRect(0, 0, 1024, 512);
   function fill(path: string, color: string) {
     ctx.fillStyle = color;
@@ -20,6 +22,9 @@ function operatorFace() {
     ctx.save();
     ctx.translate(512, 0);
     ctx.scale(side, 1);
+    const blush=ctx.createRadialGradient(117,288,2,117,288,57);
+    blush.addColorStop(0,'rgba(228,121,111,.26)');blush.addColorStop(1,'rgba(238,145,127,0)');
+    ctx.fillStyle=blush;ctx.fillRect(54,247,113,76);
     const eye = 'M35 247Q73 196 133 222Q123 248 109 258Q76 277 40 257Z';
     const lashes = '#354055';
     fill('M40 192Q80 163 126 181L133 187Q82 178 40 199Z', '#685156');
@@ -35,7 +40,7 @@ function operatorFace() {
     ctx.restore();
     fill('M33 248Q64 195 115 211Q133 217 145 206L139 219L149 216Q135 232 125 231Q81 207 33 248Z', lashes);
     fill('M80 265Q112 258 128 235Q117 259 98 264Z', '#946f6c');
-    fill('M108 291Q132 280 153 282L139 287Z', '#edac9a');
+    for(const [x,y] of [[88,287],[104,295],[117,285],[136,289]]){ctx.fillStyle='#ca9786';ctx.beginPath();ctx.arc(x,y,1.55,0,Math.PI*2);ctx.fill();}
     ctx.restore();
   }
   fill('M511 289Q505 309 514 313L505 316Q497 312 501 307Z', '#de9985');
@@ -46,14 +51,17 @@ function operatorFace() {
   map.anisotropy = 4;
   const skin = pigment(0xffffff);
   skin.map = map;
-  const profile = [[0,.019,.050,.035],[.022,.059,.080,.032],[.062,.092,.101,.025],
+  const profile = [[0,.021,.034,.047],[.015,.048,.062,.046],[.039,.076,.089,.034],[.068,.096,.103,.023],
     [.113,.117,.115,.017],[.163,.123,.117,.010],[.216,.114,.103,0],[.259,.080,.076,0],[.279,.025,.042,0]];
   const vertices: number[] = [], uvs: number[] = [], faces: number[] = [];
   const segments = 40;
   profile.forEach(([y, rx, rz, offset], row) => {
     for (let i = 0; i <= segments; i++) {
       const u = i / segments, angle = (u - .5) * Math.PI * 2;
-      vertices.push(rx * Math.sin(angle), y, offset + rz * Math.cos(angle));
+      const x=rx*Math.sin(angle),front=Math.max(0,Math.cos(angle));
+      const nose=.018*Math.exp(-((x/.021)**2)-(((y-.11)/.040)**2));
+      const cheek=.006*Math.exp(-(((Math.abs(x)-.067)/.033)**2)-(((y-.11)/.043)**2));
+      vertices.push(x,y,offset+rz*Math.cos(angle)+(nose+cheek)*front**4);
       uvs.push(u, y / .279);
       if (row && i) {
         const d = row * (segments + 1) + i, a = d - segments - 2;
@@ -72,56 +80,79 @@ function operatorFace() {
 // The loadout portrait is rendered from this full-body mesh. Local +Z faces the camera.
 export function createOperator() {
   const root=new THREE.Group(), body=pivot(root,[0,0,0]);
-  const ink=pigment(0x293d60), suit=pigment(0x40889b), ivory=pigment(0xe4efea);
-  const skin=pigment(0xffcaac), coral=pigment(0xff8468);
-  const hair=pigment(0x2d5269), fringe=pigment(0x48778b), glow=pigment(0x86ffde,.27);
-  const face=pivot(body,[0,1.47,0]); face.rotation.y=-.12;
+  const ink=pigment(0x28374f), suit=pigment(0x306b80), ivory=pigment(0xe1e7dc);
+  const skin=pigment(0xffceb2), coral=pigment(0xe77453), trim=pigment(0x92cfc7);
+  const hair=pigment(0x233b53), fringe=pigment(0x34566a), sheen=pigment(0x51778a);
+  const face=pivot(body,[0,1.455,.012]);face.rotation.set(.026,-.08,.025);
   face.add(operatorFace());
-  oval(face,hair,[.135,.145,.121],[0,.171,-.026]);
-  oval(face,hair,[.097,.154,.085],[-.076,.052,-.079]);
-  for(const side of [-1,1]) {
-    const lock=shell(face,hair,[side*.106,.09,0],[[-.08,.006,.01,.056],[.024,.027,.036,.06],[.135,.038,.068,.005]]);
-    lock.rotation.z=-side*.15;
-    rod(face,ink,[side*.103,.12,-.021],[side*.143,.12,-.021],.051,.045,12);
-    rod(face,coral,[side*.14,.12,-.021],[side*.152,.12,-.021],.038,.034,12);
+  // The part runs across a rounded cap. The locks follow the skull before tapering past the temples.
+  oval(face,hair,[.129,.127,.118],[0,.175,-.023]);
+  sweptPlate(face,hair,[[-.057,.196,-.087,.070,.050],[-.096,.122,-.089,.065,.046],[-.111,.035,-.087,.044,.047],[-.077,-.071,-.09,.005,.010]],[-.7,0,-1]);
+  for(const side of [-1,1]){
+    const sx=side*.115;
+    oval(face,skin,[.018,.032,.014],[sx,.114,.011]);
+    rod(face,ink,[sx,.126,-.009],[side*.141,.126,-.009],.037,.034,16);
+    rod(face,trim,[side*.14,.126,-.009],[side*.144,.126,-.009],.023,.024,16);
+    sweptPlate(face,fringe,[[side*.083,.242,.032,.040,.021],[side*.120,.180,.041,.033,.019],[side*.120,.106,.055,.026,.017],[side*.098,.042,.082,.003,.004]],[side*.55,0,1]);
   }
-  for(const [x,length,tilt] of [[-.082,.121,-.31],[-.043,.099,-.40],[.002,.069,-.43],[.051,.054,-.33],[.086,.076,-.20]]) {
-    const bang=shell(face,fringe,[x,.245,.062],[[-length,.003,.007,.074],[-length*.45,.022,.021,.060],[0,.033,.042,.015],[.026,.015,.020,-.01]]);
-    bang.rotation.z=tilt;
+  const bang=(pts:Parameters<typeof sweptPlate>[2],mat=fringe)=>sweptPlate(face,mat,pts);
+  bang([[.046,.257,.023,.039,.026],[.016,.245,.085,.049,.024],[-.044,.214,.115,.046,.020],[-.098,.167,.091,.024,.014],[-.109,.109,.072,.002,.003]]);
+  bang([[.024,.265,.011,.040,.023],[-.044,.251,.053,.044,.023],[-.085,.212,.085,.035,.021],[-.122,.151,.061,.003,.007]],hair);
+  bang([[.023,.259,.043,.027,.017],[.015,.241,.100,.029,.017],[-.009,.207,.122,.023,.012],[-.054,.181,.126,.002,.003]]);
+  bang([[.049,.258,.029,.032,.020],[.069,.239,.083,.033,.020],[.092,.206,.103,.027,.017],[.106,.165,.093,.003,.005]]);
+  bang([[.038,.257,.063,.005,.004],[.002,.240,.111,.009,.004],[-.048,.209,.134,.006,.003],[-.079,.188,.116,.001,.001]],sheen);
+  oval(face,coral,[.042,.034,.037],[-.099,.179,-.103]);
+  sweptPlate(face,hair,[[-.104,.190,-.10,.032,.029],[-.154,.154,-.121,.044,.042],[-.178,.075,-.117,.047,.038],[-.160,-.023,-.105,.032,.030],[-.186,-.085,-.092,.003,.005]],[-.7,0,-1]);
+  // Rescue goggles rest on the hairline; two curved lenses sit inside a single textile band.
+  curvedSkin(face,ink,[[-.119,.202,.013],[-.113,.220,.083],[-.063,.243,.114],[.005,.254,.123],[.066,.245,.107],[.116,.211,.064],[.124,.191,-.027]],[.011,.013,.011,.012],10);
+  for(const side of [-1,1]){
+    const lens=pivot(face,[side*.054,.240,.112-Math.abs(side)*.004]);
+    lens.rotation.set(-.30,side*.44,-side*.08);
+    block(lens,coral,[.090,.046,.024],[0,0,0],.011);
+    block(lens,ink,[.081,.037,.016],[0,.001,.009],.008);
+    block(lens,suit,[.069,.028,.008],[0,.001,.017],.006);
+    block(lens,trim,[.041,.005,.003],[-.006,.006,.022],.001).rotation.z=.09;
+    block(lens,ivory,[.012,.004,.003],[.021,.008,.022],.001);
   }
-  // The swept rear knot and two enamel pins break up the headset silhouette.
-  oval(face,hair,[.073,.083,.073],[-.097,.183,-.117]);
-  rod(face,coral,[-.120,.143,-.101],[-.16,.104,-.114],.019,.010,10);
-  rod(face,ivory,[.083,.184,.090],[.109,.194,.064],.004,.004,8);
-  rod(face,coral,[.087,.197,.085],[.112,.206,.057],.005,.004,8);
-  rod(body,skin,[0,1.39,0],[0,1.51,0],.051,.047,12);
-  shell(body,suit,[0,.84,0],[[0,.117,.088,0],[.17,.107,.084,0],[.40,.161,.108,0],[.52,.182,.093,0],[.57,.092,.067,0]]);
-  shell(body,ivory,[0,1.06,.004],[[0,.123,.092,.007],[.13,.164,.111,0],[.25,.187,.103,0],[.29,.123,.079,0]]);
-  shell(body,ink,[0,1.353,0],[[0,.102,.086,0],[.065,.081,.066,0]]);
-  block(body,coral,[.046,.265,.022],[-.044,1.2,.112],.007).rotation.z=-.43;
-  const neckerchief=shell(body,coral,[0,1.37,.006],[[0,.078,.070,.003],[.024,.096,.079,0],[.050,.073,.066,-.005]]);
-  neckerchief.rotation.z=-.10;
-  shell(body,coral,[.049,1.32,.092],[[-.078,.010,.008,.020],[-.033,.029,.011,.015],[.026,.019,.016,0]]);
-  block(body,suit,[.058,.024,.016],[-.097,1.292,.106],.004).rotation.z=.07;
-  block(body,ink,[.075,.056,.015],[.081,1.265,.107],.004);
-  block(body,glow,[.048,.012,.01],[.081,1.268,.118],.003);
-  shell(body,ink,[0,.81,0],[[0,.133,.095,0],[.099,.146,.101,0],[.139,.121,.093,0]]);
-  for(const side of [-1,1]) {
-    const sx=side*.178, nx=side*.205;
-    oval(body,ivory,[.077,.087,.09],[sx,1.306,0]);
-    rod(body,suit,[sx,1.3,0],[nx,1.062,.016],.065,.044,10);
-    const arm=shell(body,ivory,[nx,1.055,.028],[[-.207,.041,.041,.042],[-.17,.047,.053,.037],[-.042,.059,.061,0],[0,.049,.052,0]]);
-    arm.rotation.z=side*.09;
-    shell(body,coral,[nx,.891,.06],[[0,.047,.048,0],[.021,.047,.049,-.004]]);
-    oval(body,ink,[.043,.069,.038],[nx,.813,.078]);
-    const hx=side*.077,kx=side*.092,fx=side*.104;
-    rod(body,ink,[hx,.85,0],[kx,.48,.008],.086,.058,12);
-    shell(body,suit,[kx,.53,.009],[[-.02,.063,.064,0],[.16,.077,.078,0],[.26,.077,.079,0]]);
-    rod(body,ink,[kx,.47,.008],[fx,.107,-.008],.06,.041,12);
-    shell(body,ivory,[fx,.17,0],[[0,.046,.052,0],[.21,.061,.065,.002],[.28,.052,.052,.014]]);
-    block(body,ink,[.108,.116,.20],[fx,.067,.047],.028);
-    block(body,coral,[.109,.024,.205],[fx,.02,.047],.009);
+  rod(face,ink,[-.012,.244,.123],[.012,.244,.123],.006,.006,8);
+  for(const dy of [0,.012])rod(face,coral,[.085,.193+dy,.098],[.111,.210+dy,.073],.0027,.003,8);
+  rod(body,skin,[0,1.389,.006],[0,1.494,.016],.047,.044,20);
+  tailoring(body,ink,[0,.83,0],[[0,.130,.095,0],[.11,.132,.09,0],[.22,.104,.078,0],[.36,.133,.094,.008],[.49,.164,.091,0],[.555,.08,.061,0]]);
+  // Short storm jacket with soft shoulders, an open collar, a diagonal webbing harness and jacket hem.
+  tailoring(body,suit,[0,1.015,0],[[0,.126,.093,0],[.028,.138,.102,0],[.065,.136,.103,0],[.145,.145,.114,.004],[.205,.157,.118,.006],[.242,.168,.111,.006]]);
+  tailoring(body,ivory,[0,1.015,0],[[.242,.168,.111,.006],[.288,.179,.103,.003],[.316,.174,.10,0],[.357,.136,.080,-.002],[.39,.075,.058,0]]);
+  tailoring(body,ink,[0,1.015,0],[[0,.129,.097,0],[.020,.139,.104,0],[.031,.139,.104,0]]);
+  for(const side of [-1,1]){
+    sweptPlate(body,ivory,[[side*.119,1.356,.052,.045,.018],[side*.081,1.358,.091,.045,.018],[side*.061,1.304,.123,.027,.014],[side*.040,1.255,.123,.002,.004]]);
+    sweptPlate(body,ink,[[side*.072,1.393,.037,.029,.014],[side*.064,1.379,.076,.026,.014],[side*.028,1.325,.108,.011,.010],[side*.017,1.31,.117,.003,.003]]);
   }
+  sweptPlate(body,coral,[[-.132,1.342,.080,.017,.010],[-.083,1.272,.128,.017,.009],[.003,1.172,.135,.017,.008],[.087,1.067,.097,.016,.010],[.124,.976,.061,.013,.008]]);
+  block(body,ink,[.045,.031,.014],[-.07,1.256,.138],.004).rotation.z=.70;
+  const patch=pivot(body,[.080,1.283,.110]);patch.rotation.y=.29;
+  block(patch,ink,[.058,.032,.010],[0,0,0],.004);
+  for(const d of [-.009,.006])block(patch,trim,[.014,.017,.004],[d,.001,.006],.002).rotation.z=-.40;
+  curvedSkin(body,trim,[[.125,1.199,.094],[.107,1.191,.111],[.080,1.181,.119],[.049,1.171,.124]],[.0025,.003,.0025],8);
+  tailoring(body,ink,[0,.93,0],[[0,.136,.098,0],[.033,.139,.103,0],[.055,.130,.098,0]]);
+  block(body,ivory,[.051,.034,.018],[0,.96,.107],.005);
+  const pouch=block(body,suit,[.120,.133,.070],[.126,.912,.064],.018);pouch.rotation.z=.10;
+  block(body,coral,[.104,.034,.013],[.126,.953,.107],.005);
+  for(const side of [-1,1]){
+    const shoulder=side*.162,elbow=side*.203,hand=side*(side>0?.204:.223);
+    tailoring(body,ivory,[shoulder,1.215,0],[[0,.042,.057,0],[.036,.062,.071,0],[.084,.070,.074,-.006],[.124,.052,.060,-.009],[.137,.023,.036,-.01]]);
+    rod(body,suit,[shoulder,1.254,.001],[elbow,1.041,.026],.056,.044,18);
+    tailoring(body,ink,[elbow,1.008,.026],[[0,.044,.049,0],[.039,.047,.049,0],[.062,.046,.048,0]]);
+    rod(body,ivory,[elbow,1.025,.026],[hand,.868,.061],.052,.040,18);
+    const glove=makeGlove(body,[hand,.835,.067],side<0,false,'operator-glove');glove.root.rotation.x=-1.05;
+    const hx=side*.077,kx=side*(side>0?.107:.090),fx=side*(side>0?.123:.10);
+    rod(body,ink,[hx,.87,0],[kx,.47,.011],.082,.058,18);
+    tailoring(body,suit,[hx,.576,.001],[[0,.068,.075,0],[.064,.075,.082,0],[.179,.081,.088,0],[.245,.080,.083,0]]);
+    rod(body,ink,[kx,.47,.008],[fx,.105,-.005],.056,.039,18);
+    tailoring(body,suit,[fx,.121,0],[[0,.047,.060,.007],[.056,.053,.061,0],[.161,.060,.067,-.005],[.243,.050,.057,.006]]);
+    sweptPlate(body,ivory,[[kx,.51,.058,.047,.013],[kx,.47,.078,.055,.016],[kx,.40,.067,.032,.011],[fx,.36,.060,.009,.005]]);
+    block(body,ink,[.103,.115,.188],[fx,.071,.042],.025);
+    block(body,ivory,[.106,.027,.196],[fx,.019,.043],.009);
+  }
+  curvedSkin(body,trim,[[-.150,1.28,.092],[-.158,1.23,.096],[-.152,1.18,.101]],[.003,.004,.003],8);
   batchRigid(face);batchRigid(body);styleCharacter(root);
   return root;
 }

@@ -231,3 +231,36 @@ test('street blocks leave a continuous ground-floor passage under every upper fl
     assert.ok(map.blockedDistance([x,1.65,z],[0,1,0],4)!==null);
   }
 });
+
+test('freight mezzanines and shop balconies allow a round trip on foot to their search cases',async()=>{
+  const {arcadeWidth, portBlocks, shopSide}=await import('../src/world/portBlocks.ts');
+  const {freightHalls, galleryHeight, hasGallery}=await import('../src/world/upperRoutes.ts');
+  const {findInteraction}=await import('../src/player/controller.ts');
+  function traverse(feet, targets, id){
+    for(const [x,z] of targets){
+      const steps=Math.ceil(Math.hypot(x-feet[0],z-feet[2])/.07);
+      const dx=(x-feet[0])/steps, dz=(z-feet[2])/steps;
+      for(let i=0;i<steps;i++)feet=map.moveBody(feet,dx,-.014,dz,radius,height);
+      assert.ok(Math.hypot(feet[0]-x,feet[2]-z)<.10,id+' blocked at '+feet);
+    }
+    return feet;
+  }
+  function visit(id,points,level){
+    const [x,z]=points[0], feet=traverse([x,0,z],points.slice(1),id);
+    assert.ok(Math.abs(feet[1]-level)<.1,id+' did not reach its floor');
+    const target=map.interactions.find(item=>item.id===id),eye=[feet[0],feet[1]+1.65,feet[2]];
+    const delta=target.position.map((v,i)=>v-eye[i]), distance=Math.hypot(...delta);
+    assert.equal(findInteraction(map,map.interactions,new Set(),eye,delta.map(v=>v/distance))?.id,id);
+    const back=traverse(feet,points.slice(0,-1).reverse(),id);
+    assert.ok(Math.abs(back[1])<.10,id+' did not return to street level');
+  }
+  portBlocks.forEach(([x,z,w,d],i)=>{
+    if(!hasGallery(w,d))return;
+    const side=shopSide(i),sx=x-side*(w/2-(w-arcadeWidth(i))/4),landing=z-d/2+1.05,deskZ=z-.1*d;
+    visit('gallery-'+i,[[sx,z+d/2+.65],[sx,landing],[x,landing],[x,deskZ],[x+side*(w/2-2.26),deskZ]],galleryHeight);
+  });
+  freightHalls.forEach(([x,z,w,d],i)=>{
+    const sx=x+w/2-1.5,low=z-d/2+1.2,bridge=z+d/2-2.1;
+    visit('freight-loft-'+i,[[sx,low-.70],[sx,low+7.8],[sx,bridge],[x-w/2+3.38,bridge]],3.12);
+  });
+});

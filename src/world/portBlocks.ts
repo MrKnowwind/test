@@ -6,6 +6,7 @@ import type { Solid } from './worldQueries.ts';
 import { box, cylinder, mesh, strut } from './detail/geometry.ts';
 import { enamel, emissive, type Materials } from './detail/materialLibrary.ts';
 
+import { hasGallery, galleryHeight, type upperRoutes } from './upperRoutes.ts';
 import { buildShopRoom, type ShopRooms } from './shopRooms.ts';
 
 export const shopSide=(index:number)=>index%2?1:-1;
@@ -33,7 +34,7 @@ export function arcadeWidth(index: number) {
 }
 
 export function buildPortBlocks(root:THREE.Group,m:Materials,occupied:readonly Solid[],
-  solid:(at:Vec3,size:Vec3,mat:THREE.Material,bevel?:number)=>THREE.Mesh) {
+  solid:(at:Vec3,size:Vec3,mat:THREE.Material,bevel?:number)=>THREE.Mesh, upper:ReturnType<typeof upperRoutes>) {
   const rooms:ShopRooms={doors:[],cases:[],occupants:[]};
   const blue=enamel(0x5989a2), violet=enamel(0x9389bd), warm=enamel(0xf5a479);
   const glazing=enamel(0x334f71), sill=enamel(0xbbd4dc), panel=enamel(0xdae1da);
@@ -47,12 +48,14 @@ export function buildPortBlocks(root:THREE.Group,m:Materials,occupied:readonly S
     const arcade=4.1, height=levels*2.95, roof=arcade+height;
     // One occupied shop and one service core flank the covered lane.
     const opening=arcadeWidth(index), sideWidth=(w-opening)/2;
+    const accessible=hasGallery(w,d);
     for(const side of [-1,1]) {
       const px=x+side*(w/2-sideWidth/2);
       if(side===shopSide(index)){
         buildShopRoom(rooms,root,solid,m,index,px,z,sideWidth,d,side,accent,light,frontage.consoles[type]);
         continue;
       }
+      if(accessible)continue;
       solid([px,arcade/2,z],[sideWidth,arcade,d],m.steel,.12);
       for(const front of [-1,1]) {
         const fz=z+front*(d/2+.015);
@@ -104,10 +107,15 @@ export function buildPortBlocks(root:THREE.Group,m:Materials,occupied:readonly S
       }
       break;
     }
-    solid([x,arcade+.26,z],[w+.65,.52,d+.64],m.steel,.12);
+    if(accessible)upper.gallery(x,z,w,d,shopSide(index),opening,index,rooms.cases);
+    else solid([x,arcade+.26,z],[w+.65,.52,d+.64],m.steel,.12);
     const aw=type===1?w-.84:w, ad=type===2?d-1:d;
-    solid([x,arcade+height/2+.28,z],[aw,height-.45,ad],panel,.22);
-    for(let floor=0;floor<levels;floor++) {
+    if(accessible){
+      const ceiling=galleryHeight+2.84;
+      solid([x,(ceiling+roof)/2,z],[aw,roof-ceiling,ad],panel,.11);
+      solid([x,ceiling+.04,z],[w+.34,.18,d+.65],accent,.05);
+    }else solid([x,arcade+height/2+.28,z],[aw,height-.45,ad],panel,.22);
+    for(let floor=accessible?1:0;floor<levels;floor++) {
       const y=arcade+1.85+floor*2.95;
       for(const side of [-1,1]) {
         const fz=z+side*(ad/2+.035),fx=x+side*(aw/2+.035);
