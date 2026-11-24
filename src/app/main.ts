@@ -29,14 +29,27 @@ import { presentationMaterialsReady } from '../presentation/finishes.ts';
 import '../ui/game.css';
 
 const view = createGameView();
-try {
-  startGame();
-} catch (error) {
+const launch = document.querySelector<HTMLElement>('#launch-screen')!;
+const track = launch.querySelector<HTMLElement>('[role=progressbar]')!;
+const game = document.querySelector<HTMLElement>('#game')!;
+function progress(value:number) {
+  track.style.setProperty('--ready',String(value/100));
+  track.setAttribute('aria-valuenow',String(value));
+}
+const yieldForPaint = () => new Promise<void>(resolve => setTimeout(resolve,32));
+function revealMenu() {
+  launch.remove();
+  game.inert = false;
+}
+void startGame().catch(error => {
+  revealMenu();
   view.setError('启动失败。请确认浏览器支持 WebGL 2 后刷新。');
   console.error(error);
-}
+});
 
-function startGame() {
+async function startGame() {
+  progress(12);
+  await yieldForPaint();
   const canvas = document.querySelector<HTMLCanvasElement>('#world')!;
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
@@ -162,7 +175,10 @@ function startGame() {
     },
   });
   renderOperatorPortrait(renderer);
+  progress(36);
+  await yieldForPaint();
   let run = prepareRun();
+  progress(80);
 
   function prepareRun() {
     medicineWheel.reset();creativeView.reset();receipt.hidden=true;
@@ -339,10 +355,19 @@ function startGame() {
     }
   }
   refreshMarket();
-  void presentationMaterialsReady().then(() => {
+  void presentationMaterialsReady().then(async () => {
+    draw();
+    progress(100);
+    if (!matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      await new Promise(resolve => setTimeout(resolve,240));
+      launch.classList.add('leaving');
+      await Promise.all(launch.getAnimations({subtree:true}).map(a => a.finished.catch(() => {})));
+    }
+    revealMenu();
     view.primary.disabled = false;
     dirty = true;
   }).catch(error => {
+    revealMenu();
     view.setError('角色材质加载失败，请刷新后重试。');
     console.error(error);
   });

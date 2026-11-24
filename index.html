@@ -7,7 +7,14 @@
     <link rel="icon" href="data:," />
   </head>
   <body>
-    <main id="game" aria-label="盐港隔离区">
+    <section id="launch-screen" aria-label="正在加载盐港隔离区">
+      <div class="launch-panel">
+        <div class="launch-beacon" aria-hidden="true"><i></i></div>
+        <h1>盐港隔离区</h1>
+        <div class="launch-track" role="progressbar" aria-label="启动进度" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><i></i></div>
+      </div>
+    </section>
+    <main inert id="game" aria-label="盐港隔离区">
       <output id="frame-meter" hidden aria-label="帧率"></output>
       <canvas id="world" aria-label="第一人称游戏画面"></canvas>
       <div id="hud" hidden>
