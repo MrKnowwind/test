@@ -106,6 +106,7 @@ export function makePistol(parent: THREE.Object3D) {
   part(body, new THREE.CircleGeometry(0.0078, 18), bore, [0, 0, -0.186]).rotation.y = Math.PI;
   part(body, new THREE.RingGeometry(0.0078, 0.0112, 18), wornSteel, [0, 0, -0.187]).rotation.y = Math.PI;
   const muzzle = pivot(body, [0, 0, -0.188], 'muzzle');
+  const ejection = pivot(slide,[.023,.013,-.044],'ejection-port');
 
   // The shell is split around the ejection port so the barrel is visible through it.
   slideSection(slide, .119, -.124);
@@ -167,7 +168,7 @@ export function makePistol(parent: THREE.Object3D) {
   const left = makeGlove(body, [-0.036, -0.116, 0.011], true, false, 'pistol-support-hand');
   left.root.rotation.z = -0.10;
   for (const group of [body, slide, grip, magazine, topRound, flash]) batchRigid(group);
-  return { body, slide, muzzle, grip, magazine, topRound, flash, right, left };
+  return { body, slide, muzzle, ejection, grip, magazine, topRound, flash, right, left };
 }
 
 export function makeKnife(parent: THREE.Object3D) {

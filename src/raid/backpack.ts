@@ -1,4 +1,4 @@
-import { itemSpecs, pockets, packs, isPack, type ItemId } from './catalog.ts';
+import { itemSpecs, pockets, packs, isPack, type ItemId, type Section } from './catalog.ts';
 export { itemSpecs } from './catalog.ts';
 export type Placement = { x: number; y: number; rotated: boolean; section?: string };
 export interface BagEntry extends Placement {
@@ -16,8 +16,12 @@ export function dimensions(entry: Pick<BagEntry, 'item' | 'rotated'>) {
   const { w, h } = itemSpecs[entry.item];
   return entry.rotated ? [h, w] : [w, h];
 }
-export function createBackpack(width = 6, height = 5, personal = false) {
-  let sections = personal ? [...pockets] : [{ id: 'grid', name: '容器', w: width, h: height }];
+export function portion(e: Cargo, quantity=e.quantity): Cargo | undefined {
+  if(!Number.isSafeInteger(quantity) || quantity<1 || quantity>e.quantity)return;
+  return {...e,quantity,issued:Math.min(e.issued??0,quantity)};
+}
+export function createBackpack(width = 6, height = 5, personal = false, layout?:Section[]) {
+  let sections = layout ?? (personal ? [...pockets] : [{ id: 'grid', name: '容器', w: width, h: height }]);
   const entries: BagEntry[] = [];
   let nextId = 1;
   let equipped: Cargo | undefined;
@@ -43,13 +47,13 @@ export function createBackpack(width = 6, height = 5, personal = false) {
       return e.x >= other.x + ow || e.x + w <= other.x || e.y >= other.y + oh || e.y + h <= other.y;
     });
   }
-  function firstRoom(c: Cargo, others = entries) {
-    for (const s of ordered())
+  function firstRoom(c: Cargo, others = entries, areas=ordered()) {
+    for (const s of areas)
       for (const rotated of [false, true]) {
         const [w, h] = dimensions({ ...c, rotated });
         for (let y = 0; y <= s.h - h; y++)
           for (let x = 0; x <= s.w - w; x++) {
-            const p = { id: -1, ...c, x, y, rotated, section: s.id };
+            const p = { ...c, id: -1, x, y, rotated, section: s.id };
             if (fits(p, others)) return p;
           }
       }
@@ -130,6 +134,34 @@ export function createBackpack(width = 6, height = 5, personal = false) {
     slots,
     entries,
     dimensions,
+    takePart(id:number,n?:number){
+      const e=entries.find(i=>i.id===id);
+      const part=e && portion(e,n);
+      if(!e||!part)return;
+      if(part.quantity===e.quantity)remove(e.id);
+      else {e.quantity-=part.quantity;e.issued=(e.issued??0)-(part.issued??0);}
+      return part;
+    },
+    split(id:number,n:number){
+      const e=entries.find(i=>i.id===id),part=e && portion(e,n);
+      if(!e || !part || n===e.quantity)return false;
+      const spot=firstRoom(part);
+      if(!spot)return false;
+      e.quantity-=n;e.issued=(e.issued??0)-(part.issued??0);
+      entries.push({...spot,id:nextId++});return true;
+    },
+    quickMove(id:number){
+      const e=entries.find(i=>i.id===id);
+      if(!e)return false;
+      const isPocket=(section:string|undefined)=>pockets.some(s=>s.id===section);
+      const areas=ordered().filter(s=>s.id!==e.section && (!equipped || isPocket(s.id)!==isPocket(e.section)));
+      const merge=entries.find(t=>t.item===e.item && areas.some(s=>s.id===t.section) &&
+        t.quantity+e.quantity<=itemSpecs[e.item].stack);
+      if(merge){merge.quantity+=e.quantity;merge.issued=(merge.issued??0)+(e.issued??0);remove(id);return true;}
+      const spot=firstRoom(e,entries,areas);
+      if(!spot)return false;
+      Object.assign(e,{x:spot.x,y:spot.y,rotated:spot.rotated,section:spot.section});return true;
+    },
     receive,
     remove,
     inventory,

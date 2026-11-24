@@ -125,8 +125,11 @@ export function makeSecurityBot(group: THREE.Group) {
 
   let time = 0;
   let walk = 0;
-  let death = 0;
+  let death = 0, previousHealth:number|undefined, flinch=0;
   return (dt: number, enemy: EnemyState) => {
+    if(previousHealth!==undefined && enemy.health<previousHealth)flinch=1;
+    previousHealth=enemy.health;
+    flinch=Math.max(0,flinch-dt*5);
     time += dt;
     walk = THREE.MathUtils.damp(walk, Number(enemy.action === 'moving'), 12, dt);
     death = enemy.action === 'dead' ? Math.min(1, death + dt / 0.43) : 0;
@@ -139,11 +142,11 @@ export function makeSecurityBot(group: THREE.Group) {
     const opened = Math.max(windup, Number(firing), recovering);
     const height = 0.82 - opened * 0.071 - collapsed * 0.48 + Math.sin(time * 15) * walk * 0.021;
     deck.position.y = height;
-    deck.rotation.set(recoil * 0.08, 0, collapsed * 0.18);
+    deck.rotation.set(recoil*.12-flinch*.09,0,collapsed*.18+flinch*.12*(1-collapsed));
     turret.rotation.set(-opened * 0.035 - collapsed * 0.49, Math.sin(time * 1.24) * 0.27 * (1 - opened) + collapsed * 0.36, collapsed * -0.20);
     gun.position.z = -0.18 - opened * 0.059 + recoil * 0.068;
     for (const [index, shield] of shields.entries()) {
-      shield.rotation.z = (index === 0 ? -1 : 1) * (opened * 1.02 + collapsed * 0.28);
+      shield.rotation.z = (index === 0 ? -1 : 1) * (opened * 1.02 + collapsed * 0.28 + flinch*.22);
       shield.rotation.y = (index === 0 ? -1 : 1) * (opened * 0.36);
     }
     lens.color.setHex(collapsed > 0.35 ? 0x29312c : opened > 0.08 ? 0xf58e41 : 0x89d9d2);

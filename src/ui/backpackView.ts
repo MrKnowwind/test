@@ -12,9 +12,10 @@ import type { MapInteraction } from '../contracts/demo.ts';
 type Bag = ReturnType<typeof createBackpack>;
 type Action = {
   close(): void;
-  take(id: string, entry: number, p?: Placement): boolean;
+  take(id: string, entry: number, p?: Placement, quantity?:number): boolean;
+  put(id:string,entry:number):boolean;
   use(id: number): boolean;
-  discard(id: number): boolean;
+  discard(s:Selection,container?:string): boolean;
   equip(from: string, id?: number): boolean;
   fold(from: string): boolean;
   unpack(): boolean;
@@ -30,8 +31,8 @@ export function createBackpackView(actions: Action) {
   <div class="bag-columns"><div class="equipment"><h3>装备</h3><canvas class="operator-portrait"></canvas><div id="loadout"></div></div>
   <div><h3>随身空间 <span id="bag-size"></span></h3><div id="carry-grids"></div></div>
   <div class="bag-container"><h3 id="container-title">物品详情</h3><div id="container-content"></div><div id="selected-item"></div><div class="bag-actions"></div></div></div>
-  <p id="bag-danger" role="status"></p><p class="bag-help">单击选择、再点格子放置，或拖放 · R 旋转 · 双击已揭示物品快取</p><p id="bag-feedback" role="status"></p>
-  <dialog class="swap-preview"><h3>确认换包</h3><div class="swap-comparison"></div><button value="cancel">返回</button> <button value="confirm">确认装备</button></dialog></div>`;
+  <p id="bag-danger" role="status"></p><p class="bag-help">单击选择、再点格子放置，或拖放 · R 旋转 · Shift + 左键 快移 · 点击堆叠物拆分 · 拖至右侧或 Delete 丢弃</p><p id="bag-feedback" role="status"></p>
+  <dialog class="swap-preview"><h3>确认换包</h3><div class="swap-comparison"></div><button value="cancel">返回</button> <button value="confirm">确认装备</button></dialog></div><aside id="drop-zone" aria-label="丢到地面"><strong>↓</strong><span>丢到地面</span></aside>`;
   document.body.append(panel);
   const q = (s: string) => panel.querySelector<HTMLElement>(s)!;
   const dialog = panel.querySelector('dialog')!;
@@ -40,7 +41,7 @@ export function createBackpackView(actions: Action) {
     source: SearchContainer | undefined,
     selected: Selection | undefined;
   let count = -1,
-    dragging = false,
+    dragging = false, draggingPack=false,
     confirmSwap: (() => void) | undefined;
   const msg = (s: string) => {
     q('#bag-feedback').textContent = s;
@@ -128,6 +129,39 @@ export function createBackpackView(actions: Action) {
     dialog.close();
     confirmSwap?.();
   });
+  function complete(ok:boolean,success:string,failure:string){
+    if(ok){clearSelection();refresh();}
+    msg(ok?success:failure);
+  }
+  function discard(){
+    if(selected)complete(actions.discard(selected,target?.id),'已放到脚边，可拾回','无法丢弃，请检查距离和附近地面空间');
+  }
+  function quickMove(s:Selection){
+    if(s.from==='source'){transfer();return;}
+    if(s.from==='slot'){
+      complete(actions.stow(s.entry.item as 'pistol'|'knife'),'已收入随身空间','随身空间不足');return;
+    }
+    if(target && source)complete(actions.put(target.id,s.id),'已存入 '+target.label,'容器空间不足或已超出互动距离');
+    else complete(bag.quickMove(s.id),'已移至另一分隔','另一分隔没有合适的空间');
+  }
+  function stackControls(bar:HTMLElement,s:Selection){
+    if(s.entry.quantity<2 || itemSpecs[s.entry.item].stack===1 || s.from==='slot')return;
+    const controls=document.createElement('div');
+    controls.className='split-controls';
+    const label=document.createElement('label'),slider=document.createElement('input'),out=document.createElement('output');
+    slider.type='range';slider.min='1';slider.max=String(s.entry.quantity-1);
+    slider.value=String(Math.max(1,Math.floor(s.entry.quantity/2)));slider.setAttribute('aria-label','拆出数量');
+    const sync=()=>{out.textContent=slider.value+' / '+s.entry.quantity;};
+    slider.oninput=sync;sync();label.append('拆出 ',out);controls.append(label);
+    button(controls,'−',()=>{slider.stepDown();sync();});controls.append(slider);
+    button(controls,'+',()=>{slider.stepUp();sync();});
+    button(controls,s.from==='source'?'取出此数量':'拆为两组',()=>{
+      const n=Number(slider.value);
+      const ok=s.from==='source' && target?actions.take(target.id,s.id,undefined,n):bag.split(s.id,n);
+      complete(ok,'已拆出 '+n+' 件','需要空格或物品数量已变化');
+    });
+    bar.append(controls);
+  }
   function select(s: Selection) {
     selected = s;
     const spec = itemSpecs[s.entry.item];
@@ -144,6 +178,7 @@ export function createBackpackView(actions: Action) {
       (s.entry.loaded !== undefined ? ' · 弹匣 ' + s.entry.loaded : '');
     const bar = q('.bag-actions');
     bar.replaceChildren();
+    stackControls(bar,s);
     if (s.from === 'slot') {
       action('收进格子', () => actions.stow(s.entry.item as 'pistol' | 'knife'));
       return;
@@ -158,7 +193,7 @@ export function createBackpackView(actions: Action) {
     }
     if (spec.tag === 'weapon') action('放回武器栏', () => actions.holster(s.id));
     if (['medkit','healing-injector'].includes(s.entry.item)) action('使用', () => actions.use(s.id));
-    button(bar,'放到地上',()=>{if(actions.discard(s.id)){clearSelection();refresh();msg('已放到地上');}else msg('附近地面物品太多，请换个位置');});
+    button(bar,'放到地上',discard);
   }
   function transfer(p?: Placement) {
     const s = selected;
@@ -205,7 +240,8 @@ export function createBackpackView(actions: Action) {
         b.append(n);
       }
       const choose = () => select({ from, id: e.id, entry: e, rotated: e.rotated });
-      b.onclick = () => {
+      b.onclick = (ev) => {
+        if(ev.shiftKey){choose();quickMove(selected!);return;}
         if (from === 'bag' && selected?.from === 'source')
           transfer({ section: e.section, x: e.x, y: e.y, rotated: selected.rotated });
         else choose();
@@ -373,7 +409,10 @@ export function createBackpackView(actions: Action) {
         if (e) select({ from: 'slot', entry: e, id: -1, rotated: false });
       };
       const b = button(kit, (key === 'pistol' ? '3 · ' : '4 · ') + (e ? itemSpecs[key].name : '空'), choose);
-      if (e) b.prepend(itemIcon(key));
+      if(e){
+        b.prepend(itemIcon(key));
+        b.onclick=ev=>{choose();if(ev.shiftKey)quickMove(selected!);};
+      }
       b.draggable = !!e;
       b.ondragstart = (ev) => {
         if(selected?.from!=='slot'||selected.entry.item!==key)choose();
@@ -389,21 +428,48 @@ export function createBackpackView(actions: Action) {
         }
       };
     }
-    button(kit, bag.equipped ? itemSpecs[bag.equipped.item].name + ' · 卸下' : '背包栏 · 空', () => {
+    const packButton=button(kit, bag.equipped ? itemSpecs[bag.equipped.item].name + ' · 卸下' : '背包栏 · 空', () => {
       if (bag.equipped && actions.unpack()) {
         clearSelection();
         refresh();
         msg('背包和内容已一起放到地面');
       }
     });
+    packButton.draggable=!!bag.equipped;
+    packButton.ondragstart=ev=>{
+      if(!bag.equipped)return;
+      clearSelection();dragging=draggingPack=true;
+      ev.dataTransfer?.setData('text/plain','worn-backpack');
+    };
     renderSource();
   }
+  q('#container-content').ondragover=ev=>{if(dragging && selected?.from==='bag' && source)ev.preventDefault();};
+  q('#container-content').ondrop=ev=>{
+    if(!dragging || selected?.from!=='bag' || !source)return;
+    ev.preventDefault();quickMove(selected);dragging=false;panel.classList.remove('has-drag');
+  };
+  const dropZone=q('#drop-zone');
+  dropZone.ondragover=ev=>{
+    if(!dragging || (!selected && !draggingPack))return;
+    ev.preventDefault();dropZone.classList.add('over');
+    if(ev.dataTransfer)ev.dataTransfer.dropEffect='move';
+  };
+  dropZone.ondragleave=()=>dropZone.classList.remove('over');
+  dropZone.ondrop=ev=>{
+    ev.preventDefault();dropZone.classList.remove('over');
+    if(draggingPack)complete(actions.unpack(),'已将背包和内容放到脚边','附近地面空间不足');
+    else if(dragging && selected)discard();
+    draggingPack=dragging=false;panel.classList.remove('has-drag');
+  };
+  panel.addEventListener('dragstart',()=>{if(dragging)panel.classList.add('has-drag');});
   panel.ondragend = () => {
-    dragging = false;
+    panel.classList.remove('has-drag');dropZone.classList.remove('over');
+    draggingPack=dragging=false;
   };
   q('#bag-close').onclick = actions.close;
   window.addEventListener('keydown', (ev) => {
     if (panel.hidden || dialog.open) return;
+    if(ev.code==='Delete' && selected && !ev.repeat){ev.preventDefault();discard();return;}
     if (ev.code === 'KeyR' && selected) {
       selected.rotated = !selected.rotated;
       msg('已旋转，点击目标格放置');
@@ -432,6 +498,7 @@ export function createBackpackView(actions: Action) {
     risk(message:string){q('#bag-danger').textContent=message;},
     hide() {
       if (dialog.open) dialog.close();
+      draggingPack=dragging=false;panel.classList.remove('has-drag');dropZone.classList.remove('over');clearSelection();
       panel.hidden = true;
     },
     updateSearch(paused = false) {

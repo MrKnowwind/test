@@ -261,9 +261,11 @@ export function makeInfected(group: THREE.Group) {
     chest.position.z = THREE.MathUtils.damp(chest.position.z, -attack * .12, 12, dt);
     pose(head,0.18 + windup * 0.22 + attack * 0.29 - damage * 0.28,
       -0.10 - windup * 0.28 - stride * 0.09, 0.17 + Math.sin(time * 1.9) * 0.045, dt);
-    jaw.rotation.x = 0.14 + windup * 0.44 + attack * 0.38;
-    pose(arms[0].shoulder,0.17 + stride * 0.35 + windup * 0.49 + attack * 1.20, 0, -0.14 - windup * 0.43, dt);
-    pose(arms[1].shoulder,0.33 - stride * 0.35 + windup * 1.24 + attack * 1.12, windup * -0.30, 0.19 + windup * 0.72, dt);
+    const guard=damage*(1-dead);
+    head.rotation.z-=guard*.13;
+    jaw.rotation.x = guard*.24 + 0.14 + windup * 0.44 + attack * 0.38;
+    pose(arms[0].shoulder,0.17 + guard*.43 + stride * 0.35 + windup * 0.49 + attack * 1.20, 0, -0.14 - windup * 0.43, dt);
+    pose(arms[1].shoulder,0.33 - guard*.25 - stride * 0.35 + windup * 1.24 + attack * 1.12, windup * -0.30, 0.19 + windup * 0.72, dt);
     pose(arms[0].elbow,0.32 + windup * 0.29 - dead * 0.23,0,0,dt);
     pose(arms[1].elbow,0.22 + windup * 1.09 - attack * 0.17 - dead * 0.14,0,0,dt);
     pose(arms[1].hand,0.07 + windup * 0.32 - attack * 0.24,0,0,dt);

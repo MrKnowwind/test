@@ -56,7 +56,11 @@ export function createAudio() {
     },
     reload() { burst(.14, .055, 3900); },
     slash() { burst(.19, .075, 1500); },
-    hit() { burst(.07, .045, 950); },
+    hit(mechanical=false) {
+      if(mechanical){burst(.048,.065,5100,930);burst(.10,.025,2900,520,.12,.028);}
+      else {burst(.080,.078,920,115);burst(.036,.036,2500,undefined,0,.018);}
+    },
+    cover(distance:number){burst(.065,.045/(1+distance*.12),3700,420,0,Math.min(.11,distance/410));},
     footstep(surface: 'metal' | 'concrete' | 'gravel') {
       burst(surface==='metal'?.13:.08,.018,surface==='metal'?2100:surface==='concrete'?1300:700,surface==='metal'?220:undefined);
     },

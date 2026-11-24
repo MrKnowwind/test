@@ -136,3 +136,46 @@ test('weapon instances, magazine and issued ammo survive packing, dropping and r
   assert.equal(raid.backpack.takeAmmo(16), 16);
   assert.deepEqual(raid.backpack.inventory(true), { 'pistol-ammo': 7 });
 });
+
+test('split stacks, transfer in both directions and drop while preserving quantities and issued ammunition',()=>{
+  const raid=createRaid('split-proof',42,{spawnPoints:[{id:'test',position:at,yaw:0}],
+    interactions:[{id:'test-case',kind:'loot',label:'箱',item:'pistol-ammo',quantity:8,position:at}],exits:[]});
+  const bag=raid.backpack,box=raid.containers.get('test-case');
+  box.entries.length=0;
+  assert.ok(bag.receive({item:'pistol-ammo',quantity:4}));
+  const first=bag.entries[0];
+  assert.ok(!bag.split(first.id,19));
+  assert.ok(bag.split(first.id,8));
+  const separate=bag.entries.find(e=>e.id!==first.id);
+  assert.equal(bag.ammoCount(),19);
+  assert.ok(bag.quickMove(separate.id));
+  assert.ok(raid.putContainerItem(box.id,separate.id));
+  const stored=box.entries[0];
+  assert.deepEqual([stored.quantity,stored.issued,stored.revealed],[8,8,true]);
+  assert.ok(raid.takeContainerItem(box.id,stored.id,undefined,3));
+  assert.equal(box.entries[0].quantity,5);
+  assert.ok(raid.takeContainerItem(box.id,stored.id));
+  assert.ok(raid.consumed.has(box.id));
+  assert.ok(raid.putContainerItem(box.id,first.id));
+  assert.ok(!raid.consumed.has(box.id));
+  const floor=raid.discardSource(box.id,box.entries[0].id,at);
+  assert.ok(raid.collect(floor.id));assert.ok(!raid.collect(floor.id));
+  assert.equal(bag.ammoCount(),19);
+  assert.deepEqual(bag.inventory(true),{'pistol-ammo':4});
+  const pistol=raid.dropSlot('pistol',at);assert.equal(raid.ground.get(pistol.id).loaded,8);
+  assert.ok(!raid.dropSlot('pistol',at));
+});
+
+test('a full destination and a hidden stack cannot absorb or duplicate a quick transfer',()=>{
+  const raid=createRaid('packed',0,{spawnPoints:[{id:'test',position:at,yaw:0}],
+    interactions:[{id:'small',kind:'loot',label:'箱',item:'manual',quantity:1,position:at}],exits:[]});
+  const box=raid.containers.get('small');
+  Object.assign(box,{width:1,height:1,entries:[{id:1,item:'pistol-ammo',quantity:59,x:0,y:0,section:'grid',rotated:false,revealed:false,progress:0,duration:1}]});
+  const bag=raid.backpack,id=bag.entries[0].id;
+  assert.ok(!raid.putContainerItem(box.id,id));
+  box.entries[0].revealed=true;
+  assert.ok(!raid.putContainerItem(box.id,id));
+  assert.equal(box.entries[0].quantity,59);assert.equal(bag.ammoCount(),15);
+  for(const s of bag.sections)for(let y=0;y<s.h;y++)for(let x=0;x<s.w;x++)bag.place('seals',1,x,y,false,s.id);
+  assert.ok(!bag.split(id,4));assert.equal(bag.ammoCount(),15);
+});

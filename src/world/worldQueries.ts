@@ -89,13 +89,23 @@ function rayHit(solid: Solid, origin: Vec3, direction: Vec3, limit: number) {
 }
 
 export function createWorldQueries(solids: readonly Solid[]): WorldQueries {
-  const walkSurfaces=solids.filter(s=>s.walkSurface);
-  const obstacles = solids.filter(solid => !solid.floor);
+  // Door bounds change only in Y. References in the horizontal index stay valid as shutters slide.
+  const cellSize=12, margin=2, cells=new Map<string,Solid[]>(), empty:Solid[]=[];
+  const cell=(n:number)=>Math.floor(n/cellSize);
+  for(const solid of solids){
+    for(let x=cell(solid.min[0]-margin);x<=cell(solid.max[0]+margin);x++){
+      for(let z=cell(solid.min[2]-margin);z<=cell(solid.max[2]+margin);z++){
+        const key=x+','+z, list=cells.get(key);
+        if(list)list.push(solid);else cells.set(key,[solid]);
+      }
+    }
+  }
+  const nearby=(x:number,z:number,r:number)=>r<=margin ? cells.get(cell(x)+','+cell(z))??empty : solids;
   function groundHeight(from: Vec3, radius: number) {
     const [x, y, z] = from;
     let ground = floorAt(x, y, z);
     if (ground !== null && ground > y + .13) ground = null;
-    for (const solid of solids) {
+    for (const solid of nearby(x,z,radius)) {
       if (x < solid.min[0] - radius * .35 || x > solid.max[0] + radius * .35 ||
           z < solid.min[2] - radius * .35 || z > solid.max[2] + radius * .35) continue;
       const top = supportHeight(solid,x,z);
@@ -106,7 +116,7 @@ export function createWorldQueries(solids: readonly Solid[]): WorldQueries {
   function blocked(at: Vec3, radius: number, height: number) {
     if (!inside(mapBounds, at[0] - radius, at[2] - radius) ||
         !inside(mapBounds, at[0] + radius, at[2] + radius)) return true;
-    return solids.some(solid => {
+    return nearby(at[0],at[2],radius).some(solid => {
       if (!solid.slope) return blocksBody(solid, ...at, radius, height);
       const local: Vec3 = [at[0], at[1] - supportHeight(solid, at[0], at[2]), at[2]];
       return blocksBody(solid, ...local, radius, height);
@@ -139,8 +149,8 @@ export function createWorldQueries(solids: readonly Solid[]): WorldQueries {
       let nearest = 1.15;
       let ledge: Solid | undefined;
       const origin: Vec3 = [from[0], from[1] + .5, from[2]];
-      for (const solid of obstacles) {
-        if (solid.slope || solid.max[1] - from[1] < .35 || solid.max[1] - from[1] > 1.85) continue;
+      for (const solid of nearby(from[0],from[2],nearest)) {
+        if (solid.floor || solid.slope || solid.max[1] - from[1] < .35 || solid.max[1] - from[1] > 1.85) continue;
         const hit = rayHit(solid, origin, forward, nearest);
         if (hit !== null) { nearest = hit; ledge = solid; }
       }
@@ -160,13 +170,14 @@ export function createWorldQueries(solids: readonly Solid[]): WorldQueries {
       let [x, y, z] = from;
       function tryStep(toX: number, toZ: number) {
         let toY = floorAt(toX, y, toZ);
-        for(const s of walkSurfaces){
-          if(toX<s.min[0] || toX>s.max[0] || toZ<s.min[2] || toZ>s.max[2])continue;
+        const local=nearby(toX,toZ,radius);
+        for(const s of local){
+          if(!s.walkSurface || toX<s.min[0] || toX>s.max[0] || toZ<s.min[2] || toZ>s.max[2])continue;
           const top=supportHeight(s,toX,toZ);
           if(Math.abs(top-y)<=.12 && (toY===null || top>toY))toY=top;
         }
         if (toY === null || Math.abs(toY - y) > .12) return false;
-        if (obstacles.some(solid => blocksBody(solid, toX, toY, toZ, radius, height))) return false;
+        if (local.some(solid => !solid.floor && blocksBody(solid, toX, toY, toZ, radius, height))) return false;
         x = toX; y = toY; z = toZ;
         return true;
       }
@@ -177,9 +188,40 @@ export function createWorldQueries(solids: readonly Solid[]): WorldQueries {
       }
       return [x, y, z];
     },
+    impactNormal(point,direction){
+      let best=0,normal:Vec3=[-direction[0],-direction[1],-direction[2]];
+      for(const s of nearby(point[0],point[2],.01)){
+        const local=[point[0],point[1]-(s.slope?slopeHeight(s.slope,point[0],point[2]):0),point[2]];
+        if(local.some((v,i)=>v<s.min[i]-.004 || v>s.max[i]+.004))continue;
+        for(let i=0;i<3;i++)for(const sign of [-1,1]){
+          if(Math.abs(local[i]-(sign<0?s.min[i]:s.max[i]))>.004)continue;
+          const face:[number,number,number]=[0,0,0];face[i]=sign;
+          if(i===1 && s.slope)face[s.slope.axis]=-sign*s.slope.gradient;
+          const length=Math.hypot(...face), facing=-(face[0]*direction[0]+face[1]*direction[1]+face[2]*direction[2])/length;
+          if(facing>best){best=facing;normal=[face[0]/length,face[1]/length,face[2]/length];}
+        }
+      }
+      return normal;
+    },
     blockedDistance(origin, direction, maxDistance) {
       let nearest: number | null = null;
-      for (const solid of solids) nearest = rayHit(solid, origin, direction, nearest ?? maxDistance) ?? nearest;
+      const dx=direction[0],dz=direction[2];
+      if(!Number.isFinite(maxDistance) || maxDistance*Math.max(Math.abs(dx),Math.abs(dz))>1000){
+        for(const solid of solids)nearest=rayHit(solid,origin,direction,nearest??maxDistance)??nearest;
+        return nearest;
+      }
+      let x=cell(origin[0]),z=cell(origin[2]);
+      const sx=Math.sign(dx),sz=Math.sign(dz);
+      const stepX=dx?cellSize/Math.abs(dx):Infinity,stepZ=dz?cellSize/Math.abs(dz):Infinity;
+      let edgeX=dx?((x+(dx>0?1:0))*cellSize-origin[0])/dx:Infinity;
+      let edgeZ=dz?((z+(dz>0?1:0))*cellSize-origin[2])/dz:Infinity;
+      for(;;){
+        for(const solid of cells.get(x+','+z)??empty)nearest=rayHit(solid,origin,direction,nearest??maxDistance)??nearest;
+        const next=Math.min(edgeX,edgeZ);
+        if(next>=(nearest??maxDistance))break;
+        if(edgeX===next){x+=sx;edgeX+=stepX;}
+        if(edgeZ===next){z+=sz;edgeZ+=stepZ;}
+      }
       return nearest;
     },
   };

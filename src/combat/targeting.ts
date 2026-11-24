@@ -43,19 +43,23 @@ export function strike(
   const sightHit=world.blockedDistance(origin,direction,distance);
   const point=(a:Vec3,v:Vec3,d:number):Vec3=>[a[0]+v[0]*d,a[1]+v[1]*d,a[2]+v[2]*d];
   const end=point(origin,direction,sightHit??distance);
+  function cover(from:Vec3,to:Vec3,dir:Vec3):ShotTrace {
+    const normal=world.impactNormal?.(to,dir);
+    return normal?{from,to,surface:'cover',normal}:{from,to,surface:'cover'};
+  }
   function obstruction(from:Vec3,to:Vec3):ShotTrace|undefined{
     const dx=to[0]-from[0],dy=to[1]-from[1],dz=to[2]-from[2],length=Math.hypot(dx,dy,dz);
     if(length<.00001)return;
     const dir:Vec3=[dx/length,dy/length,dz/length];
     const hit=world.blockedDistance(from,dir,length);
-    if(hit!==null)return {from,to:point(from,dir,hit),surface:'cover'};
+    if(hit!==null)return cover(from,point(from,dir,hit),dir);
   }
   if(muzzle){
     const obstructionHit=obstruction(origin,muzzle)??obstruction(muzzle,end);
     if(obstructionHit)return obstructionHit;
   }
   const from=muzzle??origin;
-  if(sightHit!==null)return {from,to:end,surface:'cover'};
+  if(sightHit!==null)return cover(from,end,direction);
   if(!target)return {from,to:end,surface:'air'};
   target.health=Math.max(0,target.health-damage);
   if(target.health===0){

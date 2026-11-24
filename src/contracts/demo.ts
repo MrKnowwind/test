@@ -42,6 +42,7 @@ export interface WorldQueries {
   groundHeight?(from: Vec3, radius: number): number | null;
   climbTarget?(from: Vec3, forward: Vec3, radius: number, height: number): Vec3 | null;
   /** Returns the first solid hit distance for a normalized direction, or null on a miss. */
+  impactNormal?(point:Vec3,direction:Vec3):Vec3;
   blockedDistance(origin: Vec3, direction: Vec3, maxDistance: number): number | null;
 }
 
@@ -83,7 +84,7 @@ export interface CombatInput {
   switchTo?: WeaponId;
 }
 
-export type ShotTrace = { from:Vec3; to:Vec3; surface:'air'|'cover'|EnemyKind };
+export type ShotTrace = { from:Vec3; to:Vec3; surface:'air'|'cover'|EnemyKind; normal?:Vec3 };
 export interface CombatFrame {
   shot?:ShotTrace;
   creative?:boolean;

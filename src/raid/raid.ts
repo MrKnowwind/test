@@ -9,7 +9,7 @@ import type {
 } from '../contracts/demo.ts';
 import { createContainerSearch, type Placement } from './containerSearch.ts';
 import { isPack, itemSpecs, packs } from './catalog.ts';
-import { type Cargo, createBackpack } from './backpack.ts';
+import { type Cargo, createBackpack, portion } from './backpack.ts';
 
 export type Inventory = Partial<Record<ItemId, number>>;
 export type RaidLog = {
@@ -121,18 +121,42 @@ export function createRaid(runId: string, seed: number, map: RaidMap) {
     return target;
   }
 
-  function takeContainerItem(containerId: string, entryId: number, placement?: Placement) {
+  function takeContainerItem(containerId: string, entryId: number, placement?: Placement, quantity?:number) {
     if (result) return false;
     const container = search.containers.get(containerId);
     const entry = container?.entries.find((entry) => entry.id === entryId);
     if (!container || !entry?.revealed) return false;
-    if (!backpack.receive(entry, placement)) return false;
+    const part=portion(entry,quantity);
+    if (!part || !backpack.receive(part, placement)) return false;
     log.first ??= itemSpecs[entry.item].name;
-    container.entries.splice(container.entries.indexOf(entry), 1);
+    if(part.quantity===entry.quantity)container.entries.splice(container.entries.indexOf(entry),1);
+    else {entry.quantity-=part.quantity;entry.issued=(entry.issued??0)-(part.issued??0);}
     const pack = ground.get(containerId);
-    if (pack) pack.contents = pack.contents?.filter((e) => e.id !== entryId);
+    if(pack)pack.contents=container.entries.map(e=>({...e}));
     if (!container.entries.length && !pack) consumed.add(containerId);
     return true;
+  }
+
+  function putContainerItem(containerId:string,id:number){
+    const box=search.containers.get(containerId), cargo=backpack.entries.find(e=>e.id===id);
+    if(result || !box || !cargo)return false;
+    const partials=box.entries.filter(e=>e.revealed && e.item===cargo.item && e.quantity<itemSpecs[e.item].stack);
+    let left=cargo.quantity,issued=cargo.issued??0;
+    const transfers=partials.map(target=>{
+      const n=Math.min(left,itemSpecs[cargo.item].stack-target.quantity),free=Math.min(n,issued);
+      left-=n;issued-=free;return {target,n,free};
+    });
+    if(left){
+      const grid=createBackpack(box.width,box.height,false,box.sections);
+      const spot=grid.room({...cargo,quantity:left},box.entries);
+      if(!spot)return false;
+      const entryId=1+Math.max(0,...box.entries.map(e=>e.id));
+      box.entries.push({...spot,quantity:left,issued,id:entryId,progress:1,duration:1,revealed:true});
+    }
+    for(const {target,n,free} of transfers){target.quantity+=n;target.issued=(target.issued??0)+free;}
+    backpack.remove(id);consumed.delete(containerId);
+    const pack=ground.get(containerId);if(pack)pack.contents=box.entries.map(e=>({...e}));
+    checkCard();return true;
   }
 
   const floorLimit=12;
@@ -221,12 +245,25 @@ export function createRaid(runId: string, seed: number, map: RaidMap) {
     removeGround(id);
     return true;
   }
-  function dropCarried(id: number, at: Vec3) {
+  function dropCarried(id: number, at: Vec3, quantity?:number) {
     if (result || !canDrop(at)) return;
-    const e = backpack.remove(id);
+    const e = backpack.takePart(id,quantity);
     if (!e) return;
     checkCard();
     return drop(e, at);
+  }
+  function dropSlot(slot:'pistol'|'knife',at:Vec3){
+    const cargo=backpack.slots[slot];
+    if(result || !cargo || !canDrop(at))return;
+    delete backpack.slots[slot];return drop(cargo,at);
+  }
+  function discardSource(id:string,entryId:number,at:Vec3){
+    const box=search.containers.get(id),e=box?.entries.find(e=>e.id===entryId && e.revealed);
+    if(result || !box || !e || !canDrop(at))return;
+    box.entries.splice(box.entries.indexOf(e),1);
+    const pack=ground.get(id);
+    if(pack)pack.contents=box.entries.map(e=>({...e}));else if(!box.entries.length)consumed.add(id);
+    return drop(e,at);
   }
   function unpack(at: Vec3) {
     if (result || !backpack.equipped || !canDrop(at)) return;
@@ -309,7 +346,7 @@ export function createRaid(runId: string, seed: number, map: RaidMap) {
     ground,
     groundContainer,
     equipPack,
-    dropCarried,
+    dropCarried, dropSlot, discardSource, putContainerItem,
     collect,
     unpack,
     holster,

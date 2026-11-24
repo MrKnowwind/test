@@ -25,7 +25,7 @@ export function createViewmodel() {
   const magazinePoint = new THREE.Vector3();
   let aimBlend = 0;
   let walkBlend = 0, stepPhase=0, pickupTime=0, flashAngle=0;
-  let firing=false;
+  let firing=false, pendingFlash=false, sprintBlend=0;
   let lowReady = 0;
   let time = 0;
   let lastWeapon = 'pistol';
@@ -76,6 +76,7 @@ export function createViewmodel() {
     if (aimBlend > 0.999) aimBlend = 1;
     if (aimBlend < 0.001) aimBlend = 0;
     walkBlend = THREE.MathUtils.damp(walkBlend, Number(moving), 10, dt);
+    sprintBlend=THREE.MathUtils.damp(sprintBlend,Number(!!motion.running && moving && !aiming && !shot && !reloading),10,dt);
     const cadence = motion.running ? 11 : 7;
     stepPhase+=dt*cadence*walkBlend;
     const bobX = Math.sin(stepPhase) * .007 * walkBlend;
@@ -93,10 +94,10 @@ export function createViewmodel() {
     const hip = 1 - aimBlend;
     if (firearm) {
       firearm.body.position.set(.145 * hip + bobX * hip - reload * .065,
-        -sightHeight - .065 * hip + bobY * hip + reload * .024 + recoil * .009,
-        -.467 - aimBlend * .037 - reload * .075 + recoil * .022);
-      firearm.body.rotation.set(.047 * hip + recoil * .094 + reload * .21,
-        .13 * hip - reload * .52, -.065 * hip - reload * .69);
+        -sightHeight - .065 * hip + bobY * hip + reload * .024 + recoil * .015 - sprintBlend*.032,
+        -.467 - aimBlend * .037 - reload * .075 + recoil * .039 + sprintBlend*.036);
+      firearm.body.rotation.set(.047 * hip + recoil * .137 - sprintBlend*.22 + reload * .21,
+        .13 * hip - reload * .52, -.065 * hip - reload * .69 - sprintBlend*.23 + recoil*.032);
       const lockBack=weapon.loaded===0 && !shot && (!reloading || p<.83);
       firearm.slide.position.z=shot?.035*(1-ease(p,.05,.32)):lockBack?.032:0;
       firearm.flash.visible = shot && p < .12;
@@ -108,7 +109,10 @@ export function createViewmodel() {
       firearm.magazine.rotation.z=turnOut*.20;
       firearm.topRound.visible=weapon.loaded>0 || reloading && p>.52;
       const seat=reloading?Math.sin(Math.PI*ease(p,.73,.85)):0;
-      firearm.body.position.y+=seat*.011;
+      firearm.body.position.y+=seat*.017;
+      firearm.body.rotation.z+=seat*.045;
+      const settle=reloading?Math.sin(Math.PI*ease(p,.84,.99)):0;
+      firearm.body.rotation.x-=settle*.046;
       const release=reloading && weapon.loaded===0?Math.sin(Math.PI*ease(p,.79,.93)):0;
       const reach = reloading ? ease(p, 0.08, 0.22) * (1 - ease(p, 0.84, 0.98)) : 0;
       magazinePoint.copy(firearm.magazine.position);
@@ -139,5 +143,7 @@ export function createViewmodel() {
 
   pistol.grip.updateMatrix();
   update(0, { id: 'knife', action: 'ready', actionProgress: 0, aiming: false, loaded: 0, reserve: 0 }, false);
-  return { group, pickup(){pickupTime=.23;}, get muzzle() { return lastWeapon === 'knife' ? knifeMuzzle : firearms[lastWeapon as keyof typeof firearms].muzzle; }, update };
+  return { group,ejection:pistol.ejection, markShot(){pendingFlash=true;}, present(){
+    if(pendingFlash && pistol.body.visible){pistol.flash.visible=true;pistol.flash.scale.setScalar(1);pendingFlash=false;}
+  }, pickup(){pickupTime=.23;}, get muzzle() { return lastWeapon === 'knife' ? knifeMuzzle : firearms[lastWeapon as keyof typeof firearms].muzzle; }, update };
 }

@@ -28,6 +28,8 @@ export function addSearchContainers(map: FirstMap & { scene: THREE.Group }) {
     root.position.set(...t.position);
     const support = map.blockedDistance(t.position, [0, -1, 0], 1.6);
     root.position.y -= support ?? 0.12;
+    root.userData.detailCenter=root.position;
+    root.userData.detailRadius=1;
     map.scene.add(root);
     if (t.kind === 'loose') {
       root.name = 'goods-' + t.id;

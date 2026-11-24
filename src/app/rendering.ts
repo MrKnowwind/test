@@ -54,7 +54,37 @@ export function createRendering(renderer: THREE.WebGLRenderer, world: THREE.Scen
   const output = new OutputPass();
   composer.addPass(output);
   let quality = 'balanced';
+  // Fixture meshes stay emissive. A fixed-size light pool avoids recompiling the scene's shaders on movement.
+  let lamps:THREE.PointLight[]=[];
+  const localLights=Array.from({length:6},()=>new THREE.PointLight(0xffffff,0,17,2));
+  world.add(...localLights);
+  let details:THREE.Object3D[]=[];
+  const last=new THREE.Vector3(Infinity,0,0);
+  function localScene(){
+    if(camera.position.distanceToSquared(last)<2.25)return;
+    last.copy(camera.position);
+    const reach=quality==='high'?115:quality==='low'?38:65;
+    for(const o of details){
+      const distance=reach+o.userData.detailRadius;
+      o.visible=camera.position.distanceToSquared(o.userData.detailCenter)<distance*distance;
+    }
+    lamps.sort((a,b)=>a.position.distanceToSquared(last)-b.position.distanceToSquared(last));
+    for(const [i,slot] of localLights.entries()){
+      const lamp=lamps[i];
+      if(!lamp){slot.intensity=0;continue;}
+      slot.position.copy(lamp.position);slot.color.copy(lamp.color);
+      slot.intensity=lamp.intensity*(1-THREE.MathUtils.smoothstep(lamp.position.distanceTo(last),19,33));
+    }
+  }
   return {
+    bindMap(map:THREE.Group){
+      lamps=[];details=[];
+      map.traverse(o=>{
+        if(o instanceof THREE.PointLight){lamps.push(o);o.visible=false;}
+        if(o.userData.detailCenter)details.push(o);
+      });
+      last.x=Infinity;
+    },
     resize(width: number, height: number) {
       const cap = quality === 'high' ? 1.5 : quality === 'low' ? .8 : 1.1;
       const ratio = Math.min(devicePixelRatio, cap);
@@ -64,9 +94,9 @@ export function createRendering(renderer: THREE.WebGLRenderer, world: THREE.Scen
       composer.setSize(width, height);
     },
     setQuality(next: string) {
-      quality = next;
+      quality = next;last.x=Infinity;
       renderer.shadowMap.enabled = next !== 'low';
-      bloom.enabled = next !== 'low';
+      bloom.enabled = next === 'high';
       occlusion.enabled = next === 'high';
     },
     render(underground: boolean) {
@@ -80,7 +110,13 @@ export function createRendering(renderer: THREE.WebGLRenderer, world: THREE.Scen
       toolCamera.copy(camera, false);
       toolCamera.layers.set(1);
       toolCamera.updateMatrixWorld();
-      composer.render();
+      localScene();
+      if(quality==='high')composer.render();
+      else{
+        renderer.setRenderTarget(null);renderer.clear();
+        renderer.render(world,camera);
+        renderer.clearDepth();renderer.render(weapons,toolCamera);
+      }
     },
     dispose() { composer.dispose(); occlusion.dispose(); bloom.dispose(); output.dispose(); environment.dispose(); },
   };

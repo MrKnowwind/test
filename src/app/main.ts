@@ -6,7 +6,7 @@ import { createCombat } from '../combat/createCombat.ts';
 import type { EnemyState, MapInteraction } from '../contracts/demo.ts';
 import { createPlayer, findInteraction } from '../player/controller.ts';
 import { createInput } from '../player/input.ts';
-import { createEnemyVisual } from '../presentation/enemyVisuals.ts';
+import { createRaidEnemy } from '../presentation/enemyVisuals.ts';
 import { createShotEffects } from '../presentation/shotEffects.ts';
 import { createCreativeView } from '../ui/creativeView.ts';
 import { createViewmodel } from '../presentation/viewmodel.ts';
@@ -56,7 +56,7 @@ function startGame() {
   const weaponLight = new THREE.DirectionalLight(0xffdfae, 1.7);
   weaponLight.position.set(-3, 5, -1);
   weaponLight.target.position.set(0, 0, -1);
-  weaponLight.castShadow = true;
+  weaponLight.castShadow = false;
   weaponLight.shadow.mapSize.set(1024, 1024);
   weaponLight.shadow.camera.left = weaponLight.shadow.camera.bottom = -.65;
   weaponLight.shadow.camera.right = weaponLight.shadow.camera.top = .65;
@@ -92,6 +92,10 @@ function startGame() {
   let statsTime = 0;
   let sampledFrames = 0;
   let fps = 0;
+  const meter=document.querySelector<HTMLOutputElement>('#frame-meter')!;
+  window.addEventListener('keydown',ev=>{
+    if(ev.code==='F3'){ev.preventDefault();if(!ev.repeat){meter.hidden=!meter.hidden;meter.value='帧率采样中';}}
+  });
   const creativeView=createCreativeView(on=>{
     run.raid.setCreative(on);run.combat.setCreative(on);
     run.frame=run.combat.snapshot();run.treatment.cancel();hurtTime=0;dirty=true;
@@ -119,11 +123,12 @@ function startGame() {
       bag.hide();
       void canvas.requestPointerLock()?.catch(() => view.showPaused());
     },
-    take(id,entry,placement) {
+    take(id,entry,placement,quantity) {
       if(!reachable(id))return false;
       const source=run.raid.containers.get(id)?.entries.find(e=>e.id===entry);
-      const taken=run.raid.takeContainerItem(id,entry,placement);
-      if(taken && source)pickedUp(source.item,source.quantity);
+      const amount=quantity??source?.quantity??0;
+      const taken=run.raid.takeContainerItem(id,entry,placement,quantity);
+      if(taken && source)pickedUp(source.item,amount);
       return taken;
     },
     equip(from,id) {
@@ -146,7 +151,15 @@ function startGame() {
       bag.hide();void canvas.requestPointerLock()?.catch(()=>view.showPaused());
       return true;
     },
-    discard(id) { const t=run.raid.dropCarried(id,dropPoint());if(t)run.containers.spawn(t);return !!t; },
+    put:(id,entry)=>reachable(id,true) && run.raid.putContainerItem(id,entry),
+    discard(s,container) {
+      if(s.from==='source' && (!container || !reachable(container)))return false;
+      const at=dropPoint();
+      const t=s.from==='bag'?run.raid.dropCarried(s.id,at)
+        :s.from==='slot'?run.raid.dropSlot(s.entry.item as 'pistol'|'knife',at)
+        :run.raid.discardSource(container!,s.id,at);
+      if(t)run.containers.spawn(t);return !!t;
+    },
   });
   renderOperatorPortrait(renderer);
   let run = prepareRun();
@@ -170,19 +183,20 @@ function startGame() {
     styleCharacter(viewmodel.group);
     camera.add(viewmodel.group);
     const frame = combat.snapshot();
-    const enemies = new Map<string, ReturnType<typeof createEnemyVisual>>();
+    const enemies = new Map<string, ReturnType<typeof createRaidEnemy>>();
     for (const enemy of frame.enemies) {
-      const visual = createEnemyVisual(enemy.kind);
+      const visual = createRaidEnemy(enemy.kind);
       visual.group.traverse(object => {
         if (object instanceof THREE.Mesh) object.castShadow = object.receiveShadow = true;
       });
       styleCharacter(visual.group);
       enemies.set(enemy.id, visual);
       map.scene.add(visual.group);
-      updateEnemy(visual, enemy, 0);
+      updateEnemy(visual, enemy, 0,player.feet);
     }
     viewmodel.update(0, frame.weapon, false);
     worldScene.add(map.scene);
+    rendering.bindMap(map.scene);
     view.setRoutes(map.exits);
     notice = '';
     accumulator = noticeTime = hitTime = hurtTime = 0;
@@ -190,8 +204,8 @@ function startGame() {
     return { effects:createShotEffects(map.scene), treatment:createTreatment(raid.backpack), nearWall:false, damageNotice:'', discovered:new Set<string>(), nextSurvey:0, map, raid, combat, player, viewmodel, enemies, frame, containers, searched: new Set<string>() };
   }
 
-  function reachable(id:string){
-    if(run.raid.result||run.raid.consumed.has(id))return false;
+  function reachable(id:string,allowEmpty=false){
+    if(run.raid.result||(!allowEmpty && run.raid.consumed.has(id)))return false;
     const t=run.raid.targets.find(t=>t.id===id);if(!t)return false;
     const eye=run.player.eye,d=new THREE.Vector3(...t.position).sub(new THREE.Vector3(...eye));
     const distance=d.length();d.normalize();
@@ -212,6 +226,7 @@ function startGame() {
     return [x,y+.15,z];
   }
   function disposeRun() {
+    for(const visual of run.enemies.values())visual.restore();
     const roots = [run.map.scene, run.viewmodel.group];
     const resources = new Set<{ dispose(): void }>();
     for (const root of roots) {
@@ -230,10 +245,10 @@ function startGame() {
     for (const resource of resources) resource.dispose();
   }
 
-  function updateEnemy(visual: ReturnType<typeof createEnemyVisual>, enemy: EnemyState, dt: number) {
+  function updateEnemy(visual: ReturnType<typeof createRaidEnemy>, enemy: EnemyState, dt: number, eye:readonly number[]) {
     visual.group.position.set(...enemy.position);
     visual.group.rotation.y = enemy.yaw;
-    visual.update(dt, enemy);
+    visual.update(dt, enemy, Math.hypot(eye[0]-enemy.position[0],eye[1]-enemy.position[1],eye[2]-enemy.position[2]));
   }
 
   function resize() {
@@ -292,7 +307,9 @@ function startGame() {
   window.addEventListener('resize', resize);
   window.addEventListener('storage', refreshMarket);
   document.querySelector<HTMLSelectElement>('#quality')!.addEventListener('change', (event) => {
-    rendering.setQuality((event.target as HTMLSelectElement).value);
+    const quality=(event.target as HTMLSelectElement).value;
+    weaponLight.castShadow=quality==='high';
+    rendering.setQuality(quality);
     resize();
   });
   canvas.addEventListener('webglcontextlost', (event) => {
@@ -414,7 +431,11 @@ function startGame() {
     });
     const currentWeapon = run.frame.weapon;
     if (run.frame.shot) {
-      run.effects.fire(run.frame.shot);
+      run.effects.fire(run.frame.shot,viewmodel.ejection.getWorldPosition(muzzlePosition),player.yaw);
+      viewmodel.markShot();
+      if(run.frame.shot.surface==='cover'){
+        const {from,to}=run.frame.shot;audio.cover(Math.hypot(to[0]-from[0],to[1]-from[1],to[2]-from[2]));
+      }
       raid.log.shots++;
       audio.shot(currentWeapon.id);
       player.kick(currentWeapon.aiming?.009:.016);
@@ -443,7 +464,7 @@ function startGame() {
     if (message) notify(message);
     if (run.frame.feedback === 'empty') notify('空仓 · 按 R 换弹');
     if (run.frame.feedback === 'blocked') notify('攻击被掩体阻挡');
-    if (run.frame.feedback === 'hit') { raid.log.hits++;hitTime = 0.16; audio.hit(); }
+    if (run.frame.feedback === 'hit') { raid.log.hits++;hitTime = 0.17; audio.hit(run.frame.shot?.surface==='security-bot'); }
     noticeTime = Math.max(0, noticeTime - dt);
     hitTime = Math.max(0, hitTime - dt);
     hurtTime = Math.max(0, hurtTime - dt);
@@ -453,7 +474,7 @@ function startGame() {
         const dx=enemy.position[0]-player.feet[0],dz=enemy.position[2]-player.feet[2];
         audio.warning(enemy.kind==='security-bot',soundPath(map,enemy.position,player.feet),(dx*Math.cos(player.yaw)-dz*Math.sin(player.yaw))/Math.max(.01,Math.hypot(dx,dz)));
       }
-      updateEnemy(run.enemies.get(enemy.id)!, enemy, dt);
+      updateEnemy(run.enemies.get(enemy.id)!, enemy, dt,player.feet);
     }
     viewmodel.group.visible=!run.frame.weapon.unarmed || !!run.treatment.remaining;
     viewmodel.update(dt, run.frame.weapon, moving, {
@@ -470,6 +491,7 @@ function startGame() {
     weaponLight.intensity = underground ? 0.72 : 1.7;
     renderer.info.reset();
     camera.layers.set(0);
+    run.viewmodel.present();
     rendering.render(underground);
     const countdown = raid.countdown;
     const target = findInteraction(map, raid.targets, raid.consumed, player.eye, player.direction);
@@ -500,9 +522,14 @@ function startGame() {
   renderer.setAnimationLoop((now) => {
     const elapsed = (now - previous) / 1000;
     previous = now;
-    sampledFrames++;
-    statsTime += elapsed;
-    if (statsTime > 1) { fps = Math.round(sampledFrames / statsTime); statsTime = 0; sampledFrames = 0; }
+    if((input.locked()||bag.open) && !document.hidden && !run.raid.result){
+      sampledFrames++;statsTime+=elapsed;
+      if(statsTime>=1){
+        fps=Math.round(sampledFrames/statsTime);
+        if(!meter.hidden)meter.value=fps+' FPS · '+(1000*statsTime/sampledFrames).toFixed(1)+' ms';
+        statsTime=0;sampledFrames=0;
+      }
+    }else{statsTime=0;sampledFrames=0;if(!meter.hidden)meter.value='已暂停';}
     if ((input.locked() || bag.open) && !run.raid.result) {
       accumulator = Math.min(accumulator + elapsed, 0.1);
       while (accumulator >= 1 / 60 && !run.raid.result) {

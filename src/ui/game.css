@@ -213,3 +213,19 @@ button:disabled { opacity: .5; cursor: default; }
 #crosshair[data-hit] {border:0;background:transparent;width:19px;height:19px}
 #crosshair[data-hit]::before,#crosshair[data-hit]::after {content:'';position:absolute;left:8px;top:0;width:2px;height:19px;background:linear-gradient(#d7fff6 0 30%,transparent 30% 70%,#d7fff6 70%);filter:drop-shadow(0 1px 1px #142b42);transform:rotate(45deg)}
 #crosshair[data-hit]::after {transform:rotate(-45deg)}
+
+#backpack-panel { --discard-width:clamp(58px,7vw,108px); padding-right:var(--discard-width); }
+#backpack-panel .bag-window { max-width:calc(100vw - var(--discard-width) - 16px); box-sizing:border-box; }
+#drop-zone { position:absolute;inset:0 0 0 auto;width:var(--discard-width);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;color:#f8d4c5;background:#3e343cde;border-left:2px dashed #c88d77; }
+#drop-zone strong {font-size:26px} #drop-zone span {writing-mode:vertical-rl;letter-spacing:.22em}
+.has-drag #drop-zone {background:#654338;color:#fff0de}
+#drop-zone.over {background:#aa5137;border-color:white;color:white}
+.bag-actions {flex-wrap:wrap;align-items:center}
+.split-controls {display:flex;align-items:center;gap:5px;flex-wrap:wrap;flex-basis:100%;color:#26475a}
+.split-controls label {width:100%;font-size:12px;font-weight:700}.split-controls input {width:clamp(60px,8vw,120px);accent-color:#31867d}
+@media(max-width:870px){#backpack-panel .bag-columns {grid-template-columns:minmax(185px,1fr) minmax(170px,1fr);gap:12px}#backpack-panel .equipment {grid-column:1/-1;display:flex;align-items:center}#backpack-panel .operator-portrait{max-height:70px;width:auto}}
+@media(max-width:570px){#backpack-panel .bag-columns{display:block}#backpack-panel .bag-window{padding:10px}#drop-zone{font-size:13px}}
+#frame-meter{position:fixed;z-index:12;top:9px;right:12px;padding:3px 7px;background:#192e3cdd;color:#b3efe1;font:12px monospace;pointer-events:none}
+#crosshair[data-hit] {width:19px;height:19px;background:transparent;border:0;border-radius:0;filter:drop-shadow(0 1px 1px #19272e)}
+#crosshair[data-hit]::before,#crosshair[data-hit]::after {content:'';position:absolute;left:9px;top:0;width:2px;height:19px;background:linear-gradient(#ffebbf 0 30%,transparent 30% 70%,#ffebbf 70%);transform:rotate(45deg)}
+#crosshair[data-hit]::after {transform:rotate(-45deg)}

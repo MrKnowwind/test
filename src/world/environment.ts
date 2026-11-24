@@ -690,7 +690,7 @@ export function createEnvironment() {
   addPortHorizon(allStatic, m);
   for(const interaction of mapInteractions) addPickup(interaction);
 
-  // Merge only static meshes per 20m cell and material. Named pickup groups remain independent.
+  // Batch static streets by cell and shading. Pickups and doors remain independently interactive.
   batchStatic(allStatic);
   return { scene, solids, rooms };
 
@@ -733,24 +733,53 @@ function batchStatic(root: THREE.Group) {
   root.updateMatrixWorld(true);
   const batches=new Map<string,{material:THREE.Material;geometries:THREE.BufferGeometry[];cast:boolean;receive:boolean}>();
   const sources:THREE.Mesh[]=[];
+  const palettes=new Map<string,THREE.MeshToonMaterial>();
+  const sphere=new THREE.Sphere();
+  const detailBatches=new Set<string>();
   root.traverse(object=>{
     if(!(object instanceof THREE.Mesh)||Array.isArray(object.material)||object.material.transparent)return;
-    const material=object.material;
-    const p=object.getWorldPosition(new THREE.Vector3());
-    const key=[material.id,Math.floor(p.x/20),Math.floor(p.z/20),object.castShadow,object.receiveShadow].join('/');
+    const original=object.material;
+    let material=original;
+    const tint=original instanceof THREE.MeshToonMaterial && !original.map && !original.normalMap &&
+      !original.alphaMap && !original.vertexColors && original.emissive.getHex()===0;
+    if(tint){
+      const signature=[original.gradientMap?.id,original.side,original.opacity,original.depthWrite].join('/');
+      let palette=palettes.get(signature);
+      if(!palette){
+        palette=original.clone() as THREE.MeshToonMaterial;palette.color.setHex(0xffffff);palette.vertexColors=true;
+        palettes.set(signature,palette);
+      }
+      material=palette;
+    }
+    if(!object.geometry.boundingSphere)object.geometry.computeBoundingSphere();
+    sphere.copy(object.geometry.boundingSphere!).applyMatrix4(object.matrixWorld);
+    const p=sphere.center,detail=sphere.radius<1.45;
+    const key=[material.id,Math.floor(p.x/24),Math.floor(p.z/24),detail,object.castShadow,object.receiveShadow].join('/');
+    if(detail)detailBatches.add(key);
     const batch=batches.get(key)??{material,geometries:[] as THREE.BufferGeometry[],cast:object.castShadow,receive:object.receiveShadow};
     const geometry=object.geometry.index?object.geometry.toNonIndexed():object.geometry.clone();
     for(const attr of Object.keys(geometry.attributes))if(!['position','normal','uv'].includes(attr))geometry.deleteAttribute(attr);
     geometry.applyMatrix4(object.matrixWorld);
+    if(tint){
+      const c=original.color, colors=new Uint8Array(geometry.getAttribute('position').count*3);
+      const r=Math.round(255*c.r),g=Math.round(255*c.g),b=Math.round(255*c.b);
+      for(let i=0;i<colors.length;i+=3){colors[i]=r;colors[i+1]=g;colors[i+2]=b;}
+      geometry.setAttribute('color',new THREE.BufferAttribute(colors,3,true));
+    }
     batch.geometries.push(geometry);batches.set(key,batch);sources.push(object);
   });
   for(const object of sources)object.removeFromParent();
-  for(const batch of batches.values()) {
+  for(const [key,batch] of batches) {
     const geometry=mergeGeometries(batch.geometries);
     batch.geometries.forEach(g=>g.dispose());
     if(!geometry)continue;
     const object=mesh(root,geometry,batch.material);
     object.castShadow=batch.cast;object.receiveShadow=batch.receive;
+    if(detailBatches.has(key)){
+      geometry.computeBoundingSphere();
+      object.userData.detailCenter=geometry.boundingSphere!.center;
+      object.userData.detailRadius=geometry.boundingSphere!.radius;
+    }
   }
 }
 
