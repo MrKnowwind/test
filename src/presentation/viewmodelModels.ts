@@ -239,7 +239,7 @@ export function makeGlove(parent: THREE.Object3D, at: Point, left: boolean, trig
   for (let stitch = 0; stitch < 11; stitch++) {
     block(gloveRoot, gloveSeam, [.0012, .002, .0018], [.023, -.020 + stitch * .004, .040]);
   }
-  const relaxed = name === 'knife-free-hand';
+  const relaxed = name === 'knife-free-hand' || name.startsWith('ledge-');
   for (let finger = 0; finger < 4; finger++) {
     const height = .032 - finger * .018;
     const index = trigger && finger === 0;

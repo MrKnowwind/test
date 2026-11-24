@@ -120,7 +120,7 @@ export function createEnemy(world: WorldQueries, spawn: EnemySpawn) {
     const dz = playerZ - z;
     const dy = playerY - y;
     const origin: Vec3 = [x, y + spec.attackHeight, z];
-    const torso: Vec3 = [playerX, playerY + 1.15, playerZ];
+    const torso: Vec3 = [playerX, playerY + (input.eye[1] - playerY) * (1.15 / 1.65), playerZ];
     const infected = state.kind === 'infected';
     const distance = Math.hypot(dx, dy, dz);
     const noticeRange = infected ? INFECTED_NOTICE_RANGE : spec.range;

@@ -33,7 +33,7 @@ export function upperRoutes(root:THREE.Group,m:Materials,solid:Builder,solids:So
     const steps=Math.ceil(height/.185),dz=(highZ-lowZ)/steps;
     // A continuous collision slope lets ordinary walking follow the visible treads in both directions.
     solids.push({min:[x-width/2,-.16,Math.min(lowZ,highZ)],max:[x+width/2,0,Math.max(lowZ,highZ)],
-      floor:true,walkSurface:true,slope:{axis:2,start:lowZ,height:0,gradient:height/(highZ-lowZ)}});
+      floor:true,walkSurface:true,surface:'metal',slope:{axis:2,start:lowZ,height:0,gradient:height/(highZ-lowZ)}});
     for(let i=0;i<steps;i++){
       const y=(i+.5)*height/steps,z=lowZ+(i+.5)*dz;
       box(root,m.steel,width,.135,Math.abs(dz)+.007,x,y-.06,z);
@@ -48,7 +48,7 @@ export function upperRoutes(root:THREE.Group,m:Materials,solid:Builder,solids:So
   }
   function floor(x:number,z:number,w:number,d:number,top:number){
     box(root,m.steel,w,.26,d,x,top-.13,z).castShadow=true;
-    solids.push({min:[x-w/2,top-.26,z-d/2],max:[x+w/2,top,z+d/2],walkSurface:true});
+    solids.push({min:[x-w/2,top-.26,z-d/2],max:[x+w/2,top,z+d/2],walkSurface:true,surface:'metal'});
     box(root,m.zinc,w-.07,.016,d-.07,x,top+.006,z);
   }
   function sign(x:number,y:number,z:number,w:number,text:string,caption:string){

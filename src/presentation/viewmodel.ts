@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import type { WeaponState } from '../contracts/demo.ts';
+import type { ClimbPose, WeaponState } from '../contracts/demo.ts';
 import { makeMedicalActions } from './medicalActions.ts';
 import type { TreatmentPose } from '../combat/treatment.ts';
 import { ease } from './modelParts.ts';
@@ -16,6 +16,12 @@ export function createViewmodel() {
   const medical=makeMedicalActions(group);
   const knife = makeKnife(group);
   const freeHand = makeGlove(group, [-0.20, -0.19, -0.33], true, false, 'knife-free-hand');
+  const climbHands = [
+    makeGlove(group, [0,0,0], true, false, 'ledge-left'),
+    makeGlove(group, [0,0,0], false, false, 'ledge-right'),
+  ];
+  const gripPoint = new THREE.Vector3();
+  let climbingLastFrame = false, slideBlend = 0, crouchBlend = 0;
   const rightArm = makeForearm(group);
   const leftArm = makeForearm(group);
   const rightBase = new THREE.Vector3(0.26, -0.38, -0.15);
@@ -45,7 +51,12 @@ export function createViewmodel() {
   }
 
   function update(dt: number, weapon: WeaponState, moving: boolean,
-    motion: { treatment?:TreatmentPose; lowered?:boolean; running?: boolean; lookX?: number; lookY?: number } = {}) {
+    motion: { climb?:ClimbPose; crouched?:boolean; sliding?:boolean; treatment?:TreatmentPose; lowered?:boolean; running?: boolean; lookX?: number; lookY?: number } = {}) {
+    const climb = motion.climb;
+    if (climbingLastFrame && !climb) switchBlend = .65;
+    climbingLastFrame = !!climb;
+    slideBlend = THREE.MathUtils.damp(slideBlend, Number(!!motion.sliding), 14, dt);
+    crouchBlend = THREE.MathUtils.damp(crouchBlend, Number(!!motion.crouched), 12, dt);
     const firearm = weapon.id === 'pistol' ? pistol : undefined;
     const reloading = Boolean(firearm) && weapon.action === 'reloading';
     const aiming = Boolean(firearm) && weapon.aiming && !reloading;
@@ -77,7 +88,7 @@ export function createViewmodel() {
     if (aimBlend < 0.001) aimBlend = 0;
     walkBlend = THREE.MathUtils.damp(walkBlend, Number(moving), 10, dt);
     sprintBlend=THREE.MathUtils.damp(sprintBlend,Number(!!motion.running && moving && !aiming && !shot && !reloading),10,dt);
-    const cadence = motion.running ? 11 : 7;
+    const cadence = motion.running ? 11 : motion.crouched ? 4.5 : 7;
     stepPhase+=dt*cadence*walkBlend;
     const bobX = Math.sin(stepPhase) * .007 * walkBlend;
     const bobY = Math.cos(stepPhase * 2) * .0045 * walkBlend + Math.sin(time * 2.1) * .0012;
@@ -85,6 +96,31 @@ export function createViewmodel() {
     for (const [id, gun] of Object.entries(firearms)) gun.body.visible = weapon.id === id;
     knife.body.visible = freeHand.root.visible = weapon.id === 'knife';
 
+    for (const hand of climbHands) hand.root.visible = !!climb;
+    if (climb) {
+      const t = climb.progress;
+      const lower = ease(t, 0, .15);
+      if (t < .15 && firearm) {
+        firearm.body.position.set(.15, -.10 - lower*.32, -.46 + lower*.16);
+        firearm.body.rotation.set(-lower*.65, .10, -lower*.28);
+      } else if (firearm) firearm.body.visible = false;
+      if (t < .15 && !firearm) knife.body.position.set(.19, -.18-lower*.34, -.36);
+      else knife.body.visible = false;
+      freeHand.root.visible = false;
+      medical.root.visible = false;
+      group.updateWorldMatrix(true,false);
+      for (let i = 0; i < climbHands.length; i++) {
+        const hand = climbHands[i], side = i === 0 ? -1 : 1;
+        const anchor = i === 0 ? climb.left : climb.right;
+        const grip = ease(t, .01 + i*.045, .23 + i*.035) * (1-ease(t,.63+i*.04,.96));
+        gripPoint.set(...anchor);
+        group.worldToLocal(gripPoint);
+        hand.root.position.set(side*.16, -.30, -.29).lerp(gripPoint, grip);
+        hand.root.rotation.set(-.16 + grip*.20, side*.12, side*(.22+grip*1.24));
+        fitArm(i === 0 ? leftArm : rightArm, hand.wrist, i === 0 ? leftBase : rightBase);
+      }
+      return;
+    }
     if(medical.update(dt,motion.treatment) && (motion.treatment || weapon.action==='ready')){
       pistol.body.visible=knife.body.visible=freeHand.root.visible=false;
       fitArm(rightArm,medical.right.wrist,rightBase);fitArm(leftArm,medical.left.wrist,leftBase);
@@ -92,6 +128,9 @@ export function createViewmodel() {
     }
     medical.root.visible=false;
     const hip = 1 - aimBlend;
+    group.position.y -= hip * (crouchBlend*.012 + slideBlend*.055);
+    group.rotation.z += hip * slideBlend*.13;
+    group.rotation.x -= hip * slideBlend*.22;
     if (firearm) {
       firearm.body.position.set(.145 * hip + bobX * hip - reload * .065,
         -sightHeight - .065 * hip + bobY * hip + reload * .024 + recoil * .015 - sprintBlend*.032,

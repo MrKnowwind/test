@@ -147,7 +147,7 @@ function startGame() {
     unpack(){const t=run.raid.unpack(dropPoint());if(!t)return false;run.containers.spawn(t);return true;},
     stow:(slot,p)=>run.raid.stow(slot,p),holster:id=>run.raid.holster(id),
     use(id) {
-      if(!run.treatment.start(id,run.frame.health,run.raid.creative))return false;
+      if(run.player.busy || !run.treatment.start(id,run.frame.health,run.raid.creative))return false;
       bag.hide();void canvas.requestPointerLock()?.catch(()=>view.showPaused());
       return true;
     },
@@ -298,7 +298,7 @@ function startGame() {
     } else if (bag.open) {
       view.showPlaying();
     } else if (entered) {
-      run.treatment.cancel();
+      run.player.interrupt();run.treatment.cancel();
       view.showPaused();
       refreshMarket();
     }
@@ -370,22 +370,25 @@ function startGame() {
     if(control.healPressed||control.medicineRelease==='quick'){
       if(run.treatment.remaining)run.treatment.cancel();
       else {
-        if(chosen===undefined||!run.treatment.start(chosen,run.frame.health,raid.creative))notify(chosen===undefined?'未携带药物':'当前无法治疗');
+        if(player.busy || chosen===undefined||!run.treatment.start(chosen,run.frame.health,raid.creative))notify(chosen===undefined?'未携带药物':'当前无法治疗');
       }
     }
     if(control.backpackPressed||control.switchTo)run.treatment.cancel();
     if(control.quiet||run.treatment.remaining)control.running=false;
     if (control.mapPressed) tacticalMap.toggle();
-    if (control.backpackPressed) {
+    if (control.backpackPressed && !player.busy) {
+      control.jumpPressed = control.stancePressed = false;
       bag.show(raid.backpack);
       document.exitPointerLock();
     }
     if (control.switchTo === 'rifle' || control.switchTo === 'shotgun') notify('该主武器槽为空');
     map.doors.update(dt,player.feet,run.frame.enemies);
     run.effects.update(dt);
+    const wasSliding = player.sliding, wasClimbing = player.climbing, wasGrounded = player.grounded;
     const moving = player.move(dt, control, run.frame.weapon.aiming,raid.creative?creativeView.settings:undefined);
     const target = findInteraction(map, raid.targets, raid.consumed, player.eye, player.direction);
-    if (control.interactPressed && target) {
+    if (player.busy && run.treatment.remaining) run.treatment.cancel();
+    if (control.interactPressed && target && !player.busy && !bag.open) {
       run.treatment.cancel();
       if(target.kind==='door'){
         if(map.doors.toggle(target.id,player.feet,run.frame.enemies))audio.door(map.doors.isOpen(target.id));
@@ -418,16 +421,19 @@ function startGame() {
     const previousWeapon = run.frame.weapon;
     footstepTime-=dt;
     const sprinting=control.running && control.forward>0 && !previousWeapon.aiming;
-    const stepping=moving && player.grounded && footstepTime<=0;
+    if (player.sliding && !wasSliding) audio.slide();
+    if (player.climbing && !wasClimbing) audio.grip();
+    if (!wasGrounded && player.grounded && !wasClimbing) audio.land();
+    const stepping=moving && !player.busy && player.grounded && footstepTime<=0;
     if(stepping){
-      audio.footstep(player.feet[1]>2?'metal':player.feet[1]<-2.5?'concrete':'gravel');
-      footstepTime=control.quiet?.58:sprinting?.29:.44;
+      audio.footstep(map.surfaceAt?.(player.feet) ?? 'gravel');
+      footstepTime=control.quiet || player.crouched ? .58:sprinting?.29:.44;
     }
     run.nearWall=previousWeapon.id==='pistol'&&!previousWeapon.unarmed && map.blockedDistance(player.eye,player.direction,.78)!==null;
     run.frame = combat.update(dt, {
       playerFeet: player.feet, eye: player.eye, aimDirection: player.direction,
       muzzle: [muzzlePosition.x, muzzlePosition.y, muzzlePosition.z],
-      ...control, treating:!!run.treatment.remaining,stepRadius:stepping?(control.quiet?3:sprinting?12:6):undefined,
+      ...control, treating:!!run.treatment.remaining,handsBusy:player.busy, stepRadius:player.sliding && !wasSliding ? 15 : stepping ? (control.quiet || player.crouched ? 3 : sprinting ? 12 : 6) : undefined,
     });
     const currentWeapon = run.frame.weapon;
     if (run.frame.shot) {
@@ -445,6 +451,7 @@ function startGame() {
     if (currentWeapon.action === 'slashing' && previousWeapon.action !== 'slashing') audio.slash();
     const damaged=run.frame.health<previousHealth;
     if(damaged) {
+      player.interrupt();
       hurtTime=1.25;
       const from=run.frame.hitOrigin??player.feet;
       const angle=Math.atan2(-(from[0]-player.feet[0]),-(from[2]-player.feet[2]))-player.yaw;
@@ -476,9 +483,9 @@ function startGame() {
       }
       updateEnemy(run.enemies.get(enemy.id)!, enemy, dt,player.feet);
     }
-    viewmodel.group.visible=!run.frame.weapon.unarmed || !!run.treatment.remaining;
+    viewmodel.group.visible=!run.frame.weapon.unarmed || !!run.treatment.remaining || player.climbing;
     viewmodel.update(dt, run.frame.weapon, moving, {
-      treatment:run.treatment.pose,lowered:run.nearWall && !run.treatment.remaining, running: control.running, lookX: control.lookX, lookY: control.lookY,
+      treatment:run.treatment.pose,lowered:run.nearWall && !run.treatment.remaining, running: sprinting && !player.crouched && player.grounded, crouched:player.crouched, sliding:player.sliding, climb:player.climbPose, lookX: control.lookX, lookY: control.lookY,
     });
     player.setAim(dt, run.frame.weapon.aiming);
     if (raid.result) showResult();
@@ -551,7 +558,7 @@ function startGame() {
       raidQA: {
         state: () => structuredClone({
           locked: input.locked(), seed: run.raid.seed, spawn: run.raid.spawn,
-          feet: run.player.feet, eye: run.player.eye, yaw: run.player.yaw, pitch: run.player.pitch, fov: camera.fov,
+          stance:run.player.sliding?'slide':run.player.climbing?'climb':run.player.crouched?'crouch':'stand', climb:run.player.climbPose, feet: run.player.feet, eye: run.player.eye, yaw: run.player.yaw, pitch: run.player.pitch, fov: camera.fov,
           health: run.frame.health, weapon: run.frame.weapon, enemies: run.frame.enemies,
           exits: run.map.exits, interactions: run.map.interactions,
           items: run.raid.items, consumed: [...run.raid.consumed], flags: [...run.raid.flags],

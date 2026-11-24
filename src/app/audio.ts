@@ -45,6 +45,9 @@ export function createAudio() {
   }
   return {
     ready,
+    slide() { burst(.28,.037,860); burst(.13,.023,510,90,0,.16); },
+    grip() { burst(.07,.031,1150,130,0,.08); burst(.055,.018,850,0,0,.13); },
+    land() { burst(.10,.038,680,105); },
     reveal() { burst(.08,.016,1800,620); },
     pickup() { burst(.035,.022,1800,490);burst(.07,.016,2600,780,0,.035); },
     door(open:boolean){burst(.21,.026,open?1150:800,open?190:125);burst(.045,.025,1500,100,0,.34);},

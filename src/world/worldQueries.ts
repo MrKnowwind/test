@@ -1,5 +1,6 @@
+import { roads, footpaths } from './roads.ts';
 import { districtRect } from './layout.ts';
-import type { Vec3, WorldQueries } from '../contracts/demo.ts';
+import type { Ledge, Vec3, WorldQueries } from '../contracts/demo.ts';
 
 export interface Slope {
   axis: 0 | 2;
@@ -13,6 +14,7 @@ export interface Solid {
   max: Vec3;
   floor?: true;
   walkSurface?: true;
+  surface?: 'metal' | 'concrete';
   slope?: Slope;
 }
 
@@ -142,10 +144,7 @@ export function createWorldQueries(solids: readonly Solid[]): WorldQueries {
     }
     return at;
   }
-  return {
-    groundHeight,
-    moveBody,
-    climbTarget(from, forward, radius, height) {
+  function climbLedge(from: Vec3, forward: Vec3, radius: number, height: number): Ledge | null {
       let nearest = 1.15;
       let ledge: Solid | undefined;
       const origin: Vec3 = [from[0], from[1] + .5, from[2]];
@@ -163,8 +162,29 @@ export function createWorldQueries(solids: readonly Solid[]): WorldQueries {
       if (Math.abs(raised[1] - above[1]) > .01) return null;
       const across = moveBody(raised, target[0] - raised[0], 0, target[2] - raised[2], radius, height);
       if (Math.hypot(across[0] - target[0], across[2] - target[2]) > .01) return null;
-      return target;
+      const faceX = from[0] + forward[0] * nearest;
+      const faceZ = from[2] + forward[2] * nearest;
+      const edge = ledge;
+      const grip = (side: number): Vec3 => [
+        Math.max(edge.min[0], Math.min(edge.max[0], faceX - side * forward[2] * .19 + forward[0] * .035)),
+        edge.max[1] + .025,
+        Math.max(edge.min[2], Math.min(edge.max[2], faceZ + side * forward[0] * .19 + forward[2] * .035)),
+      ];
+      return { landing: target, left: grip(-1), right: grip(1) };
+  }
+  return {
+    groundHeight, moveBody, climbLedge,
+    surfaceAt(at) {
+      const [x,y,z] = at;
+      for (const solid of nearby(x,z,.36)) {
+        if (!solid.surface || x < solid.min[0] || x > solid.max[0] || z < solid.min[2] || z > solid.max[2]) continue;
+        if (Math.abs(supportHeight(solid,x,z)-y) < .14) return solid.surface;
+      }
+      if (Math.abs(y) < .15 && [roads,footpaths].some(lanes => lanes.some(r=>x>=r.x1 && x<=r.x2 && z>=r.z1 && z<=r.z2))) return 'concrete';
+      return 'gravel';
     },
+    bodyClear: (at, radius, height) => !blocked(at, radius, height),
+    climbTarget: (from, forward, radius, height) => climbLedge(from, forward, radius, height)?.landing ?? null,
     moveGrounded(from, dx, dz, radius, height) {
       const steps = Math.max(1, Math.ceil(Math.hypot(dx, dz) / .16));
       let [x, y, z] = from;

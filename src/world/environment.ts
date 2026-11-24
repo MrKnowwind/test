@@ -84,7 +84,7 @@ export function createEnvironment() {
     tileByPosition(geometry, material === m.asphalt ? 5 : 3);
     const floor = mesh(staticRoot, geometry, material);
     floor.castShadow = true;
-    solids.push({ min: [x1, y - .36, z1], max: [x2, y, z2], floor: true });
+    solids.push({ min: [x1, y - .36, z1], max: [x2, y, z2], surface: material === m.concrete ? 'concrete' : undefined, floor: true });
   }
 
   function slope(rect: { minX: number; maxX: number; minZ: number; maxZ: number }, profile: Slope, material = m.concrete) {
@@ -95,7 +95,7 @@ export function createEnvironment() {
     geometry.computeVertexNormals();
     tileByPosition(geometry, 3);
     mesh(staticRoot, geometry, material);
-    solids.push({ min: [rect.minX, -.32, rect.minZ], max: [rect.maxX, 0, rect.maxZ], floor: true, slope: profile });
+    solids.push({ min: [rect.minX, -.32, rect.minZ], max: [rect.maxX, 0, rect.maxZ], floor: true, surface: 'concrete', slope: profile });
   }
 
   function sign(at: Vec3, width: number, yaw: number, title: string, note: string, accent = '#a8f7e3') {

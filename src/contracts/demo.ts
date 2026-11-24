@@ -36,7 +36,13 @@ export type MapInteraction = { id: string; label: string; position: Vec3 } & (
   | { kind: 'switch'; flag: FlagId }
 );
 
+export type Ledge = { landing: Vec3; left: Vec3; right: Vec3 };
+export type ClimbPose = Pick<Ledge, 'left' | 'right'> & { progress: number };
+
 export interface WorldQueries {
+  surfaceAt?(at: Vec3): 'metal' | 'concrete' | 'gravel';
+  bodyClear?(at: Vec3, radius: number, height: number): boolean;
+  climbLedge?(from: Vec3, forward: Vec3, radius: number, height: number): Ledge | null;
   moveGrounded(from: Vec3, dx: number, dz: number, radius: number, height: number): Vec3;
   /** Player movement with airborne collision. Legacy grounded callers remain supported. */
   moveBody?(from: Vec3, dx: number, dy: number, dz: number, radius: number, height: number): Vec3;
@@ -79,6 +85,7 @@ export interface CombatInput {
   muzzle: Vec3;
   stepRadius?:number;
   treating?:boolean;
+  handsBusy?:boolean;
   attackPressed: boolean;
   reloadPressed: boolean;
   aiming: boolean;

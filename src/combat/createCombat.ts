@@ -153,7 +153,7 @@ export function createCombat(world: WorldQueries, spawns: readonly EnemySpawn[],
       noiseTime+=dt;
       if(input.stepRadius)emitNoise(input.playerFeet,input.stepRadius);
       syncEquipment();
-      if(input.treating){reloadRequested=false;startAction('ready');weapon.aiming=false;attackHeld=input.attackPressed;}else if(!weapon.unarmed)updateWeapon(dt,input);
+      if(input.treating || input.handsBusy){reloadRequested=false;startAction('ready');weapon.aiming=false;attackHeld=input.attackPressed;}else if(!weapon.unarmed)updateWeapon(dt,input);
       if(kit?.slots.pistol)kit.slots.pistol.loaded=weapon.loaded;
       for (const agent of agents) {
         const damage=agent.update(dt,input,creative);
