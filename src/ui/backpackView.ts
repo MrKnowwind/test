@@ -274,8 +274,12 @@ export function createBackpackView(actions: Action) {
   function gridFor(parent: HTMLElement, s: Section, from: 'bag' | 'source', entries: readonly BagEntry[]) {
     const wrap = document.createElement('section'),
       title = document.createElement('small');
-    title.textContent = s.name + ' · ' + s.h + '×' + s.w;
-    wrap.append(title);
+    wrap.setAttribute('aria-label', s.name + ' ' + s.w + '×' + s.h);
+    if (from === 'bag') wrap.style.gridArea = s.id;
+    else {
+      title.textContent = s.name + ' · ' + s.w + '×' + s.h;
+      wrap.append(title);
+    }
     const grid = document.createElement('div');
     grid.className = 'section-grid';
     grid.dataset.section = s.id;
@@ -390,7 +394,19 @@ export function createBackpackView(actions: Action) {
   function refresh() {
     const g = q('#carry-grids');
     g.replaceChildren();
-    for (const s of bag.sections) gridFor(g, s, 'bag', bag.entries);
+    const pocketRow = document.createElement('div');
+    pocketRow.className = 'pocket-row';
+    pocketRow.setAttribute('aria-label', '随身袋');
+    g.append(pocketRow);
+    for (const section of pockets) gridFor(pocketRow, section, 'bag', bag.entries);
+    if (bag.equipped && isPack(bag.equipped.item)) {
+      const sack = document.createElement('div');
+      sack.className = 'pack-layout';
+      sack.dataset.pack = bag.equipped.item;
+      sack.setAttribute('aria-label', itemSpecs[bag.equipped.item].name);
+      g.append(sack);
+      for (const section of packs[bag.equipped.item]) gridFor(sack, section, 'bag', bag.entries);
+    }
     q('#bag-size').textContent =
       bag.entries.reduce((n, e) => n + itemSpecs[e.item].w * itemSpecs[e.item].h, 0) +
       ' / ' +

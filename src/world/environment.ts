@@ -480,7 +480,7 @@ export function createEnvironment() {
   solid([-4,-4.24,-39.2],[1.4,2.32,.74],yellow,.045);
   box(staticRoot,m.steel,.94,1.7,.055,-4,-4.2,-38.79,.022);
   box(staticRoot,emissive(0xe4a957,.8),.2,.085,.028,-4,-3.45,-38.75,.004);
-  sign([-4,-2.67,-38.77],1.7,0,'货梯配电','E 接通供电','#e4c48b');
+  sign([-4,-2.67,-38.77],1.7,0,'货梯配电','E 呼叫货梯','#e4c48b');
   for(const [x,z,w] of [[7.2,-38.7,3.1],[20.5,-37.4,4.3],[22,-24.2,1.8]]) {
     solid([x,-4.91,z],[w,.98,.85],m.steel,.018);
     solid([x,-4.38,z],[w+.08,.08,.96],offwhite,.012);
@@ -514,7 +514,7 @@ export function createEnvironment() {
   sign([16,-2.7,-29.4],2.2,Math.PI/2,'隔离走廊','← 样本 / 货梯','#a0c9bd');
   for(let y=lab.y+.2;y<-1.2;y+=.16) box(staticRoot,m.zinc,.07,.1,3.8,-7.82,y,-25);
   for(const z of [-27,-23]) post(-7.7,lab.y,z,4.65);
-  sign([-7.63,-1.37,-25],3.5,Math.PI/2,'实验室货梯','需配电柜通电','#a5d5c2');
+  sign([-7.63,-1.37,-25],3.5,Math.PI/2,'实验室货梯','呼叫后在梯内等候','#a5d5c2');
 
   district();
   // Concrete aprons belong to workplaces; open ground remains earth and aggregate.
@@ -527,13 +527,13 @@ export function createEnvironment() {
   for(const [x,z,title,note] of [
     [-24,130,'南侧公路','仓储 ↑ / 公路撤离 ←'],[-110,85,'货运码头','沿西路北行 / 泊位双向入口'],
     [60,80,'地区联络路','研究设施 ↑ / 厂区 →'],[174,-83,'维修出口','前方需维修卡'],
-    [40.5,-124,'研究设施','前方坡道 / 地下高风险'],[-151,145,'公路出口','E 撤离 / 常开'],
+    [40.5,-124,'研究设施','前方坡道 / 地下高风险'],[-151,145,'公路出口','入区自动撤离'],
   ] as const) {
     post(x-6,0,z,3.4); sign([x-6,2.9,z+.14],4.8,0,title,note);
   }
   for(const x of [-154,-148]) post(x,0,144.7,4);
   beam([-154,4,144.7],[-148,4,144.7],.2);
-  sign([highwayPosition[0],3.24,144.86],4.6,0,'公路出口','撤离 E / 常开','#9ac79f');
+  sign([highwayPosition[0],3.24,144.86],4.6,0,'公路出口','入区守候 5 秒','#9ac79f');
   sign([servicePosition[0]+2.91,2.8,servicePosition[2]],3.5,-Math.PI/2,'维修通道','需维修卡 / 值班室领取');
   truck(-8.2,138,0,'medical'); truck(140,77,0,'cells');
   for(const [x,z] of [[-19,31],[7,29],[128,-20],[27,-126]]) drum(x,0,z);

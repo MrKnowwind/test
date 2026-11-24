@@ -106,9 +106,8 @@ try {
   await closeBag();
   report.checks.push('timed container searches, actual transfer into cells, ammunition consumed from backpack');
 
-  // Set up at an exit, then perform the real interaction and five-second countdown.
-  await pose([54, 0, -25]);
-  await page.keyboard.press('e');
+  // Set up at an exit, then observe the automatic countdown.
+  await pose([189, 0, -90]);
   await wait(() => !!window.raidQA.state().countdown);
   await wait(() => window.raidQA.state().result?.outcome === 'extracted');
   await shot('10-extracted');
@@ -140,15 +139,13 @@ try {
   await page.reload();
   await page.locator('#primary:not([disabled])').waitFor();
   await enter();
-  await pose([-4.6, -5.4, -25]);
-  await page.keyboard.press('e');
-  await wait(() => document.querySelector('#notice').textContent.includes('配电'));
+  await pose([15.4, -5.4, -155]);
+  await wait(() => document.querySelector('#prompt').textContent.includes('配电'));
   assert.equal((await state()).countdown, undefined);
-  await pose([-4, -5.4, -36.7], 0, -.16);
+  await pose([16, -5.4, -166.7], 0, -.16);
   await page.keyboard.press('e');
   await wait(() => window.raidQA.state().flags.includes('lab-power'));
-  await pose([-4.6, -5.4, -25]);
-  await page.keyboard.press('e');
+  await pose([15.4, -5.4, -155]);
   await wait(() => !!window.raidQA.state().countdown);
   await wait(() => window.raidQA.state().result?.outcome === 'extracted');
   await shot('11-lab-extracted');

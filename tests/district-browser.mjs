@@ -26,7 +26,6 @@ try {
   await page.waitForFunction(({x,z})=>{const p=window.raidQA.state().feet;return Math.hypot(p[0]-x,p[2]-z)<.5;},{x,z},{timeout:45000});
   await page.keyboard.up('w');await page.keyboard.up('Shift');report.points.push((await state()).feet);
  }
- await page.keyboard.press('e');
  await page.waitForFunction(()=>window.raidQA.state().result?.outcome==='extracted');
  report.checks.push('South spawn to highway: all translation through real W/Shift, then successful extraction');
  await enter();

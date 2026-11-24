@@ -77,7 +77,6 @@ async function verify(seed, spawn, waypoints, exitId = 'highway') {
     for (const [x, z] of waypoints) await walk(x, z);
     assert.equal((await state()).feet[1], 0);
     await capture('highway');
-    await page.keyboard.press('KeyE');
     await page.waitForFunction((id) => window.raidQA.state().countdown?.exit.id === id, exitId);
     await page.waitForFunction(() => !!window.raidQA.state().result, undefined, { timeout: 15000 });
     const after = await state();

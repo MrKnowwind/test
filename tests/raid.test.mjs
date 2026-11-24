@@ -176,3 +176,34 @@ test('discarding the required card cancels an active conditional extraction', ()
   assert.equal(raid.result, undefined);
   assert.equal(raid.countdown, undefined);
 });
+
+test('remote lift keeps its scheduled departure, can be recalled and requires the correct floor at departure', () => {
+  const exit = {id:'lift', label:'货梯', remote:{flag:'lab-power',seconds:12}, position:[16,-5.4,-155],
+    radius:1.85, requirements:[{kind:'flag',id:'lab-power'}]};
+  const panel = {id:'panel',kind:'switch',flag:'lab-power'};
+  const run = createRaid('lift-window',42,{...map,exits:[...map.exits,exit],interactions:[panel]});
+  assert.ok(run.interact(panel.id));
+  run.update(2, exit.position, 100);
+  assert.equal(run.interact(panel.id),undefined);
+  run.update(9, [16,0,-155], 100);
+  assert.equal(run.liftWindow.remaining,1);
+  run.update(1,[16,0,-155],100);
+  assert.equal(run.result,undefined);
+  assert.equal(run.liftWindow,undefined);
+  assert.ok(run.interact(panel.id));
+  run.update(12, exit.position,100);
+  assert.equal(run.result.exitId,'lift');
+});
+
+test('local extraction and a remote window resolve independently with death first',()=>{
+  const exit={...map.exits[0],id:'lift',remote:{flag:'lab-power',seconds:5}};
+  const config={...map,exits:[...map.exits,exit],interactions:[{id:'panel',kind:'switch',flag:'lab-power'}]};
+  for(const health of [0,100]){
+    const raid=createRaid('overlap',42,config);
+    raid.interact('panel');raid.update(2,exit.position,100);
+    assert.equal(raid.liftWindow.remaining,3);
+    raid.update(3,exit.position,health);
+    assert.equal(raid.result.outcome,health?'extracted':'dead');
+    if(health)assert.equal(raid.result.exitId,'road');
+  }
+});

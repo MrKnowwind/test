@@ -1,6 +1,6 @@
 import { supplySites } from '../world/supplySites.ts';
 import { mapBounds } from '../world/worldQueries.ts';
-import type { FirstMap, Vec3 } from '../contracts/demo.ts';
+import type { ExitZone, FirstMap, Vec3 } from '../contracts/demo.ts';
 
 import { arcadeWidth, portBlocks, shopSide } from '../world/portBlocks.ts';
 import { freightHalls, hasGallery } from '../world/upperRoutes.ts';
@@ -17,7 +17,7 @@ export function createTacticalMap() {
 
   return {
     toggle() { panel.hidden = !panel.hidden; lastDraw = 0; },
-    update(map: FirstMap, feet: Vec3, yaw: number, now: number,discovered:ReadonlySet<string>,consumed:ReadonlySet<string>) {
+    update(map: FirstMap, feet: Vec3, yaw: number, now: number,discovered:ReadonlySet<string>,consumed:ReadonlySet<string>,statusFor:(exit:ExitZone)=>{kind:string;label:string}) {
       const degrees = ((-yaw * 180 / Math.PI) % 360 + 360) % 360;
       compass.textContent = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'][Math.round(degrees / 45) % 8];
       heading.textContent = `${Math.round(degrees).toString().padStart(3, '0')}°`;
@@ -109,12 +109,14 @@ export function createTacticalMap() {
       }
       for (const exit of map.exits) {
         const [x, z] = project(exit.position[0], exit.position[2]);
-        ctx.strokeStyle = '#ad5030';
+        const state = statusFor(exit);
+        ctx.strokeStyle = state.kind === 'locked' ? '#924529' : state.kind === 'active' ? '#886100' : '#117063';
         ctx.lineWidth = 2;
         ctx.strokeRect(x - 7, z - 7, 14, 14);
         ctx.fillStyle = '#854423';
         ctx.font = '15px "Microsoft YaHei",sans-serif';
-        ctx.fillText(exit.label, Math.min(x + 13, 760), z - 10);
+        const text = (exit.remote ? 'B1 ' : '') + exit.label + ' · ' + state.label;
+        ctx.fillText(text, Math.min(x + 13, 891 - ctx.measureText(text).width), z - 10);
       }
       const [x, z] = project(feet[0], feet[2]);
       ctx.save();

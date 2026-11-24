@@ -1,4 +1,5 @@
-import type { EnemySpawn, FirstMap, Vec3 } from '../contracts/demo.ts';
+import * as THREE from 'three';
+import type { EnemySpawn, ExitZone, FirstMap, Vec3 } from '../contracts/demo.ts';
 import { createEnvironment, mapInteractions } from './environment.ts';
 import { createWorldQueries, lab } from './worldQueries.ts';
 import { loosePoints } from './loosePoints.ts';
@@ -27,7 +28,7 @@ function placeEnemies(seed: number): EnemySpawn[] {
   ];
 }
 
-export function createFirstMap(seed: number): FirstMap & { scene: import('three').Group; doors:ReturnType<typeof createShopDoors> } {
+export function createFirstMap(seed: number): FirstMap & { scene: import('three').Group; doors:ReturnType<typeof createShopDoors>; updateExitLights(state:(exit:ExitZone)=>string):void } {
   const { scene, solids, rooms } = createEnvironment();
   const doors=createShopDoors(scene,solids,rooms.doors);
   const queries=createWorldQueries(solids);
@@ -45,15 +46,30 @@ export function createFirstMap(seed: number): FirstMap & { scene: import('three'
     if(indoor.every(other=>Math.hypot(other.position[0]-e.position[0],other.position[2]-e.position[2])>35))indoor.push(e);
     if(indoor.length===5)break;
   }
-  return {
-    ...queries, scene, doors, spawnPoints,
-    exits: [
+  const exits: ExitZone[] = [
       { id: 'highway', label: '公路出口', position: highwayPosition, radius: 2.2, requirements: [] },
       { id: 'service-passage', label: '维修通道', position: servicePosition, radius: 2,
         requirements: [{ kind: 'item', id: 'service-card' }] },
-      { id: 'lab-lift', label: '实验室货梯', position: districtPoint('research', [-4.6, lab.y, -25]), radius: 1.85,
+      { id: 'lab-lift', remote: { flag: 'lab-power', seconds: 12 }, label: '实验室货梯', position: districtPoint('research', [-4.6, lab.y, -25]), radius: 1.85,
         requirements: [{ kind: 'flag', id: 'lab-power' }] },
-    ],
+    ];
+  const rings = exits.map(exit => {
+    const material = new THREE.MeshBasicMaterial({color: 0x67e1b1, polygonOffset: true, polygonOffsetFactor: -2});
+    const ring = new THREE.Mesh(new THREE.RingGeometry(exit.radius - .12, exit.radius, 64), material);
+    ring.name = 'exit-boundary-' + exit.id;
+    ring.rotation.x = -Math.PI / 2;
+    ring.position.set(exit.position[0], exit.position[1] + .055, exit.position[2]);
+    scene.add(ring);
+    return material;
+  });
+  function updateExitLights(state: (exit: ExitZone) => string) {
+    exits.forEach((exit, i) => {
+      const status = state(exit);
+      rings[i].color.setHex(status === 'active' ? 0xffdf71 : status === 'ready' ? 0x53e4bd : 0xeb825e);
+    });
+  }
+  return {
+    ...queries, scene, doors, spawnPoints, exits, updateExitLights,
     regions: [
       { id: 'lab', label: '地下实验室 · 高风险', center: districtPoint('research', [9, lab.y, -31]), radius: 21 },
       { id: 'plant', label: '03 处理厂区', center: districtPoint('plant', [41, 0, -5]), radius: 45 },

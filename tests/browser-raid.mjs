@@ -105,13 +105,11 @@ async function scenario(name, seed, play) {
   }
 
   async function reject(reason) {
-    await key('KeyE');
-    await wait((reason) => document.querySelector('#notice').textContent.includes(reason), reason, 2500);
+    await wait((reason) => document.querySelector('#prompt').textContent.includes(reason), reason, 2500);
     assert.equal((await state()).countdown, undefined);
   }
 
   async function extract(id) {
-    await key('KeyE');
     await wait((id) => window.raidQA.state().countdown?.exit.id === id, id, 2500);
     await wait(() => Boolean(window.raidQA.state().result), undefined, 15000);
     const { result } = await state();
@@ -161,7 +159,6 @@ try {
         renderer: debug ? gl.getParameter(debug.UNMASKED_RENDERER_WEBGL) : gl.getParameter(gl.RENDERER) };
     });
     await route([-21, 5], [-21, -19]);
-    await key('KeyE');
     await wait(() => window.raidQA.state().countdown?.exit.id === 'highway');
     await route([-21, -15.8]);
     await wait(() => document.querySelector('#notice').textContent.includes('计时取消'));

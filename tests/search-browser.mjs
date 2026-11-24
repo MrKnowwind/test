@@ -39,8 +39,7 @@ try {
   assert.ok((await state()).backpack.some((e) => e.item === 'service-card' && e.section === 'main'));
   await closeBag();
   await pose([189, 0, -90], 0);
-  await page.waitForFunction(() => document.querySelector('#prompt').textContent.includes('按 E 撤离'));
-  await page.keyboard.press('e');
+  await page.waitForFunction(() => !!raidQA.state().countdown);
   await page.waitForFunction(() => raidQA.state().result?.outcome === 'extracted');
   assert.deepEqual((await state()).warehouse, { 'service-card': 1, sling: 1 });
   await page.locator('[data-sell="service-card"]').click();

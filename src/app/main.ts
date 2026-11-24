@@ -357,7 +357,7 @@ function startGame() {
     const pickup = run.raid.interact(target.id);
     if (!pickup) return false;
     if (pickup.kind === 'switch') {
-      notify('实验室货梯已通电');
+      notify('货梯已呼叫 · 请前往 B1 梯内');
       return true;
     }
     return false;
@@ -460,8 +460,8 @@ function startGame() {
     if(recovered){combat.heal(recovered);run.frame=combat.snapshot();if(!run.treatment.remaining)notify('治疗完成');}
     if(recovered && treating && !run.treatment.remaining)raid.log.heals++;
     if(bag.open)bag.risk(hurtTime>0?run.damageNotice+' · 按 Esc 返回':run.frame.enemies.some(e=>e.action==='windup')?'附近有攻击预警 · 按 Esc 返回':'搜刮时周围敌人仍会行动');
-    const message = raid.update(dt, player.feet, run.frame.health, control.interactPressed && !target);
-    if (message) notify(message);
+    const message = raid.update(dt, player.feet, run.frame.health);
+    if (message?.includes('取消') || message?.includes('离站')) notify(message);
     if (run.frame.feedback === 'empty') notify('空仓 · 按 R 换弹');
     if (run.frame.feedback === 'blocked') notify('攻击被掩体阻挡');
     if (run.frame.feedback === 'hit') { raid.log.hits++;hitTime = 0.17; audio.hit(run.frame.shot?.surface==='security-bot'); }
@@ -497,13 +497,13 @@ function startGame() {
     const target = findInteraction(map, raid.targets, raid.consumed, player.eye, player.direction);
     const exit = raid.exitAt(player.feet);
     const reason = exit && raid.blockedReason(exit);
-    const prompt = countdown ? `${countdown.exit.label} · ${countdown.remaining.toFixed(1)} 秒`
-      : target ? `E · ${target.kind === 'loot' ? '搜索容器 / ' : target.kind==='loose'?'拾取 / ':target.kind==='door'?(map.doors.isOpen(target.id)?'关门 / ':'开门 / '):''}${target.label}`
-      : exit ? `${exit.label} · ${reason ?? '按 E 撤离'}` : '';
+    const prompt = target ? `E · ${target.kind === 'loot' ? '搜索容器 / ' : target.kind==='loose'?'拾取 / ':target.kind==='door'?(map.doors.isOpen(target.id)?'关门 / ':'开门 / '):''}${target.label}`
+      : exit && reason ? exit.label + ' · ' + reason : '';
     const region = map.regions?.filter((entry) => Math.abs(entry.center[1] - player.feet[1]) < 4)
       .sort((a, b) => Math.hypot(a.center[0] - player.feet[0], a.center[2] - player.feet[2]) -
         Math.hypot(b.center[0] - player.feet[0], b.center[2] - player.feet[2]))[0];
-    view.updateRoutes(map.exits, raid.blockedReason, player.feet);
+    view.updateRoutes(map.exits, raid.exitStatus, player.feet);
+    map.updateExitLights(exit => raid.exitStatus(exit).kind);
     view.updateHud(frame, raid.spawn.id, underground, raid.items, region?.label,run.treatment.pose);
     const now=performance.now();
     if(entered && now>=run.nextSurvey){
@@ -514,8 +514,10 @@ function startGame() {
         if(d>.01 && d<=12 && map.blockedDistance(player.eye,[dx/d,dy/d,dz/d],Math.max(0,d-.24))===null)run.discovered.add(t.id);
       }
     }
-    tacticalMap.update(map, player.feet, player.yaw, now,run.discovered,raid.consumed);
-    view.feedback(run.treatment.pose?(run.treatment.pose.preview?'演示 · ':'')+itemName(run.treatment.pose.item)+' '+run.treatment.remaining.toFixed(1)+' 秒 · H 取消':hurtTime>0?run.damageNotice:noticeTime?notice:run.nearWall?'枪口接近掩体':'', prompt, countdown?.remaining, hitTime > 0, Math.min(1,hurtTime/.65), frame.weapon.aiming);
+    tacticalMap.update(map, player.feet, player.yaw, now,run.discovered,raid.consumed,raid.exitStatus);
+    const timerText = [countdown, raid.liftWindow].filter((t, i, both) => t && both.indexOf(t) === i)
+      .map(t => (t!.exit.remote ? '货梯离站' : '撤离') + ' · ' + Math.ceil(t!.remaining) + ' 秒').join('　');
+    view.feedback(run.treatment.pose?(run.treatment.pose.preview?'演示 · ':'')+itemName(run.treatment.pose.item)+' '+run.treatment.remaining.toFixed(1)+' 秒 · H 取消':hurtTime>0?run.damageNotice:noticeTime?notice:run.nearWall?'枪口接近掩体':'', prompt, timerText, hitTime > 0, Math.min(1,hurtTime/.65), frame.weapon.aiming);
   }
 
   let previous = performance.now();

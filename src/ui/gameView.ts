@@ -35,7 +35,7 @@ export function createGameView() {
   const action = byId('weapon-action');
   const notice = byId('notice');
   const prompt = byId('prompt');
-  const progress = byId<HTMLProgressElement>('extraction');
+  const clock = byId('exfil-clock');
   const crosshair = byId('crosshair');
   const hurt = byId('hurt');
   const routeStates = new Map<string, { row: HTMLElement; status: HTMLElement }>();
@@ -103,13 +103,13 @@ export function createGameView() {
         routeStates.set(exit.id, { row, status });
       }
     },
-    updateRoutes(exits: readonly ExitZone[], blockedReason: (exit: ExitZone) => string | undefined, feet?: Vec3) {
+    updateRoutes(exits: readonly ExitZone[], statusFor: (exit: ExitZone) => {kind:string;label:string}, feet?: Vec3) {
       for (const exit of exits) {
         const state = routeStates.get(exit.id)!;
-        const blocked = blockedReason(exit);
-        state.row.toggleAttribute('data-blocked', !!blocked);
+        const status = statusFor(exit);
+        state.row.toggleAttribute('data-blocked', status.kind === 'locked');
         const distance = feet ? ` · ${Math.round(Math.hypot(exit.position[0] - feet[0], exit.position[2] - feet[2]))} m` : '';
-        label(state.status, (blocked ? (blocked.includes('维修卡') ? '需维修卡' : '未通电') : '可撤离') + distance);
+        label(state.status, status.label + distance);
       }
     },
     updateHud(frame: CombatFrame, spawnId: string, underground: boolean, inventory: Readonly<Inventory>, region?: string, treatment?:TreatmentPose) {
@@ -130,13 +130,13 @@ export function createGameView() {
       label(ammo, state.unarmed?'—':state.id !== 'knife' ? `${state.loaded} / ${state.reserve}` : '近战');
       label(action, state.action === 'reloading' ? '换弹中' : state.aiming ? '举枪' : state.action === 'slashing' ? '挥击' : '');
     },
-    feedback(message: string, interaction: string, remaining: number | undefined, hit: boolean, damage: number, aiming: boolean) {
+    feedback(message: string, interaction: string, timerText: string, hit: boolean, damage: number, aiming: boolean) {
       label(notice, message);
       notice.hidden = !message;
       label(prompt, interaction);
       prompt.hidden = !interaction;
-      progress.hidden = remaining === undefined;
-      if (remaining !== undefined) progress.value = progress.max - remaining;
+      clock.hidden = !timerText;
+      label(clock, timerText);
       crosshair.hidden = aiming && !hit;
       crosshair.toggleAttribute('data-hit', hit);
       hurt.style.opacity = String(damage);

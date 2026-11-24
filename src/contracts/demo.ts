@@ -26,6 +26,7 @@ export interface ExitZone {
   position: Vec3;
   radius: number;
   requirements: readonly ExitRequirement[];
+  remote?: { flag: FlagId; seconds: number };
 }
 
 export type MapInteraction = { id: string; label: string; position: Vec3 } & (

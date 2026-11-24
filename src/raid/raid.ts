@@ -97,7 +97,9 @@ export function createRaid(runId: string, seed: number, map: RaidMap) {
   }
   const consumed = new Set<string>();
   const flags = new Set<FlagId>();
-  let countdown: { exit: ExitZone; elapsed: number } | undefined;
+  type Timer = { exit: ExitZone; remaining: number };
+  let countdown: Timer | undefined;
+  let lift: Timer | undefined;
   let result: RaidResult | undefined;
 
   const exitAt = (feet: Vec3) => map.exits.find((exit) => contains(exit, feet));
@@ -115,6 +117,11 @@ export function createRaid(runId: string, seed: number, map: RaidMap) {
     const target = map.interactions.find((interaction) => interaction.id === id);
     if (!target) return;
     if (target.kind === 'switch') {
+      const exit = map.exits.find(zone => zone.remote?.flag === target.flag);
+      if (exit?.remote) {
+        if (lift) return;
+        lift = { exit, remaining: exit.remote.seconds };
+      }
       flags.add(target.flag);
     } else return;
     consumed.add(id);
@@ -284,57 +291,63 @@ export function createRaid(runId: string, seed: number, map: RaidMap) {
     delete backpack.slots[slot];
     return true;
   }
+  function exitStatus(exit: ExitZone) {
+    const timer = countdown?.exit === exit ? countdown : lift?.exit === exit ? lift : undefined;
+    if (timer) return { kind: 'active', label: '进行中 · ' + Math.ceil(timer.remaining) + ' 秒' };
+    const reason = blockedReason(exit);
+    return reason ? { kind: 'locked', label: reason }
+      : { kind: 'ready', label: '可撤离' };
+  }
+
   function finish(outcome: 'dead' | 'abandoned') {
     if (result) return;
     const lost = backpack.inventory();
     backpack.clear();
     result = { runId, outcome, items: {}, lost, ...record() };
-    countdown = undefined;
+    countdown = lift = undefined;
   }
 
-  function update(dt: number, feet: Vec3, health: number, requestExit = false) {
+  function extract(exit: ExitZone) {
+    result = {
+      runId, outcome: 'extracted', exitId: exit.id, items: backpack.inventory(true), ...record(),
+      instances: [...backpack.entries, ...Object.values(backpack.slots), ...(backpack.equipped ? [backpack.equipped] : [])]
+        .filter(e => e.instance && !e.issued).map(e => ({ ...e })),
+    };
+    countdown = lift = undefined;
+  }
+
+  function update(dt: number, feet: Vec3, health: number) {
     if (result) return;
-    seconds += Math.max(dt, 0);
-    if (health <= 0) {
-      finish('dead');
-      return;
+    const delta = Math.max(0, dt);
+    seconds += delta;
+    if (health <= 0) { finish('dead'); return; }
+    let message: string | undefined;
+    if (countdown && (!contains(countdown.exit, feet) || blockedReason(countdown.exit))) {
+      const reason = blockedReason(countdown.exit) ?? '离开撤离区';
+      cancelExit(reason);
+      message = reason + '，计时取消';
     }
-    if (countdown && !contains(countdown.exit, feet)) {
-      cancelExit('离开撤离区');
-      return '已离开撤离区，计时取消';
+    const local = map.exits.find(exit => !exit.remote && contains(exit, feet) && !blockedReason(exit));
+    if (!countdown && local) countdown = { exit: local, remaining: extractionTime };
+    // Resolve by simulated deadline. Map order breaks exact ties, including overlapping zones.
+    let winner: Timer | undefined;
+    for (const timer of [countdown, lift]) {
+      if (!timer) continue;
+      timer.remaining -= delta;
+      if (timer.remaining > 1e-9 || !contains(timer.exit, feet) || blockedReason(timer.exit)) continue;
+      if (!winner || timer.remaining < winner.remaining ||
+          (timer.remaining === winner.remaining && map.exits.indexOf(timer.exit) < map.exits.indexOf(winner.exit))) winner = timer;
     }
-    if (countdown) {
-      const reason = blockedReason(countdown.exit);
-      if (reason) {
-        cancelExit(reason);
-        return reason;
-      }
-      countdown.elapsed += dt;
-      if (countdown.elapsed >= extractionTime - 1e-9) {
-        result = {
-          runId,
-          outcome: 'extracted',
-          exitId: countdown.exit.id,
-          items: backpack.inventory(true),
-          ...record(),
-          instances: [
-            ...backpack.entries,
-            ...Object.values(backpack.slots),
-            ...(backpack.equipped ? [backpack.equipped] : []),
-          ]
-            .filter((e) => e.instance && !e.issued)
-            .map((e) => ({ ...e })),
-        };
-        countdown = undefined;
-      }
-    } else if (requestExit) {
-      const exit = exitAt(feet);
-      if (!exit) return;
-      const reason = blockedReason(exit);
-      if (reason) return reason;
-      countdown = { exit, elapsed: 0 };
+    if (winner) { extract(winner.exit); return; }
+    if (lift && lift.remaining <= 1e-9) {
+      const flag = lift.exit.remote!.flag;
+      flags.delete(flag);
+      for (const t of map.interactions) if (t.kind === 'switch' && t.flag === flag) consumed.delete(t.id);
+      lift = undefined;
+      log.cancellations.push('错过货梯');
+      return '货梯已离站 · 可返回配电柜重新呼叫';
     }
-    return undefined;
+    return message ?? (exitAt(feet) && blockedReason(exitAt(feet)!));
   }
 
   return {
@@ -367,14 +380,15 @@ export function createRaid(runId: string, seed: number, map: RaidMap) {
     takeContainerItem,
     flags: flags as ReadonlySet<FlagId>,
     exitAt,
-    blockedReason,
+    blockedReason, exitStatus,
+    get liftWindow() { return lift; },
     interact,
     update,
     get result() {
       return result;
     },
     get countdown() {
-      return countdown && { exit: countdown.exit, remaining: extractionTime - countdown.elapsed };
+      return countdown ?? lift;
     },
     abandon: () => finish('abandoned'),
   };

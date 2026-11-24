@@ -27,23 +27,23 @@ try {
    await page.waitForFunction(({x,z})=>{const p=window.raidQA.state().feet;return Math.hypot(p[0]-x,p[2]-z)<.5;},{x,z},{timeout:60000});
    await page.keyboard.up('w');await page.keyboard.up('Shift');record.points.push((await state()).feet);
   }
-  await page.keyboard.press('e');await page.waitForFunction(()=>window.raidQA.state().result?.outcome==='extracted');
+  await page.waitForFunction(()=>window.raidQA.state().result?.outcome==='extracted');
   report.routes.push(record);
  }
  report.checks.push('East and wharf spawns: full real movement to highway and successful extraction; only turning uses pose');
  await fresh();report.bundle=await page.locator('script[type=module]').getAttribute('src');
- await pose([15.4,-5.4,-155]);await page.keyboard.press('e');
- await page.waitForFunction(()=>document.querySelector('#notice').textContent.includes('配电'));
+ await pose([15.4,-5.4,-155]);
+ await page.waitForFunction(()=>document.querySelector('#prompt').textContent.includes('配电'));
  assert.equal((await state()).countdown,undefined);
  await pose([16,-5.4,-166.7],0,-.16);await page.keyboard.press('e');
  await page.waitForFunction(()=>window.raidQA.state().flags.includes('lab-power'));
- await pose([15.4,-5.4,-155]);await page.keyboard.press('e');
+ await pose([15.4,-5.4,-155]);
  await page.waitForFunction(()=>window.raidQA.state().result?.outcome==='extracted');
  report.checks.push('Relocated lab lift rejects before power, accepts actual physical panel and extracts');
  await fresh();await pose([-9,0,14.5],0,-.32);await page.keyboard.press('e');
  await page.locator('.source-item.revealed').first().waitFor();await page.locator('.source-item.revealed').first().dblclick();
  await page.waitForTimeout(350);await page.locator('#bag-close').click();await page.waitForFunction(()=>window.raidQA.state().locked);
- await pose([189,0,-90]);await page.keyboard.press('e');await page.waitForFunction(()=>!!window.raidQA.state().countdown);
+ await pose([189,0,-90]);await page.waitForFunction(()=>!!window.raidQA.state().countdown);
  await page.keyboard.press('Tab');await page.locator('#backpack-panel').waitFor({state:'visible'});
  const card=(await state()).backpack.find(e=>e.item==='service-card');await page.locator('[data-entry="'+card.id+'"]').click();await page.locator('#bag-drop').click();
  await page.waitForFunction(()=>!window.raidQA.state().countdown);assert.equal((await state()).result,undefined);
