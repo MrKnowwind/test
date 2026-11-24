@@ -15,16 +15,15 @@ export function addArcology(root: THREE.Group,m: Materials,solid: Solid) {
   const glass=enamel(0x284a70);
   const rail=(a:Vec3,b:Vec3,w:number,d:number,mat:THREE.Material)=>
     strut(root,mat,new THREE.Vector3(...a),new THREE.Vector3(...b),w,d);
-  function badge(x:number,y:number,z:number,code:string,sub:string,w:number) {
+  function badge(x:number,y:number,z:number,code:string,w:number) {
     const board=label(root,w,w*.36,(g,width,height)=>{
       g.fillStyle='#203451';g.fillRect(0,0,width,height);
       g.fillStyle='#71f1da';g.fillRect(0,0,10,height);
       g.font='900 86px sans-serif';g.fillStyle='#f3f7ed';g.fillText(code,24,91,width-42);
-      g.font='bold 29px monospace';g.fillStyle='#9de3eb';g.fillText(sub,26,139,width-46);
     },.16);board.position.set(x,y,z);
   }
   // Chamfered station body, panoramic visor, overhanging lid and recessed service bay.
-  function station(x:number,z:number,w:number,d:number,h:number,accent:THREE.Material,code:string,sub:string) {
+  function station(x:number,z:number,w:number,d:number,h:number,accent:THREE.Material,code:string,_sub:string) {
     solid([x,.32,z],[w+.42,.64,d+.42],navy,.22);
     solid([x,h/2+.5,z],[w,h-.28,d],porcelain,.28);
     solid([x,h+.55,z],[w+.48,.46,d+.5],accent,.21);
@@ -38,7 +37,7 @@ export function addArcology(root: THREE.Group,m: Materials,solid: Solid) {
     box(root,mint,w*.54,.09,.06,x,h*.83,front+.105);
     box(root,navy,w*.54,h*.26,.08,x,h*.245,front+.055,.035);
     for(let i=-2;i<=2;i++) box(root,m.zinc,.12,h*.19,.09,x+i*w*.08,h*.24,front+.1);
-    badge(x,h*.66,front+.092,code,sub,Math.min(w*.59,4));
+    badge(x,h*.66,front+.092,code,Math.min(w*.24,1.45));
     solid([x-w*.19,h+1.11,z],[w*.46,.72,d*.63],navy,.14);
     for(let i=0;i<4;i++) box(root,m.zinc,w*.4,.12,.19,x-w*.19,h+1.5,z+(i-1.5)*d*.13,.03);
   }
@@ -80,13 +79,6 @@ export function addArcology(root: THREE.Group,m: Materials,solid: Solid) {
     for(const end of [-1,1]) {
       const fz=z+end*(d/2+.17);
       solid([x,roof-.49,fz],[w-.35,.73,.32],accent,.10);
-      const marker = label(root,w*.62,.58,(ctx,width,height)=>{
-        ctx.fillStyle='#223752';ctx.fillRect(0,0,width,height);
-        ctx.fillStyle='#e3fff8';ctx.font='bold 40px sans-serif';
-        ctx.fillText(code+'   '+sub,12,height*.78,width-24);
-      },.14);
-      marker.position.set(x,roof-.49,fz+end*.166);
-      marker.rotation.y=end<0?Math.PI:0;
       for(const side of [-1,1])
         box(root,accent,.52,.018,.78,x+side*1.48,.052,z+end*(d/2-.58));
     }

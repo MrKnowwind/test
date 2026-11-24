@@ -93,7 +93,7 @@ export function addDistrictDetails(root: THREE.Group, m: Materials, solid: Solid
   }
   // 80m freight sample: paired loading entrances, storage aisles and a separate workshop.
   shed(-78,3,32,40);
-  sign(-78,4.4,23.2,'06 转运仓','TRANSIT / NORTH & SOUTH ACCESS');
+
   for(const x of [-89,-67]) for(const [i,z] of [-9,2,13].entries()) rack(x,z,i);
   for(const z of [-10,10]) {
     const light = new THREE.PointLight(0xffd1a0, 100, 25, 2);

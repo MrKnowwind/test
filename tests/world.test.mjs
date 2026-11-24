@@ -264,3 +264,21 @@ test('freight mezzanines and shop balconies allow a round trip on foot to their 
     visit('freight-loft-'+i,[[sx,low-.70],[sx,low+7.8],[sx,bridge],[x-w/2+3.38,bridge]],3.12);
   });
 });
+
+test('the playable body crosses the wharf, factory and B1 ramp seams in both directions',async()=>{
+  const {PerspectiveCamera}=await import('three');
+  const {createPlayer}=await import('../src/player/controller.ts');
+  for(const [start,end] of [
+    [[-135,-.8,27],[-120,0,27]], [[140.5,0,-16],[140.5,3.2,-34]], [[40.5,0,-130],[40.5,-5.4,-155]],
+  ]){
+    const player=createPlayer(new PerspectiveCamera(),map,{id:'seam',position:start,yaw:0});
+    for(const to of [end,start]){
+      player.pose(player.feet,Math.atan2(player.feet[0]-to[0],player.feet[2]-to[2]));
+      const limit=Math.ceil(Math.hypot(to[0]-player.feet[0],to[2]-player.feet[2])*60/6.25)+6;
+      for(let i=0;i<limit && Math.hypot(player.feet[0]-to[0],player.feet[2]-to[2])>.1;i++)
+        player.move(1/60,{forward:1,strafe:0,lookX:0,lookY:0,running:true},false);
+      assert.ok(Math.hypot(player.feet[0]-to[0],player.feet[2]-to[2])<.12,JSON.stringify({to,feet:player.feet}));
+      assert.ok(Math.abs(player.feet[1]-to[1])<.02);
+    }
+  }
+});

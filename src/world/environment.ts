@@ -84,7 +84,7 @@ export function createEnvironment() {
     tileByPosition(geometry, material === m.asphalt ? 5 : 3);
     const floor = mesh(staticRoot, geometry, material);
     floor.castShadow = true;
-    solids.push({ min: [x1, y - .36, z1], max: [x2, y, z2], surface: material === m.concrete ? 'concrete' : undefined, floor: true });
+    solids.push({ min: [x1, y - .36, z1], max: [x2, y, z2], surface: material === m.concrete ? 'concrete' : undefined, floor: true, walkSurface: true });
   }
 
   function slope(rect: { minX: number; maxX: number; minZ: number; maxZ: number }, profile: Slope, material = m.concrete) {
@@ -95,7 +95,7 @@ export function createEnvironment() {
     geometry.computeVertexNormals();
     tileByPosition(geometry, 3);
     mesh(staticRoot, geometry, material);
-    solids.push({ min: [rect.minX, -.32, rect.minZ], max: [rect.maxX, 0, rect.maxZ], floor: true, surface: 'concrete', slope: profile });
+    solids.push({ min: [rect.minX, -.32, rect.minZ], max: [rect.maxX, 0, rect.maxZ], floor: true, walkSurface: true, surface: 'concrete', slope: profile });
   }
 
   function sign(at: Vec3, width: number, yaw: number, title: string, note: string, accent = '#a8f7e3') {
@@ -268,8 +268,26 @@ export function createEnvironment() {
     pipe([[x+7.4,15.9,z],[x+7.4,11,z],[x+7.4,5.3,z]], .026, dark);
     box(staticRoot, yellow, 1.8, .25, .55, x+7.4,5.2,z,.03);
   }
-  sign([-34, 2.3, 21.6], 3.3, Math.PI / 2, '01 货运码头', 'WHARF / CONTAINER YARD');
-  sign([-50.5, 1.75, 27.2], 2.6, 0, '盐港南泊位', '保持通道畅通');
+
+  // Crane bogies, flush rail heads and a travelling spreader share the dock's long axis.
+  // Crossing the tracks is level. Only the bogies and the raised gantry occupy body space.
+  for (const x of [-58.1,-53.9]) {
+    box(staticRoot, dark, .34,.024,62, x,dock.y+.015,-5);
+    box(staticRoot, m.zinc, .115,.031,62, x,dock.y+.037,-5);
+    for (const z of [-24,3]) {
+      solid([x,dock.y+.22,z+1.25],[.65,.44,3.8],yellow,.10);
+      for (const dz of [-.2,2.7]) box(staticRoot,dark,.69,.34,.45,x,dock.y+.18,z+dz,.06);
+    }
+  }
+  for (const x of [-57.1,-54.9]) {
+    solid([x,11.7,-10.5],[.30,.42,27.8],painted,.035);
+    for (let z=-23;z<2;z+=4.5) beam([x,10.94,z],[x,11.75,z+4.25],.12,.14,yellow);
+  }
+  solid([-48.6,5.0,3],[2.6,.32,5.3],yellow,.09);
+  for (const side of [-1,1]) {
+    beam([-48.6,10.1,3],[-48.6+side,5.1,3+side*1.9],.045,.045,dark);
+    box(staticRoot,rust,.30,.46,.42,-48.6+side,4.87,3+side*2.2);
+  }
 
   district('warehouse');
   // Central warehouse: a roofed, open-span interior with two cross routes.
@@ -323,8 +341,30 @@ export function createEnvironment() {
     }
     box(staticRoot,yellow,6,.34,.48,x,5.51,21.29,.05);
   }
-  sign([-4,4.98,21.17],4.8,0,'02 物流仓储','SALTLINE FREIGHT / 仓内有补给');
-  sign([-4,4.96,-5.2],4.8,Math.PI,'02 物流仓储','北门 → 研究设施');
+  // High north-light monitors break up the ridge. Open trusses below still read from both loading doors.
+  for (const z of [-.9,7.5,15.9]) {
+    solid([wx,7.93,z],[5.6,.58,3.15],painted,.08);
+    solid([wx,8.47,z-.96],[5.48,1.02,.22],m.zinc,.02);
+    box(staticRoot,dark,5.12,.73,.10,wx,8.46,z-1.12);
+    for(const offset of [-1.75,0,1.75]) box(staticRoot,offwhite,.14,.79,.15,wx+offset,8.46,z-1.18);
+    const cap=box(staticRoot,offwhite,5.92,.15,3.42,wx,8.52,z,.03);
+    cap.rotation.x=.27;
+  }
+  // Roller transfer table: a short crouch-through lane beside the full-height centre aisle.
+  solid([-11.1,1.38,-.55],[3.18,.18,1.92],painted,.05);
+  for (const side of [-1,1]) for(const dz of [-.78,.78]) {
+    const x=-11.1+side*1.47, z=-.55+dz;
+    solid([x,.65,z],[.20,1.30,.23],yellow,.025);
+    box(staticRoot,dark,.31,.10,.31,x,.05,z);
+  }
+  for(let i=0;i<9;i++) {
+    const roller=cylinder(staticRoot,m.zinc,.085,1.79,-12.42+i*.33,1.50,-.55,10);
+    roller.rotation.x=Math.PI/2;
+  }
+  for(const x of [-6.82,-1.18]) {
+    box(staticRoot,yellow,.10,.012,20,x,.026,8);
+    for(const z of [0,8,16])box(staticRoot,offwhite,.60,.014,.15,x,.029,z);
+  }
   for(const [x,z,w,h,d] of [[-12,3,2,1.4,1.5],[-12,8,2,1.4,1.5],[-13.4,16,1.5,1.4,1.3]]) {
     crate(x,0,z,w,h,d); crate(x,.14+h,z,w*.88,.7,d*.9);
   }
@@ -344,8 +384,7 @@ export function createEnvironment() {
   for(const dx of [-1.7,1.7]) solid([ox+dx,1.5,oz+2.1],[1.4,3,.22],offwhite,.02);
   box(staticRoot,m.zinc,5.1,.16,4.7,ox,3.13,oz,.016);
   solid([-9,.48,12.75],[1.75,.96,.8],m.steel,.02);
-  sign([-10,2.7,16.65],2.6,0,'值班室','维修卡 / SERVICE ACCESS');
-  sign([-6,2.02,5.44],2.9,Math.PI,'仓储检修台','工具与维修零件');
+  sign([-10,2.7,16.65],2.6,0,'值班室','SERVICE ACCESS');
   lamp([-10,2.75,14.6],0xffbd84,28);
   lamp([-4,5.8,8],0xffd5a3,120);
   lamp([-4,5.8,19],0xffc28b,90);
@@ -387,9 +426,12 @@ export function createEnvironment() {
   // Loot on the walkable platform in front of its bench.
   solid([37,3.68,-9.1],[1.9,.96,.8],painted,.02);
   solid([35,.48,20.7],[2.1,.96,.9],m.steel,.02);
-  for (const x of [42.56,48.44]) solid([x,2.1,18.45],[.26,4.2,.36],m.steel);
-  solid([45.5,3.78,18.45],[6.1,1.0,.22],painted);
-  sign([45.5,3.7,18.6],3.5,0,'03 处理厂区','坡道通往 +3.2 m 维护平台');
+  // The intake header and filter cups physically terminate at two process tanks.
+  for (const x of [33.5,39.7]) {
+    pipe([[x,8.1,-2],[x,10.2,-2],[x,10.2,1],[x,8.7,1]],.23,painted);
+    cylinder(staticRoot,yellow,.37,.18,x,9.37,1,12);
+    cylinder(staticRoot,m.steel,.29,.72,x,8.95,1,12);
+  }
   lamp([35,10.1,-5],0xffca8c,170);
   lamp([51,5.6,18.4],0xffb973,105,[44,1,12]);
 
@@ -412,8 +454,15 @@ export function createEnvironment() {
     solid([20.5,5.14,z],[6.15,.44,.85],m.steel,.08);
     box(staticRoot,offwhite,4.6,.045,.47,20.5,4.9,z);
   }
-  solid([20.5,4.35,-2.85],[6.1,1.39,.40],iris,.14);
-  sign([20.5,4.38,-2.635],5.1,0,'04 生化研究设施','地下 -5.4 m / 高风险区域','#91c6c0');
+  // Paired wash nozzles and a recessed drain distinguish the entry; the opening follows the clear ramp width.
+  for (const x of [17.37,23.63]) {
+    pipe([[x,4.7,-3.3],[x,4.7,-7.8],[x,4.05,-7.8]],.11,m.zinc);
+    for (const z of [-4.45,-6.25,-7.8]) {
+      cylinder(staticRoot,m.steel,.19,.16,x,4.52,z,10);
+      cylinder(staticRoot,offwhite,.15,.07,x,4.42,z,10);
+    }
+  }
+  for(const z of [-2.3,-1.95]) box(staticRoot,m.steel,4.2,.015,.09,20.5,.012,z);
   for(const x of [17.9,23.1]) {
     // Ramp side walls are tall enough to prevent stepping into the opening from the yard.
     solid([x,-1.6,-11.5],[.2,8.4,17.0],m.concrete,.018);
@@ -524,13 +573,8 @@ export function createEnvironment() {
   // Main road and two parallel approaches; roads stay clear for navigation and AI.
   district();
   buildRoads(staticRoot, m.asphalt);
-  for(const [x,z,title,note] of [
-    [-24,130,'南侧公路','仓储 ↑ / 公路撤离 ←'],[-110,85,'货运码头','沿西路北行 / 泊位双向入口'],
-    [60,80,'地区联络路','研究设施 ↑ / 厂区 →'],[174,-83,'维修出口','前方需维修卡'],
-    [40.5,-124,'研究设施','前方坡道 / 地下高风险'],[-151,145,'公路出口','入区自动撤离'],
-  ] as const) {
-    post(x-6,0,z,3.4); sign([x-6,2.9,z+.14],4.8,0,title,note);
-  }
+  // A single direction marker where the service road forks. The exit itself has the card reader.
+  post(168,0,-83,2.4); sign([168,2.09,-82.86],1.8,0,'维修出口 →','持卡通行');
   for(const x of [-154,-148]) post(x,0,144.7,4);
   beam([-154,4,144.7],[-148,4,144.7],.2);
   sign([highwayPosition[0],3.24,144.86],4.6,0,'公路出口','入区守候 5 秒','#9ac79f');
@@ -570,7 +614,6 @@ export function createEnvironment() {
     modules.cabinet(x+w*.4,z+d*.14);
     modules.pallet(x+w*.3,0,z+d*.3);
     lamp([x,5.5,z],x>60?0xc7d7cf:0xffc18b,75);
-    sign([x,4.6,z+d*.5+.2],4.5,0,x>60?'处理与隔离车间':'维修与后勤设施','双向通道 / 物资容器在工作台');
   }
   // Laboratory cabinetry and hanging services use the existing underground floor.
   // Bonded floor inlays and alternating bulkheads frame the B1 circulation aisles.
@@ -611,10 +654,9 @@ export function createEnvironment() {
       beam([px,2.74,z+6.86],[px+side*.58,3.51,z+6.86],.25,.35,fascia);
       beam([px,3.08,z+6.86],[px,3.74,z+5.25],.16,.23,m.steel);
     }
-    solid([x,3.50,z+6.86],[7.65,1,.42],fascia,.12);
-    sign([x+.53,3.51,z+7.08],4.65,0,site.label,code+'  /  风险'+site.risk+'  /  高台储备');
+    solid([x,3.70,z+6.86],[6.04,.24,.36],fascia,.06);
     // A backlit category pictogram stays legible before the lettering resolves.
-    const markX=x-2.74, markY=3.5, markZ=z+7.09;
+    const markX=x-2.85, markY=2.24, markZ=z+7.095;
     box(staticRoot,m.steel,1.0,.83,.06,markX,markY,markZ,.07);
     if(code==='MED') {
       box(staticRoot,guide,.59,.17,.04,markX,markY,markZ+.05);

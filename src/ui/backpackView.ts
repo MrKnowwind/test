@@ -294,6 +294,7 @@ export function createBackpackView(actions: Action) {
       for (let x = 0; x < s.w; x++) {
         const cell = document.createElement(from === 'bag' ? 'button' : 'span');
         cell.className = from === 'bag' ? 'bag-cell' : 'source-cell';
+        if (from === 'bag') cell.setAttribute('aria-label', s.name + ' 第' + (y + 1) + '行第' + (x + 1) + '列');
         grid.append(cell);
         cell.dataset.x = String(x);
         cell.dataset.y = String(y);

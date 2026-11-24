@@ -1,5 +1,7 @@
 # 美术与技术美术
 
+本次实机对照包括[码头、仓储、厂区和研究设施](../qa/field-pass/districts.webp)及[第一人称蹲伏、滑铲和攀边实录](../qa/field-pass/movement.mp4)。
+
 2026-11-20 港区采用科幻赛璐璐美术。队员和两类敌人、第一人称装备、沿街店面与背包界面的游戏内画面见[本轮实拍](PORT_CEL_GAMEPLAY.webp)，版本和验收范围见[当前状态](../memory/STATUS.md)。
 
 2026-11-13 程序材质/动作见 [程序内容增量](PROCEDURAL_PASS.md)，地区见 [地区增量](../demo/DISTRICT_PASS.md)。下列为迁移前历史记录： [外观修订](VISUAL_REFINEMENT.md)、[第一人称](FP_REFINEMENT.md) 和 [感染体](INFECTED_REFINEMENT.md)。下文为制作标准，不能据此推定所有资产已达到目标精度。

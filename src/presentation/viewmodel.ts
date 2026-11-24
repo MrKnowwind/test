@@ -115,7 +115,7 @@ export function createViewmodel() {
         const grip = ease(t, .01 + i*.045, .23 + i*.035) * (1-ease(t,.63+i*.04,.96));
         gripPoint.set(...anchor);
         group.worldToLocal(gripPoint);
-        hand.root.position.set(side*.16, -.30, -.29).lerp(gripPoint, grip);
+        hand.root.position.set(side*.16, -.17, -.36).lerp(gripPoint, grip);
         hand.root.rotation.set(-.16 + grip*.20, side*.12, side*(.22+grip*1.24));
         fitArm(i === 0 ? leftArm : rightArm, hand.wrist, i === 0 ? leftBase : rightBase);
       }

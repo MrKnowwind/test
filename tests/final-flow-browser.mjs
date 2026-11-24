@@ -45,7 +45,7 @@ try {
  await page.waitForTimeout(350);await page.locator('#bag-close').click();await page.waitForFunction(()=>window.raidQA.state().locked);
  await pose([189,0,-90]);await page.waitForFunction(()=>!!window.raidQA.state().countdown);
  await page.keyboard.press('Tab');await page.locator('#backpack-panel').waitFor({state:'visible'});
- const card=(await state()).backpack.find(e=>e.item==='service-card');await page.locator('[data-entry="'+card.id+'"]').click();await page.locator('#bag-drop').click();
+ const card=(await state()).backpack.find(e=>e.item==='service-card');await page.locator('[data-entry="'+card.id+'"]').click();await page.keyboard.press('Delete');
  await page.waitForFunction(()=>!window.raidQA.state().countdown);assert.equal((await state()).result,undefined);
  await page.screenshot({path:dir+'/card-drop-cancels.png'});
  report.checks.push('Discarding the card through the actual backpack cancels an active extraction while the world runs');

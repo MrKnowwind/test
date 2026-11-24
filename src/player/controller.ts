@@ -18,9 +18,16 @@ export function createPlayer(camera: PerspectiveCamera, world: WorldQueries, spa
 
   function syncCamera() {
     camera.position.set(feet[0], feet[1] + eyeHeight, feet[2]);
-    const brace = climb ? MathUtils.smoothstep(climb.elapsed / climbDuration, 0, .20) *
-      (1 - MathUtils.smoothstep(climb.elapsed / climbDuration,.64,1)) : 0;
-    camera.rotation.set(pitch + recoil - brace * .17, yaw, 0, 'YXZ');
+    let viewPitch = pitch + recoil;
+    if (climb) {
+      const t = climb.elapsed / climbDuration, hand = climb.ledge.left;
+      const dy = hand[1] - camera.position.y;
+      const distance = Math.hypot(hand[0]-feet[0], hand[2]-feet[2]);
+      const focus = MathUtils.clamp(Math.atan2(dy,distance)+.19, pitch-.52, pitch);
+      const brace = MathUtils.smoothstep(t,0,.23) * (1-MathUtils.smoothstep(t,.67,1));
+      viewPitch = MathUtils.lerp(viewPitch,focus,brace);
+    }
+    camera.rotation.set(viewPitch, yaw, 0, 'YXZ');
     camera.updateMatrixWorld(true);
     camera.getWorldDirection(forwardRay);
   }
@@ -72,7 +79,7 @@ export function createPlayer(camera: PerspectiveCamera, world: WorldQueries, spa
       }
       crouched = crouchRequested || (crouched && world.bodyClear?.(feet, radius, standingHeight) === false);
       const height = crouched ? crouchingHeight : standingHeight;
-      const speed = crouched ? 2.15 : input.quiet ? 2 : aiming ? 2.55 : wantsSprint ? 6.25 : 4.15;
+      const speed = crouched ? (input.quiet ? 1.55 : 2.15) : input.quiet ? 2 : aiming ? 2.55 : wantsSprint ? 6.25 : 4.15;
       const scale = speed * (creative?.speed ?? 1) * dt / Math.max(1, Math.hypot(strafe, forward));
       let dx = (Math.cos(yaw) * strafe + direction[0] * forward) * scale;
       let dz = (-Math.sin(yaw) * strafe + direction[2] * forward) * scale;
@@ -91,7 +98,7 @@ export function createPlayer(camera: PerspectiveCamera, world: WorldQueries, spa
         if (climb) {
           climb.elapsed += dt;
           const t = Math.min(1, climb.elapsed / climbDuration);
-          const lift = MathUtils.smoothstep(t, .17, .72), reach = MathUtils.smoothstep(t, .68, 1);
+          const lift = MathUtils.smoothstep(t, .32, .77), reach = MathUtils.smoothstep(t, .68, 1);
           const to = climb.ledge.landing, start = climb.from;
           feet = world.moveBody(feet, MathUtils.lerp(start[0], to[0], reach)-feet[0],
             MathUtils.lerp(start[1], to[1]+.04, lift)-feet[1], MathUtils.lerp(start[2], to[2], reach)-feet[2], radius,height);
@@ -112,7 +119,7 @@ export function createPlayer(camera: PerspectiveCamera, world: WorldQueries, spa
       } else if (strafe || forward) feet = world.moveGrounded(feet, dx, dz, radius, height);
       const travel = Math.hypot(feet[0] - previous[0], feet[2] - previous[2]);
       sprintTime = wantsSprint && onGround && !crouched && travel > dt*5 ? Math.min(.2,sprintTime+dt) : 0;
-      eyeHeight = MathUtils.damp(eyeHeight, slide ? .78 : crouched ? .98 : climb ? 1.30 : 1.65, 14, dt);
+      eyeHeight = MathUtils.damp(eyeHeight, slide ? .78 : crouched ? .98 : climb ? 1.16 : 1.65, 14, dt);
       if (crouched && eyeHeight > .98) {
         const ceiling = world.blockedDistance([feet[0],feet[1]+.1,feet[2]], [0,1,0], eyeHeight);
         if (ceiling !== null) eyeHeight = Math.min(eyeHeight, Math.max(.3, ceiling+.065));

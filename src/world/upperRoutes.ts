@@ -87,7 +87,7 @@ export function upperRoutes(root:THREE.Group,m:Materials,solid:Builder,solids:So
       for(const px of [x+shopSide*(w/2-.23),boundary])solid([px,y+1.4,z+dz],[.21,2.8,.23],m.steel,0);
     }
     for(const px of [x-side*.25,x+shopSide*2.1])box(root,m.safety,.09,.02,1.3,px,y+.025,south-.64);
-    cases.push({id:'gallery-'+index,kind:'loot',label:'二层港务交接箱',item:'manual',quantity:1,position:[deskX,y+1.23,deskZ-.42]});
+    cases.push({id:'gallery-'+index,kind:'loot',label:z < -120 ? '冷链交接箱' : x > 90 ? '检修备件箱' : '二层港务交接箱',item:z < -120 ? 'tray' : x > 90 ? 'wrench' : 'manual',quantity:1,position:[deskX,y+1.23,deskZ-.42]});
   }
   function warehouse(x:number,z:number,w:number,d:number,index:number,cases:MapInteraction[]){
     const y=3.12,sideX=x+w/2-1.5,west=x-w/2+1.75,north=z-d/2,south=z+d/2;
@@ -102,7 +102,7 @@ export function upperRoutes(root:THREE.Group,m:Materials,solid:Builder,solids:So
       solid([px,.5*y,pz],[.17,y,.17],m.steel,0);
     railing(west-1.15,bridge,y,2.43,false);
     solid([west,y+.40,bridge],[1.44,.80,.78],m.ceramic,.045);
-    cases.push({kind:'loot',id:'freight-loft-'+index,label:'夹层签收台',item:'manual',quantity:1,position:[west,y+1.04,bridge]});
+    cases.push({kind:'loot',id:'freight-loft-'+index,label:x > 75 ? '夹层设备验收台' : '夹层签收台',item:x > 75 ? 'board' : 'manual',quantity:1,position:[west,y+1.04,bridge]});
     // Separate cargo handling and inspection from the straight-through loading lane.
     const beltX=x-w*.24,beltZ=index===0?z+.1:z+.7;
     const beltL=index===0?3.5:Math.min(d*.32,6.8);

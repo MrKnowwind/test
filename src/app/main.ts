@@ -357,6 +357,7 @@ function startGame() {
     const pickup = run.raid.interact(target.id);
     if (!pickup) return false;
     if (pickup.kind === 'switch') {
+      audio.liftSwitch();
       notify('货梯已呼叫 · 请前往 B1 梯内');
       return true;
     }

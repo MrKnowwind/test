@@ -15,6 +15,15 @@ const themes = [
   { name: '极光药局', case: '急救药品箱', item: 'medkit', id: 'clinic' },
 ] as const;
 
+// Tenants cluster by the work they serve. The southern starter block retains its familiar shops.
+export function tenantType(index: number, x: number, z: number) {
+  if (index < 4) return index % 3;
+  if (z < -120) return index % 4 === 0 ? 0 : index % 4 === 1 ? 1 : 2;
+  if (x < -90) return index % 4 < 2 ? 0 : 1;
+  if (x > 90) return index % 4 === 0 ? 2 : 1;
+  return (Math.floor((x+180)/22) + Math.floor((z+220)/36)) % 3;
+}
+
 export function buildShopRoom(
   rooms: ShopRooms,
   root: THREE.Group,
@@ -29,8 +38,9 @@ export function buildShopRoom(
   accent: THREE.Material,
   light: THREE.Material,
   screenMaterial: THREE.Material,
+  type: number,
 ) {
-  const theme = themes[index % 3],
+  const theme = themes[type],
     front = index % 4 < 2 ? 1 : -1;
   const wall = 0.22,
     height = 4.1;
@@ -85,14 +95,14 @@ export function buildShopRoom(
   display.rotation.y = front > 0 ? 0 : Math.PI;
   display.scale.set(consoleWidth, 0.94, 1);
   const workX = x + side * counterW * 0.29;
-  if (index % 3 === 0) {
+  if (type === 0) {
     // Manifold and two handwheels beside the removable electrical case.
     box(root, m.rubber, 0.76, 0.09, 0.26, workX, 0.94, counterZ);
     for (const dx of [-0.21, 0.21]) {
       cylinder(root, m.zinc, 0.086, 0.18, workX + dx, 1.05, counterZ, 12);
       cylinder(root, m.safety, 0.134, 0.05, workX + dx, 1.16, counterZ, 8);
     }
-  } else if (index % 3 === 1) {
+  } else if (type === 1) {
     box(root, m.zinc, 0.66, 0.09, 0.38, workX, 0.94, counterZ);
     for (const dx of [-0.19, 0.19]) box(root, accent, 0.13, 0.22, 0.31, workX + dx, 1.07, counterZ, 0.025);
     box(root, m.steel, 0.46, 0.07, 0.07, workX, 1.04, counterZ);
@@ -114,7 +124,7 @@ export function buildShopRoom(
   });
   const rackX = outerX - side * 0.38,
     rackZ = z - front * 0.42;
-  if (index % 3 === 0) {
+  if (type === 0) {
     // Two pressure vessels on a common plinth with capped gauges.
     solid([rackX, 0.16, rackZ], [0.63, 0.32, 2.4], m.steel);
     for (const dz of [-0.6, 0.6]) {
@@ -124,7 +134,7 @@ export function buildShopRoom(
       cylinder(root, light, 0.15, 0.11, rackX, 1.95, rackZ + dz, 12);
     }
     box(root,m.zinc,.12,.14,1.52,outerX-side*.20,1.3,rackZ);
-  } else if (index % 3 === 1) {
+  } else if (type === 1) {
     solid([rackX, 0.59, rackZ], [0.64, 1.18, 2.65], m.steel, 0.05);
     box(root, m.timber, 0.73, 0.1, 2.77, rackX, 1.2, rackZ, 0.035);
     box(root, accent, 0.1, 0.89, 2.38, outerX - side * 0.17, 2.12, rackZ);

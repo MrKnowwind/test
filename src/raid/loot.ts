@@ -105,6 +105,7 @@ export function caseProfile(id: string, item: ItemId): Profile {
   const tag = itemSpecs[item].tag;
   if (tag === 'research')
     return { kind: 'cold', tag: id.startsWith('lab-') ? 'research' : 'electronics', bonus: true };
+  if (tag === 'electronics') return { kind: 'panel', tag };
   if (tag === 'ammo') return { kind: 'tin', tag };
   if (tag === 'medical') return { kind: 'medical', tag };
   if (tag === 'shipping') return { kind: 'drawers', tag };

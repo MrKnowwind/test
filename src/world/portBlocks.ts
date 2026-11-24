@@ -7,7 +7,7 @@ import { box, cylinder, mesh, strut } from './detail/geometry.ts';
 import { enamel, emissive, type Materials } from './detail/materialLibrary.ts';
 
 import { hasGallery, galleryHeight, type upperRoutes } from './upperRoutes.ts';
-import { buildShopRoom, type ShopRooms } from './shopRooms.ts';
+import { buildShopRoom, tenantType, type ShopRooms } from './shopRooms.ts';
 
 export const shopSide=(index:number)=>index%2?1:-1;
 type Lot = readonly [number,number,number,number,number];
@@ -44,7 +44,7 @@ export function buildPortBlocks(root:THREE.Group,m:Materials,occupied:readonly S
   const foliage=enamel(0x438e83), newGrowth=enamel(0x87c39b);
   const frontage=createFrontage(root,m);
   portBlocks.forEach(([x,z,w,d,levels],index)=>{
-    const type=index%3, accent=z < -75?violet:type===1?warm:blue;
+    const type=tenantType(index,x,z), accent=z < -75?violet:type===1?warm:blue;
     const arcade=4.1, height=levels*2.95, roof=arcade+height;
     // One occupied shop and one service core flank the covered lane.
     const opening=arcadeWidth(index), sideWidth=(w-opening)/2;
@@ -52,7 +52,7 @@ export function buildPortBlocks(root:THREE.Group,m:Materials,occupied:readonly S
     for(const side of [-1,1]) {
       const px=x+side*(w/2-sideWidth/2);
       if(side===shopSide(index)){
-        buildShopRoom(rooms,root,solid,m,index,px,z,sideWidth,d,side,accent,light,frontage.consoles[type]);
+        buildShopRoom(rooms,root,solid,m,index,px,z,sideWidth,d,side,accent,light,frontage.consoles[type],type);
         continue;
       }
       if(accessible)continue;

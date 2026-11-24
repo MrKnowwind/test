@@ -106,7 +106,7 @@ export function createRaid(runId: string, seed: number, map: RaidMap) {
 
   function blockedReason(exit: ExitZone) {
     for (const requirement of exit.requirements) {
-      if (requirement.kind === 'item' && !backpack.inventory()[requirement.id]) return '维修卡未携带';
+      if (requirement.kind === 'item' && !backpack.entries.some(entry => entry.item === requirement.id && entry.quantity > 0)) return '维修卡未携带';
       if (requirement.kind === 'flag' && !flags.has(requirement.id)) return '需要开启实验室配电柜';
     }
     return undefined;
@@ -347,7 +347,8 @@ export function createRaid(runId: string, seed: number, map: RaidMap) {
       log.cancellations.push('错过货梯');
       return '货梯已离站 · 可返回配电柜重新呼叫';
     }
-    return message ?? (exitAt(feet) && blockedReason(exitAt(feet)!));
+    const zone = exitAt(feet);
+    return message ?? (zone && blockedReason(zone));
   }
 
   return {
