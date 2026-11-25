@@ -30,6 +30,9 @@ test('number keys select primary slots, sidearm and melee through the actual inp
   doc.dispatchEvent(up);
   assert.equal(input.sample().attackPressed, true);
   assert.equal(input.sample().attackPressed, false);
+  doc.dispatchEvent(down);
+  input.reset();
+  assert.equal(input.sample().attackPressed, false, 'loading clears queued input before play begins');
 });
 
 test('the cursor recenter event at pointer capture leaves the initial view level', () => {

@@ -44,7 +44,7 @@ export const mapInteractions: readonly MapInteraction[] = [
   { id: 'evac-daypack', label: '基础小包', kind: 'loose', item: 'daypack', quantity: 1, position: [-24, .18, 140.75] },
 ];
 
-export function createEnvironment() {
+function* environmentSteps() {
   const scene = new THREE.Group();
   scene.name = '盐港隔离区';
   const solids: Solid[] = [];
@@ -228,6 +228,7 @@ export function createEnvironment() {
   slab(lab.minX, lab.maxX, lab.minZ, lab.maxZ, lab.y, m.concrete);
   slab(factory.minX, factory.maxX, factory.minZ, factory.maxZ, factory.y, m.concrete);
   slope(factoryRamp, factorySlope);
+  yield .1;
 
   // West wharf: a repeatable set of actual folded containers with shared textures.
   const layouts = [
@@ -290,6 +291,7 @@ export function createEnvironment() {
     box(staticRoot,rust,.30,.46,.42,-48.6+side,4.87,3+side*2.2);
   }
 
+  yield .2;
   district('warehouse');
   // Central warehouse: a roofed, open-span interior with two cross routes.
   const wx = -4, wz = 8, ww = 24, wd = 26;
@@ -391,6 +393,7 @@ export function createEnvironment() {
   lamp([-4,5.8,19],0xffc28b,90);
   lamp([-4,5.8,-2],0xffc28b,90);
 
+  yield .3;
   district('plant');
   // East plant: elevated maintenance deck, tanks, horizontal pipes and open ground bypass.
   solid([30,1.55,-6],[.28,3.1,20],m.concrete,.03);
@@ -436,6 +439,7 @@ export function createEnvironment() {
   lamp([35,10.1,-5],0xffca8c,170);
   lamp([51,5.6,18.4],0xffb973,105,[44,1,12]);
 
+  yield .4;
   district('research');
   // Research headhouse conceals the larger underground wing and marks the descent.
   for(const x of [16.7,24.3]) {
@@ -567,6 +571,7 @@ export function createEnvironment() {
   sign([-7.63,-1.37,-25],3.5,Math.PI/2,'实验室货梯','呼叫后在梯内等候','#a5d5c2');
 
   district();
+  yield .51;
   // Concrete aprons belong to workplaces; open ground remains earth and aggregate.
   district();
   for(const [x,z,w,d] of [[-78,3,40,48],[-41,7,21,20],[-4,8,31,33],[136,-40,30,32]])
@@ -726,15 +731,23 @@ export function createEnvironment() {
     lamp([x, 3.47, z + 2], 0x85efed, 6);
   }
   addArcology(staticRoot, m, solid);
+  yield .59;
   const upper=upperRoutes(staticRoot,m,solid,solids);
-  const rooms=buildPortBlocks(staticRoot, m, solids, solid,upper);
+  const blocks=buildPortBlocks(staticRoot, m, solids, solid,upper);
+  let block=blocks.next();
+  while (!block.done) {
+    yield .59 + block.value * .23;
+    block=blocks.next();
+  }
+  const rooms=block.value;
   freightHalls.forEach(([x,z,w,d],i)=>upper.warehouse(x,z,w,d,i,rooms.cases));
   buildStreetCourts(staticRoot,m,solid);
   addPortHorizon(allStatic, m);
   for(const interaction of mapInteractions) addPickup(interaction);
 
   // Batch static streets by cell and shading. Pickups and doors remain independently interactive.
-  batchStatic(allStatic);
+  yield .85;
+  for(const progress of batchStatic(allStatic)) yield .85 + progress * .15;
   return { scene, solids, rooms };
 
   function rampHeightLocal(z:number) { return slopeHeight(rampSlope,40.5,z - 130); }
@@ -764,6 +777,23 @@ export function createEnvironment() {
   }
 }
 
+export function createEnvironment() {
+  const steps=environmentSteps();
+  let step=steps.next();
+  while (!step.done) step=steps.next();
+  return step.value;
+}
+
+export async function createEnvironmentAsync(progress: (value:number) => Promise<void>) {
+  const steps=environmentSteps();
+  let step=steps.next();
+  while (!step.done) {
+    await progress(step.value);
+    step=steps.next();
+  }
+  return step.value;
+}
+
 function tileByPosition(geometry: THREE.BufferGeometry, scale: number) {
   const p=geometry.getAttribute('position'),n=geometry.getAttribute('normal'),uv=geometry.getAttribute('uv');
   for(let i=0;i<p.count;i++) {
@@ -772,16 +802,17 @@ function tileByPosition(geometry: THREE.BufferGeometry, scale: number) {
   }
 }
 
-function batchStatic(root: THREE.Group) {
+function* batchStatic(root: THREE.Group) {
   root.updateMatrixWorld(true);
   const batches=new Map<string,{material:THREE.Material;geometries:THREE.BufferGeometry[];cast:boolean;receive:boolean}>();
   const sources:THREE.Mesh[]=[];
   const palettes=new Map<string,THREE.MeshToonMaterial>();
   const sphere=new THREE.Sphere();
   const detailBatches=new Set<string>();
-  root.traverse(object=>{
-    if(!(object instanceof THREE.Mesh)||Array.isArray(object.material)||object.material.transparent)return;
-    const original=object.material;
+  const meshes:THREE.Mesh[]=[];
+  root.traverse(object=>{if(object instanceof THREE.Mesh && !Array.isArray(object.material) && !object.material.transparent)meshes.push(object);});
+  for (const [index,object] of meshes.entries()) {
+    const original=object.material as THREE.Material;
     let material=original;
     const tint=original instanceof THREE.MeshToonMaterial && !original.map && !original.normalMap &&
       !original.alphaMap && !original.vertexColors && original.emissive.getHex()===0;
@@ -810,8 +841,10 @@ function batchStatic(root: THREE.Group) {
       geometry.setAttribute('color',new THREE.BufferAttribute(colors,3,true));
     }
     batch.geometries.push(geometry);batches.set(key,batch);sources.push(object);
-  });
+    if((index+1)%500===0) yield .65*(index+1)/meshes.length;
+  }
   for(const object of sources)object.removeFromParent();
+  let completed=0;
   for(const [key,batch] of batches) {
     const geometry=mergeGeometries(batch.geometries);
     batch.geometries.forEach(g=>g.dispose());
@@ -823,6 +856,7 @@ function batchStatic(root: THREE.Group) {
       object.userData.detailCenter=geometry.boundingSphere!.center;
       object.userData.detailRadius=geometry.boundingSphere!.radius;
     }
+    if(++completed%35===0)yield .65 + .35*completed/batches.size;
   }
 }
 

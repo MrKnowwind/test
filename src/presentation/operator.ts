@@ -187,3 +187,69 @@ export function renderOperatorPortrait(renderer:THREE.WebGLRenderer) {
     }
   }
 }
+
+export function createOperatorPreview(renderer: THREE.WebGLRenderer) {
+  const canvases = [...document.querySelectorAll<HTMLCanvasElement>('.outpost-operator')];
+  const scene = new THREE.Scene(), actor = createOperator();
+  scene.add(actor, new THREE.HemisphereLight(0xfff4e3, 0x819bb8, 1.8));
+  const key = new THREE.DirectionalLight(0xffead3, 2.4);
+  key.position.set(-2, 4, 3);
+  const rim = new THREE.DirectionalLight(0x83c7cf, 1.1);
+  rim.position.set(2, 2, -3);
+  scene.add(key, rim);
+  const w = 320, h = 576;
+  const camera = new THREE.OrthographicCamera(-.58,.58,1.044,-1.044,.1,15);
+  camera.position.set(0,1.17,4);
+  camera.lookAt(0,.88,0);
+  const target = new THREE.WebGLRenderTarget(w,h,{samples:2});
+  target.texture.colorSpace=THREE.SRGBColorSpace;
+  const pixels = new Uint8Array(w*h*4);
+  actor.rotation.y = .29;
+  let frame = 0;
+  for (const canvas of canvases) {
+    canvas.width=w; canvas.height=h;
+    let lastX: number | undefined;
+    canvas.addEventListener('pointerdown', event => {
+      lastX=event.clientX;
+      canvas.setPointerCapture(event.pointerId);
+    });
+    canvas.addEventListener('pointermove', event => {
+      if (lastX===undefined) return;
+      actor.rotation.y+=(event.clientX-lastX)*.012;
+      lastX=event.clientX;
+      schedule();
+    });
+    canvas.addEventListener('lostpointercapture', () => {lastX=undefined;});
+    canvas.addEventListener('keydown', event => {
+      if(event.key!=='ArrowLeft' && event.key!=='ArrowRight') return;
+      event.preventDefault();
+      actor.rotation.y+=event.key==='ArrowRight'?.25:-.25;
+      schedule();
+    });
+  }
+  function schedule() {
+    if (!frame) frame=requestAnimationFrame(()=>{frame=0; render();});
+  }
+  function render() {
+    const oldTarget=renderer.getRenderTarget(), old=renderer.getClearColor(new THREE.Color()), alpha=renderer.getClearAlpha();
+    try {
+      renderer.setRenderTarget(target); renderer.setClearColor(0,0); renderer.clear();
+      renderer.render(scene,camera);
+      renderer.readRenderTargetPixels(target,0,0,w,h,pixels);
+      for(const canvas of canvases){
+        const ctx=canvas.getContext('2d')!,img=ctx.createImageData(w,h);
+        for(let y=0;y<h;y++)img.data.set(pixels.subarray((h-1-y)*w*4,(h-y)*w*4),y*w*4);
+        ctx.putImageData(img,0,0);
+      }
+    } finally {
+      renderer.setRenderTarget(oldTarget); renderer.setClearColor(old,alpha);
+    }
+  }
+  return { render, dispose() {
+    cancelAnimationFrame(frame);
+    target.dispose();
+    const materials=new Set<THREE.Material>();
+    scene.traverse(object=>{if(object instanceof THREE.Mesh){object.geometry.dispose();for(const material of [object.material].flat())materials.add(material);}});
+    for(const material of materials)material.dispose();
+  } };
+}

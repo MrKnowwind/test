@@ -33,7 +33,7 @@ export function arcadeWidth(index: number) {
   return index % 3 === 2 ? 4.8 : 4;
 }
 
-export function buildPortBlocks(root:THREE.Group,m:Materials,occupied:readonly Solid[],
+export function* buildPortBlocks(root:THREE.Group,m:Materials,occupied:readonly Solid[],
   solid:(at:Vec3,size:Vec3,mat:THREE.Material,bevel?:number)=>THREE.Mesh, upper:ReturnType<typeof upperRoutes>) {
   const rooms:ShopRooms={doors:[],cases:[],occupants:[]};
   const blue=enamel(0x5989a2), violet=enamel(0x9389bd), warm=enamel(0xf5a479);
@@ -43,7 +43,7 @@ export function buildPortBlocks(root:THREE.Group,m:Materials,occupied:readonly S
   const canopyGeometry=new THREE.IcosahedronGeometry(1,0);
   const foliage=enamel(0x438e83), newGrowth=enamel(0x87c39b);
   const frontage=createFrontage(root,m);
-  portBlocks.forEach(([x,z,w,d,levels],index)=>{
+  for (const [index,[x,z,w,d,levels]] of portBlocks.entries()) {
     const type=tenantType(index,x,z), accent=z < -75?violet:type===1?warm:blue;
     const arcade=4.1, height=levels*2.95, roof=arcade+height;
     // One occupied shop and one service core flank the covered lane.
@@ -156,6 +156,7 @@ export function buildPortBlocks(root:THREE.Group,m:Materials,occupied:readonly S
       const collector=box(root,blue,w*.68,.19,d*.67,x,roof+1.74,z-.03*d,.045);
       collector.rotation.x=-Math.atan2(3.06,d*.63);
     }
-  });
+    if ((index + 1) % 6 === 0) yield (index + 1) / portBlocks.length;
+  }
   return rooms;
 }

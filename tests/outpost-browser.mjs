@@ -11,7 +11,7 @@ const browser = await chromium.launch({
   args: ['--no-sandbox', '--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader'],
 });
 try {
-  const page = await browser.newPage({ viewport: { width: 1280, height: 720 }, reducedMotion: 'reduce' });
+  const page = await browser.newPage({ viewport: { width: 1280, height: 720 }, reducedMotion: 'no-preference' });
   const errors = [];
   page.on('pageerror', e => errors.push(e.message));
   await page.addInitScript(() => {
@@ -19,6 +19,14 @@ try {
     window.requestAnimationFrame = job => { jobs.set(++count, job); return count; };
     window.cancelAnimationFrame = id => jobs.delete(id);
     window.keysSeen = [];
+    window.loadingStages = [];
+    new MutationObserver(records => {
+      for(const record of records){
+        if(record.attributeName!=='aria-valuenow')continue;
+        const screen=record.target.closest('#launch-screen');
+        if(screen)window.loadingStages.push({mode:screen.dataset.mode,value:Number(record.target.getAttribute('aria-valuenow')),stage:screen.querySelector('#launch-stage').textContent});
+      }
+    }).observe(document,{subtree:true,attributes:true,attributeFilter:['aria-valuenow']});
     for (const name of ['keydown', 'keyup', 'blur'])
       window.addEventListener(name, event => window.keysSeen.push([name, event.code, event.shiftKey]));
     for (const key of ['drawArrays', 'drawElements', 'drawElementsInstanced', 'drawArraysInstanced']) {
@@ -69,9 +77,23 @@ try {
     await tick();
   };
   await page.goto(address + '?qa=1&seed=42', { timeout: 90000 });
+  await page.locator('#launch-screen').waitFor({state:'visible'});
+  assert.equal(await page.locator('.launch-orbit').evaluate(el=>getComputedStyle(el).animationName),'launch-spin');
+  await snap('startup-loading');
   await page.locator('#primary:enabled').waitFor({ timeout: 90000 });
   assert.equal((await state()).credits, 600);
-  await snap('prepare');
+  await snap('lobby');
+  const bootStages=await page.evaluate(()=>window.loadingStages.filter(s=>s.mode==='boot'));
+  assert.ok(new Set(bootStages.map(s=>s.value)).size>=8 && bootStages.at(-1).value===100);
+  assert.ok(bootStages.every((s,i)=>i===0||s.value>=bootStages[i-1].value));
+  await page.locator('#map-open').click();
+  await page.locator('#map-dialog').waitFor({state:'visible'});
+  await snap('map-selection');
+  await page.locator('#map-select').click();
+  const portrait=page.locator('#home-pane .outpost-operator');
+  const beforePortrait=await portrait.evaluate(el=>el.toDataURL());
+  await portrait.focus();await page.keyboard.press('ArrowRight');await tick(1,true);
+  assert.notEqual(await portrait.evaluate(el=>el.toDataURL()),beforePortrait);
   await page.getByRole('button', { name: '设置', exact: true }).click();
   await page.locator('#quality').selectOption('low');
   await tick(2, true);
@@ -82,18 +104,51 @@ try {
   await snap('settings');
   await page.locator('#settings-close').click();
 
-  await page.locator('[data-outpost=buy]').click();
+  await page.locator('.outpost-nav [data-outpost=buy]').click();
   await page.locator('[data-buy=repairpack]').click();
   await page.locator('[data-buy=medkit]').click();
+  await page.locator('[data-buy=pistol-ammo]').click();
   await wait(() => raidQA.state().warehouse.medkit === 1);
   await snap('shop');
-  await page.locator('[data-outpost=prepare]').click();
-  await page.getByLabel('背包', { exact: true }).selectOption('repairpack');
-  await page.locator('[data-supply=medkit]').fill('1');
-  await page.locator('[data-supply=medkit]').press('Tab');
-  await enter();
+  await page.locator('.outpost-nav [data-outpost=prepare]').click();
+  const stock = name => page.locator('#stash-grid').getByRole('button',{name,exact:true});
+  await stock('分格维修包').click();
+  await page.getByRole('button',{name:'旋转',exact:true}).click();
+  assert.ok(await stock('分格维修包').locator('canvas.rotated').count());
+  await stock('分格维修包').click({modifiers:['Shift']});
+  assert.equal(await page.getByLabel('背包',{exact:true}).inputValue(),'repairpack');
+  await stock('急救包').dragTo(page.locator('[data-carry-section=main]'),{targetPosition:{x:10,y:10}});
+  assert.equal(await page.locator('[data-supply=medkit]').inputValue(),'1');
+  const preparedMedkit=page.locator('[data-carry-section=main]').getByRole('button',{name:'急救包',exact:true});
+  await preparedMedkit.dragTo(page.locator('#stash-grid'),{targetPosition:{x:20,y:100}});
+  assert.equal(await page.locator('[data-supply=medkit]').inputValue(),'0');
+  await stock('急救包').dragTo(page.locator('[data-carry-section=main]'),{targetPosition:{x:10,y:10}});
+  assert.equal(await page.locator('[data-supply=medkit]').inputValue(),'1');
+  await stock('9mm 弹药').click();
+  await page.getByLabel('拆分数量').fill('5');
+  await page.getByRole('button',{name:'拆分',exact:true}).click();
+  assert.equal(await stock('9mm 弹药').count(),2);
+  await stock('9mm 弹药').first().dragTo(page.locator('#stash-grid'),{targetPosition:{x:55,y:235}});
+  await page.locator('#stash-category').selectOption('ammo');
+  assert.equal(await page.locator('#stash-grid .inventory-tile').count(),2);
+  await page.locator('#stash-sort').click();
+  assert.equal(await stock('9mm 弹药').count(),1);
+  await page.locator('#stash-category').selectOption('');
+  await snap('prepare');
+  await page.setViewportSize({width:768,height:620});
+  await snap('prepare-compact');
+  await page.setViewportSize({width:1280,height:720});
+  await page.locator('#primary').click();
+  await page.locator('#launch-screen[data-mode=raid]').waitFor({state:'visible',timeout:15000});
+  await snap('sortie-loading');
+  await wait(()=>raidQA.state().locked);
+  await tick();
+  const sortieStages=await page.evaluate(()=>window.loadingStages.filter(s=>s.mode==='raid'));
+  assert.ok(new Set(sortieStages.map(s=>s.value)).size>=8 && sortieStages.at(-1).value===100);
+  assert.ok(sortieStages.some(s=>s.stage==='确认已加载港区')&&!sortieStages.some(s=>s.stage==='生成港区地形与建筑'));
   assert.equal((await state()).backpack.some(e => e.item === 'medkit'), true);
-  assert.deepEqual((await state()).warehouse, {});
+  assert.equal((await state()).backpack.find(e => e.item === 'medkit').section,'main');
+  assert.deepEqual((await state()).warehouse, {'pistol-ammo':12});
   assert.ok(await page.locator('#hud-minimap').isVisible());
   assert.ok(await page.locator('#raid-objectives').isHidden());
   assert.ok(await page.locator('#ammo-popup').isHidden());
@@ -185,14 +240,28 @@ try {
   await tick(315, true);
   assert.equal((await state()).result.outcome, 'extracted');
   await page.locator('#primary').click();
-  await page.locator('[data-outpost=sell]').click();
+  await page.locator('.outpost-nav [data-outpost=buy]').click();
+  await page.locator('.merchant-side [data-outpost=sell]').click();
   const sale = page.locator('[data-sell=service-card]');
   const price = Number((await sale.textContent()).match(/\d+/)[0]), before = (await state()).credits;
   await snap('warehouse');
   await sale.click();
   await wait(credits => raidQA.state().credits === credits, before + price);
-  assert.deepEqual((await state()).warehouse, { medkit: 1, repairpack: 1 });
+  assert.deepEqual((await state()).warehouse, { 'pistol-ammo':12,medkit: 1, repairpack: 1 });
+  await page.evaluate(()=>{window.loadingStages=[];});
+  await page.locator('#primary').click();
+  await page.locator('#launch-screen[data-mode=raid]').waitFor({state:'visible',timeout:15000});
+  await wait(()=>raidQA.state().locked);
+  await tick();
+  const rebuiltStages=await page.evaluate(()=>window.loadingStages.filter(s=>s.mode==='raid'));
+  assert.ok(rebuiltStages.some(s=>s.stage==='生成港区地形与建筑')&&rebuiltStages.at(-1).value===100);
+  await press('Escape');
+  await page.locator('#abandon').click();
+  await page.locator('#primary').click();
+  await page.emulateMedia({reducedMotion:'reduce'});
   await page.reload();
+  await page.locator('#launch-screen').waitFor({state:'visible'});
+  assert.equal(await page.locator('.launch-orbit').evaluate(el=>getComputedStyle(el).animationName),'none');
   await page.locator('#primary:enabled').waitFor({ timeout: 90000 });
   await page.locator('#settings-open').click();
   assert.equal(await page.locator('[data-binding=ammo]').textContent(), 'N');
@@ -201,7 +270,7 @@ try {
   assert.equal(await page.locator('#setting-cameraMotion').inputValue(), '50');
   assert.equal((await state()).credits, before + price);
   assert.deepEqual(errors, []);
-  await writeFile(output + '/report.json', JSON.stringify({ seed: 42, screenshots: 8, sale: price, errors }, null, 2));
+  await writeFile(output + '/report.json', JSON.stringify({ seed: 42, bootStages, sortieStages, rebuiltStages, sale: price, errors }, null, 2));
   console.log('Verified outpost checkout, loot detail bounds, slide jump, opt-in objectives and extraction-to-sale.');
 } finally {
   await browser.close();

@@ -2,7 +2,7 @@ import type { ItemId } from '../contracts/demo.ts';
 import type { Inventory, RaidResult } from './raid.ts';
 import type { Cargo } from './backpack.ts';
 import { itemSpecs, isPack } from './catalog.ts';
-import { buildLoadout, loadoutRequests, type Loadout } from './loadout.ts';
+import { buildLoadout, isMaterial, loadoutRequests, type Loadout } from './loadout.ts';
 import { roll } from './loot.ts';
 
 const prefix = 'wasteland-raid.warehouse.v1:';
@@ -77,9 +77,8 @@ export function createWarehouse(getStorage: () => Storage, now = Date.now) {
     const cargo: Cargo[] = [], used: string[] = [];
     for (const [item, count] of loadoutRequests(plan)) {
       if (!Number.isSafeInteger(count) || count < 1 || count > (available.total[item] ?? 0)) return;
-      if (item === 'pistol-ammo' || item === 'medkit') {
-        cargo.push(...Array.from({length: item === 'medkit' ? count : 1},
-          () => ({ item, quantity: item === 'medkit' ? 1 : count })));
+      if (item === 'pistol-ammo' || item === 'medkit' || isMaterial(item)) {
+        cargo.push({item, quantity:count});
         continue;
       }
       const owned = available.instances.filter(entry => entry.item === item);

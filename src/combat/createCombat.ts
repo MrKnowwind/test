@@ -140,6 +140,7 @@ export function createCombat(world: WorldQueries, spawns: readonly EnemySpawn[],
     return frame;
   }
 
+  syncEquipment();
   return {
     snapshot,
     setCreative(active){

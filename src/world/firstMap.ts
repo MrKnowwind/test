@@ -28,8 +28,8 @@ function placeEnemies(seed: number): EnemySpawn[] {
   ];
 }
 
-export function createFirstMap(seed: number): FirstMap & { scene: import('three').Group; doors:ReturnType<typeof createShopDoors>; updateExitLights(state:(exit:ExitZone)=>string):void } {
-  const { scene, solids, rooms } = createEnvironment();
+export function createFirstMap(seed: number, environment = createEnvironment()): FirstMap & { scene: import('three').Group; doors:ReturnType<typeof createShopDoors>; updateExitLights(state:(exit:ExitZone)=>string):void } {
+  const { scene, solids, rooms } = environment;
   const doors=createShopDoors(scene,solids,rooms.doors);
   const queries=createWorldQueries(solids);
   const loose=loosePoints(seed,mapInteractions,p=>queries.blockedDistance(p,[0,-1,0],3));

@@ -5,13 +5,16 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>盐港隔离区 · 搜打撤</title>
     <link rel="icon" href="data:," />
+    <link rel="stylesheet" href="/src/ui/loading.css" />
   </head>
   <body>
-    <section id="launch-screen" aria-label="正在加载盐港隔离区">
+    <section id="launch-screen" aria-label="正在加载盐港隔离区" data-mode="boot">
       <div class="launch-panel">
-        <div class="launch-beacon" aria-hidden="true"><i></i></div>
-        <h1>盐港隔离区</h1>
-        <div class="launch-track" role="progressbar" aria-label="启动进度" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><i></i></div>
+        <div class="launch-emblem" aria-hidden="true"><div class="launch-orbit"></div><div class="launch-beacon"><i></i></div></div>
+        <h1 id="launch-title">盐港隔离区</h1>
+        <div class="launch-progress"><span id="launch-stage" role="status">正在建立连接</span><b id="launch-percent">0%</b></div>
+        <div class="launch-track" role="progressbar" aria-label="加载进度" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><i></i></div>
+        <div class="launch-pulse" aria-hidden="true"><i></i><i></i><i></i></div>
       </div>
     </section>
     <main inert id="game" aria-label="盐港隔离区">
@@ -48,18 +51,41 @@
       <div id="pickup-receipt" role="status" hidden></div>
       <section id="overlay" data-mode="home" aria-labelledby="title">
         <div class="panel">
-          <div class="outpost-top"><div><p id="stage" hidden></p><h1 id="title">盐港隔离区</h1></div><button type="button" id="settings-open">设置</button></div>
+          <div class="outpost-top"><div class="outpost-brand"><span class="brand-mark" aria-hidden="true"></span><div><p id="stage" hidden></p><h1 id="title">盐港隔离区</h1></div></div>
+            <nav class="outpost-nav" aria-label="基地功能">
+              <button type="button" data-outpost="home" aria-pressed="true">大厅</button>
+              <button type="button" data-outpost="prepare" aria-pressed="false">仓库</button>
+              <button type="button" data-outpost="buy" aria-pressed="false">商人</button>
+              <button type="button" data-outpost="tasks" aria-pressed="false">任务</button>
+              <button type="button" data-outpost="base" aria-pressed="false">基地</button>
+            </nav>
+            <div class="outpost-account"><span class="wallet"><b id="credits">0</b> 券</span><button type="button" id="settings-open">设置</button></div>
+          </div>
           <p id="summary" hidden></p>
           <div id="outpost">
-            <nav class="outpost-nav" aria-label="整备与交易">
-              <button type="button" data-outpost="prepare" aria-pressed="true">战前整备</button>
-              <button type="button" data-outpost="buy" aria-pressed="false">商店</button>
-              <button type="button" data-outpost="sell" aria-pressed="false">仓库</button>
-              <span class="wallet"><b id="credits">0</b> 券</span>
-            </nav>
-            <section id="prepare-pane" class="outpost-pane" aria-label="战前整备"><div id="prepare-slots"></div><div id="prepare-grid"></div></section>
-            <section id="buy-pane" class="outpost-pane" aria-label="商店" hidden><div id="buy-stock" class="trade-grid"></div></section>
-            <section id="sell-pane" class="outpost-pane" aria-label="仓库" hidden><div class="market-heading"><span>回收报价</span><time id="market-refresh"></time></div><div id="market-stock" class="trade-grid"></div></section>
+            <section id="home-pane" class="outpost-pane" aria-label="大厅">
+              <div class="lobby-brief"><p class="eyebrow">SALTLINE / 港务行动处</p><h2>准备出击</h2><p>从盐港搜集物资，选择合适的撤离路线，并将战利品带回据点。</p><button data-outpost="prepare" type="button">检查装备 <span aria-hidden="true">→</span></button></div>
+              <div class="operator-display"><canvas class="outpost-operator" aria-label="出击队员，拖动旋转" tabindex="0"></canvas><span class="operator-label">港务队员 <small>拖动旋转</small></span></div>
+              <div class="lobby-intel"><div class="section-heading">当前行动</div><canvas class="port-map" width="420" height="420" aria-label="盐港地图概览"></canvas><h3>盐港隔离区</h3><div class="map-meta"><span>单人 PvE</span><span>400 × 400 m</span></div><div class="lobby-loadout" id="lobby-loadout"></div></div>
+            </section>
+            <section id="prepare-pane" class="outpost-pane" aria-label="仓库" hidden>
+              <div class="prepare-side"><header class="section-heading">人物与装备 <button id="reset-loadout" type="button">基础配发</button></header>
+                <div class="equipment-preview"><canvas class="outpost-operator" aria-label="出击队员，拖动旋转" tabindex="0"></canvas><div id="equipment-slots" aria-label="装备槽"></div></div>
+                <details class="prepare-config"><summary>精确配置装备与数量</summary><div id="prepare-slots"></div></details><div id="prepare-grid" aria-label="随身空间与背包"></div>
+              </div>
+              <div class="stash-side"><header class="section-heading"><span>仓库 <small id="stash-count"></small></span><button id="stash-sort" type="button">自动整理</button></header>
+                <div class="stash-filter"><input id="stash-search" type="search" placeholder="搜索物品" aria-label="搜索仓库"><select id="stash-category" aria-label="物品分类"><option value="">全部分类</option></select></div>
+                <div id="stash-scroll"><div id="stash-grid" aria-label="仓库格子"></div></div>
+                <div id="stash-detail" aria-live="polite"></div>
+                <p class="stash-hint">拖动移位或整备 · R 旋转 · Shift + 点击快移</p>
+              </div>
+            </section>
+            <section id="merchant-pane" class="outpost-pane" aria-label="商人" hidden>
+              <div class="merchant-side"><span class="eyebrow">港务补给站</span><h2>后勤商人</h2><canvas id="merchant-portrait" width="300" height="210" aria-label="港务补给机器人"></canvas><button type="button" data-outpost="buy" aria-pressed="true">购买补给</button><button type="button" data-outpost="sell" aria-pressed="false">出售物资</button><label>商品分类 <select id="merchant-category"><option value="">全部分类</option></select></label></div>
+              <div class="merchant-stock"><section id="buy-pane" aria-label="购买"><header class="section-heading">补给商品</header><div id="buy-stock" class="trade-grid"></div></section><section id="sell-pane" aria-label="出售" hidden><header class="section-heading">回收报价 <time id="market-refresh"></time></header><div id="market-stock" class="trade-grid"></div></section></div>
+            </section>
+            <section id="tasks-pane" class="outpost-pane briefing-pane" aria-label="任务" hidden><h2>行动简报</h2><div class="brief-card"><h3>公路撤离</h3><p>抵达南侧公路出口并停留至撤离完成。</p></div><div class="brief-card"><h3>维修通道</h3><p>搜寻仓储值班室，取得维修卡后前往维修通道。</p></div><div class="brief-card"><h3>实验室货梯</h3><p>探索地下设施，呼叫货梯并在离站时进入梯内。</p></div><p class="muted">行动目标会在局内随探索进度更新。</p></section>
+            <section id="base-pane" class="outpost-pane briefing-pane" aria-label="基地" hidden><h2>港务据点</h2><div class="brief-card"><h3>储物室</h3><p>管理提取的物资与出击装备。</p><button type="button" data-outpost="prepare">打开仓库</button></div><div class="brief-card"><h3>补给处</h3><p>购买补给及回收物资。</p><button type="button" data-outpost="buy">前往商人</button></div></section>
           </div>
           <section id="creative-panel" aria-label="开发者创造模式" hidden>
             <button type="button" id="creative-toggle" aria-pressed="false" aria-controls="creative-options">开启开发者创造模式</button>
@@ -73,12 +99,16 @@
           </section>
           <p id="error" hidden role="alert"></p>
           <div class="actions">
+            <div class="home-actions"><span id="kit-status"></span><button id="map-open" type="button"><small>行动地图</small><b>盐港隔离区 ▾</b></button></div>
             <button id="primary" type="button" disabled>出击</button>
             <button id="abandon" type="button" hidden>放弃出击</button>
           </div>
         </div>
-        <aside class="operator-card" aria-label="盐港出击队员"><canvas class="operator-portrait"></canvas></aside>
       </section>
+      <dialog id="map-dialog" aria-labelledby="map-dialog-title">
+        <header><h2 id="map-dialog-title">选择行动地图</h2><button id="map-close" aria-label="关闭选图">×</button></header>
+        <div class="map-selection"><canvas class="port-map" width="420" height="420" aria-label="盐港地图"></canvas><div><p class="eyebrow">SALTLINE / 可用地图</p><h2>盐港隔离区</h2><p>单人 PvE · 400 × 400 m</p><p>货运码头、物流仓储、处理厂区、研究设施与地下实验室。</p><p>随机部署 · 三处撤离口</p><button id="map-select" type="button">选择盐港隔离区</button></div></div>
+      </dialog>
       <dialog id="settings-dialog" aria-labelledby="settings-title">
         <header><h2 id="settings-title">设置</h2><button type="button" id="settings-close" autofocus aria-label="关闭设置">×</button></header>
         <section id="setting-options" aria-label="游戏设置"></section>

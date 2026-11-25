@@ -58,6 +58,7 @@ export function createInput(canvas: HTMLCanvasElement, settings = defaultSetting
 
   return {
     locked,
+    reset: clear,
     sample() {
       const slots: readonly [InputAction, WeaponId][] = [['primaryA', 'rifle'], ['primaryB', 'shotgun'], ['pistol', 'pistol'], ['knife', 'knife']];
       const frame = {

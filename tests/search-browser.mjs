@@ -45,7 +45,8 @@ try {
   await page.waitForFunction(() => raidQA.state().result?.outcome === 'extracted');
   assert.deepEqual((await state()).warehouse, { 'service-card': 1, sling: 1 });
   await page.locator('#primary').click();
-  await page.locator('[data-outpost=sell]').click();
+  await page.locator('.outpost-nav [data-outpost=buy]').click();
+  await page.locator('.merchant-side [data-outpost=sell]').click();
   const offer = page.locator('[data-sell="service-card"]');
   const credits = (await state()).credits + Number((await offer.textContent()).match(/\d+/)[0]);
   await offer.click();

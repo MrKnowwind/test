@@ -21,6 +21,8 @@ import { createGameView, itemName } from '../ui/gameView.ts';
 import { createOutpostView } from '../ui/outpostView.ts';
 import { createSettingsView } from '../ui/settingsView.ts';
 import { createFirstMap } from '../world/firstMap.ts';
+import { createEnvironmentAsync } from '../world/environment.ts';
+import { createLoadingView } from '../ui/loadingView.ts';
 import { createRendering } from './rendering.ts';
 import { createAudio } from './audio.ts';
 import { createTacticalMap } from '../ui/tacticalMap.ts';
@@ -28,34 +30,22 @@ import { createBackpackView } from '../ui/backpackView.ts';
 import { addSearchContainers } from './containers.ts';
 import type { ItemId } from '../contracts/demo.ts';
 import { itemSpecs } from '../raid/backpack.ts';
-import { renderOperatorPortrait } from '../presentation/operator.ts';
+import { renderOperatorPortrait, createOperatorPreview } from '../presentation/operator.ts';
 import { styleCharacter } from '../presentation/celShading.ts';
 import { presentationMaterialsReady } from '../presentation/finishes.ts';
 import '../ui/game.css';
 import '../ui/outpost.css';
 
 const view = createGameView();
-const launch = document.querySelector<HTMLElement>('#launch-screen')!;
-const track = launch.querySelector<HTMLElement>('[role=progressbar]')!;
-const game = document.querySelector<HTMLElement>('#game')!;
-function progress(value:number) {
-  track.style.setProperty('--ready',String(value/100));
-  track.setAttribute('aria-valuenow',String(value));
-}
-const yieldForPaint = () => new Promise<void>(resolve => setTimeout(resolve,32));
-function revealMenu() {
-  launch.remove();
-  game.inert = false;
-}
+const loading = createLoadingView();
 void startGame().catch(error => {
-  revealMenu();
+  loading.hide();
   view.setError('启动失败。请确认浏览器支持 WebGL 2 后刷新。');
   console.error(error);
 });
 
 async function startGame() {
-  progress(12);
-  await yieldForPaint();
+  await loading.progress(5, '初始化渲染器');
   const canvas = document.querySelector<HTMLCanvasElement>('#world')!;
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
@@ -87,6 +77,7 @@ async function startGame() {
   weaponLight.layers.set(1);
   camera.add(weaponLight, weaponLight.target);
   const rendering = createRendering(renderer, worldScene, camera, weaponScene);
+  await loading.progress(16, '初始化界面与档案');
   const audio = createAudio();
   const medicineWheel=createMedicineWheel();
   const tacticalMap = createTacticalMap();
@@ -187,16 +178,44 @@ async function startGame() {
       if(t)run.containers.spawn(t);return !!t;
     },
   });
+  await loading.progress(22, '载入队员档案');
   renderOperatorPortrait(renderer);
-  progress(36);
-  await yieldForPaint();
-  let run = prepareRun();
-  progress(80);
+  const operatorPreview = createOperatorPreview(renderer);
+  await loading.progress(28, '载入港区场景');
+  let run = await prepareRun('boot');
+  let freshPreview = true;
 
-  function prepareRun(runId = crypto.randomUUID(), plan = defaultLoadout, stock: readonly Cargo[] = []) {
+  async function deployPreview(runId:string, plan:Loadout, stock:readonly Cargo[]) {
+    // The lobby has already built an untouched district. Reuse it for the first sortie.
+    const {map,player,viewmodel} = run;
+    await loading.progress(32, '确认已加载港区');
+    const raid=createRaid(runId,run.raid.seed,map,plan,stock);
+    await loading.progress(56, '配置出击装备');
+    const combat=createCombat(map,map.enemies,raid.backpack);
+    const frame=combat.snapshot();
+    await loading.progress(76, '部署队员');
+    player.pose(raid.spawn.position,raid.spawn.yaw);
+    camera.fov=settings.fov;
+    camera.updateProjectionMatrix();
+    viewmodel.group.visible=!frame.weapon.unarmed;
+    viewmodel.update(0,frame.weapon,false);
+    await loading.progress(90, '同步行动状态');
+    medicineWheel.reset();
+    creativeView.reset();
+    tacticalMap.reset();
+    receipt.hidden=true;
+    notice='';
+    accumulator=noticeTime=hitTime=hurtTime=ammoTime=footstepTime=0;
+    return {...run,raid,combat,frame,treatment:createTreatment(raid.backpack)};
+  }
+
+  async function prepareRun(mode: 'boot' | 'raid', runId = crypto.randomUUID(), plan = defaultLoadout, stock: readonly Cargo[] = []) {
     medicineWheel.reset();creativeView.reset();receipt.hidden=true;
     const seed = nextSeed();
-    const map = createFirstMap(seed);
+    const start = mode === 'boot' ? 28 : 15;
+    const environment = await createEnvironmentAsync(value => loading.progress(start + value * (72 - start), value < .8 ? '生成港区地形与建筑' : '整理场景几何'));
+    await loading.progress(74, '配置撤离点与搜刮物资');
+    const map = createFirstMap(seed, environment);
     const containers = addSearchContainers(map);
     map.scene.traverse((object) => {
       if (!(object instanceof THREE.Mesh)) return;
@@ -205,6 +224,7 @@ async function startGame() {
     const raid = createRaid(runId, seed, map, plan, stock);
     const combat = createCombat(map, map.enemies,raid.backpack);
     const player = createPlayer(camera, map, raid.spawn);
+    await loading.progress(80, '准备队员与物品');
     camera.fov = settings.fov;
     camera.updateProjectionMatrix();
     const viewmodel = createViewmodel();
@@ -213,7 +233,7 @@ async function startGame() {
     camera.add(viewmodel.group);
     const frame = combat.snapshot();
     const enemies = new Map<string, ReturnType<typeof createRaidEnemy>>();
-    for (const enemy of frame.enemies) {
+    for (const [index,enemy] of frame.enemies.entries()) {
       const visual = createRaidEnemy(enemy.kind);
       visual.group.traverse(object => {
         if (object instanceof THREE.Mesh) object.castShadow = object.receiveShadow = true;
@@ -222,6 +242,7 @@ async function startGame() {
       enemies.set(enemy.id, visual);
       map.scene.add(visual.group);
       updateEnemy(visual, enemy, 0,player.feet);
+      if ((index + 1) % 5 === 0) await loading.progress(84 + 10 * (index + 1) / frame.enemies.length, '部署场景实体');
     }
     viewmodel.update(0, frame.weapon, false);
     worldScene.add(map.scene);
@@ -329,6 +350,8 @@ async function startGame() {
     const runId = crypto.randomUUID();
     let requisition: readonly Cargo[] = [];
     try {
+      loading.show('raid');
+      await loading.progress(6, '校验仓库与装备');
       const stock = await warehouse.deploy(runId, plan);
       if (!stock) {
         document.exitPointerLock();
@@ -337,18 +360,33 @@ async function startGame() {
         return;
       }
       requisition = stock;
-      disposeRun();
-      run = prepareRun(runId, plan, stock);
+      await loading.progress(12, '建立出击会话');
+      if(freshPreview){
+        freshPreview=false;
+        run=await deployPreview(runId,plan,stock);
+      }else{
+        disposeRun();
+        run = await prepareRun('raid', runId, plan, stock);
+      }
       deployed = stock;
       phase = 'raid';
+      await loading.progress(96, '准备第一帧画面');
+      draw();
       if (input.locked()) view.showPlaying();
       else view.showPaused();
+      await loading.finish();
+      if (!input.locked()) view.showPaused();
     } catch (error) {
       document.exitPointerLock();
+      phase = 'home';
+      view.showHome();
+      deployed = [];
       const refunded = warehouse.commit({ runId, practice: true, outcome: 'abandoned', items: {} }, requisition);
       view.setError(refunded ? '出击加载失败，请刷新后重试' : '出击加载失败，整备退回尚未保存');
       console.error(error);
     } finally {
+      input.reset();
+      loading.hide();
       launching = false;
       view.primary.disabled = false;
     }
@@ -369,7 +407,9 @@ async function startGame() {
   });
   document.addEventListener('pointerlockerror', () => view.setError('无法捕获鼠标。请点击按钮继续。'));
   window.addEventListener('resize', resize);
-  window.addEventListener('storage', outpost.refresh);
+  window.addEventListener('storage', event => {
+    if (!event.key || event.key.startsWith('wasteland-raid.warehouse.v1:') || event.key==='wasteland-raid.market.v1') outpost.refresh();
+  });
   let appliedQuality = '';
   function applySettings() {
     audio.volumes(settings);
@@ -390,23 +430,14 @@ async function startGame() {
     view.setError('图形上下文中断，请刷新页面恢复。');
   });
   outpost.refresh();
-  void presentationMaterialsReady().then(async () => {
-    draw();
-    progress(100);
-    if (!matchMedia('(prefers-reduced-motion: reduce)').matches) {
-      await new Promise(resolve => setTimeout(resolve,240));
-      launch.classList.add('leaving');
-      await Promise.all(launch.getAnimations({subtree:true}).map(a => a.finished.catch(() => {})));
-    }
-    revealMenu();
-    view.primary.disabled = false;
-    dirty = true;
-  }).catch(error => {
-    revealMenu();
-    view.setError('角色材质加载失败，请刷新后重试。');
-    console.error(error);
-  });
   resize();
+  await presentationMaterialsReady();
+  await loading.progress(96, '准备大厅画面');
+  draw();
+  operatorPreview.render();
+  await loading.finish();
+  view.primary.disabled = false;
+  dirty = true;
 
   function notify(message: string) {
     notice = message;
@@ -616,6 +647,7 @@ async function startGame() {
   renderer.setAnimationLoop((now) => {
     const elapsed = (now - previous) / 1000;
     previous = now;
+    if (launching) return;
     if(phase === 'raid' && (input.locked()||bag.open) && !document.hidden && !run.raid.result){
       sampledFrames++;statsTime+=elapsed;
       if(statsTime>=1){
@@ -663,6 +695,7 @@ async function startGame() {
     if (event.persisted) return;
     renderer.setAnimationLoop(null);
     outpost.dispose();
+    operatorPreview.dispose();
     disposeRun();
     rendering.dispose();
     renderer.dispose();
