@@ -4,9 +4,38 @@ import { createFirstMap } from '../src/world/firstMap.ts';
 import { districtPoint as at, highwayPosition } from '../src/world/layout.ts';
 import { lab, rampHeight } from '../src/world/worldQueries.ts';
 import { supplySites } from '../src/world/supplySites.ts';
+import { Box3, Group, Vector3 } from 'three';
+import { addSearchContainers } from '../src/app/containers.ts';
+import { findInteraction } from '../src/player/controller.ts';
+import { createRaid } from '../src/raid/raid.ts';
+import { itemSpecs, packs } from '../src/raid/catalog.ts';
 
 const map = createFirstMap(42);
 const radius=.36, height=1.8;
+
+test('the south loading pack is reachable and the seven ground packs have distinct physical bounds', () => {
+  const target = map.interactions.find(t => t.id === 'evac-daypack');
+  const eye = [-24, 1.65, 142.1];
+  const delta = target.position.map((coordinate, index) => coordinate - eye[index]);
+  const length = Math.hypot(...delta);
+  const raid = createRaid('pack', 42, map);
+  assert.equal(findInteraction(map, raid.targets, raid.consumed, eye, delta.map(v => v / length)), target);
+  assert.ok(raid.equipPack(target.id, undefined, [-24, .18, 142.1]));
+  assert.equal(raid.backpack.equipped.item, 'daypack');
+
+  const interactions = Object.keys(packs).map((item, index) => ({
+    id: item, kind: 'loose', item, label: itemSpecs[item].name, quantity: 1, position: [index, .18, 0],
+  }));
+  const scene = new Group();
+  addSearchContainers({ scene, interactions, blockedDistance: () => .18 });
+  const sizes = new Set(interactions.map(({id}) => {
+    const root = scene.getObjectByName('goods-' + id);
+    const bounds = new Box3().setFromObject(root);
+    assert.ok(Math.abs(bounds.min.y) < .005, id + ' contacts the floor');
+    return bounds.getSize(new Vector3()).toArray().map(n => n.toFixed(2)).join(',');
+  }));
+  assert.equal(sizes.size, interactions.length);
+});
 
 test('each roadside site has two ground stores and a reachable elevated store', () => {
   for (const site of supplySites) {

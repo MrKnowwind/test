@@ -153,12 +153,13 @@ test('selling extracted stock credits once and persists after reopening the ware
     getItem: key => records.get(key) ?? null,
     setItem: (key, value) => records.set(key, value),
   };
-  const market = createWarehouse(() => storage);
+  const market = createWarehouse(() => storage, () => 0);
   market.commit({ runId: 'sale', outcome: 'extracted', exitId: 'road', items: { salvage: 1 } });
+  const before = market.credits(), quote = market.price('salvage');
   assert.deepEqual(await Promise.all([market.sell('salvage'), market.sell('salvage')]), [true, false]);
   const reopened = createWarehouse(() => storage);
   assert.deepEqual(reopened.read(), {});
-  assert.equal(reopened.credits(), 140);
+  assert.equal(reopened.credits(), before + quote);
   assert.equal(await reopened.sell('salvage'), false);
 });
 

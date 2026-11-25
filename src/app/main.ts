@@ -6,15 +6,20 @@ import { createCombat } from '../combat/createCombat.ts';
 import type { EnemyState, MapInteraction } from '../contracts/demo.ts';
 import { createPlayer, findInteraction } from '../player/controller.ts';
 import { createInput } from '../player/input.ts';
+import { bindingName, readSettings, saveSettings } from '../player/settings.ts';
 import { createRaidEnemy } from '../presentation/enemyVisuals.ts';
 import { createShotEffects } from '../presentation/shotEffects.ts';
 import { createCreativeView } from '../ui/creativeView.ts';
 import { createViewmodel } from '../presentation/viewmodel.ts';
 import { createRaid } from '../raid/raid.ts';
 import { createWarehouse } from '../raid/warehouse.ts';
+import { defaultLoadout, type Loadout } from '../raid/loadout.ts';
+import type { Cargo } from '../raid/backpack.ts';
 import {isPack} from '../raid/catalog.ts';
 import { itemIcon } from '../ui/itemArt.ts';
 import { createGameView, itemName } from '../ui/gameView.ts';
+import { createOutpostView } from '../ui/outpostView.ts';
+import { createSettingsView } from '../ui/settingsView.ts';
 import { createFirstMap } from '../world/firstMap.ts';
 import { createRendering } from './rendering.ts';
 import { createAudio } from './audio.ts';
@@ -27,6 +32,7 @@ import { renderOperatorPortrait } from '../presentation/operator.ts';
 import { styleCharacter } from '../presentation/celShading.ts';
 import { presentationMaterialsReady } from '../presentation/finishes.ts';
 import '../ui/game.css';
+import '../ui/outpost.css';
 
 const view = createGameView();
 const launch = document.querySelector<HTMLElement>('#launch-screen')!;
@@ -85,15 +91,21 @@ async function startGame() {
   const medicineWheel=createMedicineWheel();
   const tacticalMap = createTacticalMap();
 
-  const input = createInput(canvas);
+  const settings = readSettings(window.localStorage);
+  const input = createInput(canvas, settings);
   const warehouse = createWarehouse(() => window.localStorage);
+  const outpost = createOutpostView(warehouse, view.setError);
+  const minimap = document.querySelector<HTMLElement>('#hud-minimap')!;
   const parameters = new URLSearchParams(location.search);
   const suppliedSeed = parameters.get('seed');
   const seedNumber = Number(suppliedSeed);
   const nextSeed = () => suppliedSeed !== null && Number.isInteger(seedNumber)
     ? seedNumber >>> 0 : crypto.getRandomValues(new Uint32Array(1))[0];
   const muzzlePosition = new THREE.Vector3();
-  let entered = false;
+  let phase: 'home' | 'raid' | 'result' = 'home';
+  let launching = false;
+  let deployed: readonly Cargo[] = [];
+  let ammoTime = 0;
   let saved = true;
   let accumulator = 0;
   let notice = '';
@@ -132,6 +144,7 @@ async function startGame() {
     receiptTimer=window.setTimeout(()=>{receipt.hidden=true;},1400);
   }
   const bag = createBackpackView({
+    closeKey: code => settings.bindings.backpack.includes(code),
     close() {
       bag.hide();
       void canvas.requestPointerLock()?.catch(() => view.showPaused());
@@ -180,7 +193,7 @@ async function startGame() {
   let run = prepareRun();
   progress(80);
 
-  function prepareRun() {
+  function prepareRun(runId = crypto.randomUUID(), plan = defaultLoadout, stock: readonly Cargo[] = []) {
     medicineWheel.reset();creativeView.reset();receipt.hidden=true;
     const seed = nextSeed();
     const map = createFirstMap(seed);
@@ -189,7 +202,7 @@ async function startGame() {
       if (!(object instanceof THREE.Mesh)) return;
       object.receiveShadow = true;
     });
-    const raid = createRaid(crypto.randomUUID(), seed, map);
+    const raid = createRaid(runId, seed, map, plan, stock);
     const combat = createCombat(map, map.enemies,raid.backpack);
     const player = createPlayer(camera, map, raid.spawn);
     camera.fov = 62;
@@ -213,9 +226,9 @@ async function startGame() {
     viewmodel.update(0, frame.weapon, false);
     worldScene.add(map.scene);
     rendering.bindMap(map.scene);
-    view.setRoutes(map.exits);
+    tacticalMap.reset();
     notice = '';
-    accumulator = noticeTime = hitTime = hurtTime = 0;
+    accumulator = noticeTime = hitTime = hurtTime = ammoTime = 0;
     dirty = true;
     return { effects:createShotEffects(map.scene), treatment:createTreatment(raid.backpack), nearWall:false, damageNotice:'', discovered:new Set<string>(), nextSurvey:0, map, raid, combat, player, viewmodel, enemies, frame, containers, searched: new Set<string>() };
   }
@@ -278,8 +291,8 @@ async function startGame() {
     const result = run.raid.result;
     if (!result) return;
     bag.hide();
-    saved = warehouse.commit(result);
-    refreshMarket();
+    phase = 'result';
+    saved = warehouse.commit(result, deployed);
     const exit = result.outcome === 'extracted' ? run.map.exits.find((zone) => zone.id === result.exitId) : undefined;
     view.showResult(result, saved, exit?.label);
     view.setError(saved ? '' : '战利品尚未保存，请重试入库。');
@@ -288,13 +301,18 @@ async function startGame() {
 
   view.primary.addEventListener('click', () => {
     audio.ready();
-    if (run.raid.result && !saved) {
-      showResult();
+    if (launching) return;
+    if (phase === 'result') {
+      if (!saved) { showResult(); return; }
+      phase = 'home';
+      deployed = [];
+      view.showHome();
+      outpost.reset();
       return;
     }
-    if (run.raid.result) {
-      disposeRun();
-      run = prepareRun();
+    if (phase === 'home' && !warehouse.preview(outpost.plan)) {
+      view.setError('整备未就绪，请检查装备和空间');
+      return;
     }
     view.setError();
     canvas.requestPointerLock()?.catch(() => {
@@ -305,56 +323,72 @@ async function startGame() {
     run.raid.abandon();
     showResult();
   });
+  async function launchRaid(plan: Loadout) {
+    launching = true;
+    view.primary.disabled = true;
+    const runId = crypto.randomUUID();
+    let requisition: readonly Cargo[] = [];
+    try {
+      const stock = await warehouse.deploy(runId, plan);
+      if (!stock) {
+        document.exitPointerLock();
+        outpost.refresh();
+        view.setError('仓库已更新，请重新整备');
+        return;
+      }
+      requisition = stock;
+      disposeRun();
+      run = prepareRun(runId, plan, stock);
+      deployed = stock;
+      phase = 'raid';
+      if (input.locked()) view.showPlaying();
+      else view.showPaused();
+    } catch (error) {
+      document.exitPointerLock();
+      const refunded = warehouse.commit({ runId, practice: true, outcome: 'abandoned', items: {} }, requisition);
+      view.setError(refunded ? '出击加载失败，请刷新后重试' : '出击加载失败，整备退回尚未保存');
+      console.error(error);
+    } finally {
+      launching = false;
+      view.primary.disabled = false;
+    }
+  }
   document.addEventListener('pointerlockchange', () => {
     accumulator = 0;
-    if (run.raid.result) return;
+    if (launching || phase === 'result') return;
     if (input.locked()) {
-      entered = true;
-      view.showPlaying();
+      if (phase === 'home') void launchRaid(outpost.plan);
+      else view.showPlaying();
     } else if (bag.open) {
       view.showPlaying();
-    } else if (entered) {
+    } else if (phase === 'raid') {
       run.player.interrupt();run.treatment.cancel();
       view.showPaused();
-      refreshMarket();
     }
   });
   document.addEventListener('pointerlockerror', () => view.setError('无法捕获鼠标。请点击按钮继续。'));
   window.addEventListener('resize', resize);
-  window.addEventListener('storage', refreshMarket);
-  document.querySelector<HTMLSelectElement>('#quality')!.addEventListener('change', (event) => {
-    const quality=(event.target as HTMLSelectElement).value;
-    weaponLight.castShadow=quality==='high';
-    rendering.setQuality(quality);
-    resize();
-  });
+  window.addEventListener('storage', outpost.refresh);
+  let appliedQuality = '';
+  function applySettings() {
+    audio.volumes(settings);
+    minimap.hidden = !settings.minimap;
+    if (appliedQuality !== settings.quality) {
+      appliedQuality = settings.quality;
+      weaponLight.castShadow = appliedQuality === 'high';
+      rendering.setQuality(appliedQuality);
+      resize();
+    }
+    dirty = true;
+  }
+  createSettingsView(settings, () => { saveSettings(window.localStorage, settings); applySettings(); });
+  applySettings();
   canvas.addEventListener('webglcontextlost', (event) => {
     event.preventDefault();
     if (input.locked()) document.exitPointerLock();
     view.setError('图形上下文中断，请刷新页面恢复。');
   });
-  function refreshMarket() {
-    const inventory = warehouse.read();
-    view.setWarehouse(inventory);
-    const shop = document.querySelector<HTMLElement>('#market-stock')!;
-    document.querySelector('#credits')!.textContent = String(warehouse.credits());
-    shop.replaceChildren();
-    for (const [id, quantity] of Object.entries(inventory ?? {})) {
-      const item = id as ItemId;
-      const button = document.createElement('button');
-      button.textContent = `变卖 ${itemName(item)} ×1 · ${warehouse.price(item)} 券（持有 ${quantity}）`;
-      button.prepend(itemIcon(item));
-      button.dataset.sell = item;
-      button.onclick = async () => {
-        button.disabled = true;
-        const sold = await warehouse.sell(item);
-        view.setError(sold ? '' : '交易未完成，库存或存储状态发生变化');
-        refreshMarket();
-      };
-      shop.append(button);
-    }
-  }
-  refreshMarket();
+  outpost.refresh();
   void presentationMaterialsReady().then(async () => {
     draw();
     progress(100);
@@ -401,6 +435,7 @@ async function startGame() {
     }
     if(control.backpackPressed||control.switchTo)run.treatment.cancel();
     if(control.quiet||run.treatment.remaining)control.running=false;
+    if (control.ammoPressed) ammoTime = 2.4;
     if (control.mapPressed) tacticalMap.toggle();
     if (control.backpackPressed && !player.busy) {
       control.jumpPressed = control.stancePressed = false;
@@ -448,6 +483,7 @@ async function startGame() {
     footstepTime-=dt;
     const sprinting=control.running && control.forward>0 && !previousWeapon.aiming;
     if (player.sliding && !wasSliding) audio.slide();
+    if (wasSliding && !player.sliding && wasGrounded && !player.grounded && control.jumpPressed) audio.slideJump();
     if (player.climbing && !wasClimbing) audio.grip();
     if (!wasGrounded && player.grounded && !wasClimbing) audio.land();
     const stepping=moving && !player.busy && player.grounded && footstepTime<=0;
@@ -492,15 +528,16 @@ async function startGame() {
     const recovered=run.treatment.advance(dt,damaged,run.frame.health);
     if(recovered){combat.heal(recovered);run.frame=combat.snapshot();if(!run.treatment.remaining)notify('治疗完成');}
     if(recovered && treating && !run.treatment.remaining)raid.log.heals++;
-    if(bag.open)bag.risk(hurtTime>0?run.damageNotice+' · 按 Esc 返回':run.frame.enemies.some(e=>e.action==='windup')?'附近有攻击预警 · 按 Esc 返回':'搜刮时周围敌人仍会行动');
+    if(bag.open)bag.risk(hurtTime>0?run.damageNotice:run.frame.enemies.some(e=>e.action==='windup')?'附近有攻击预警':'');
     const message = raid.update(dt, player.feet, run.frame.health);
     if (message?.includes('取消') || message?.includes('离站')) notify(message);
-    if (run.frame.feedback === 'empty') notify('空仓 · 按 R 换弹');
+    if (run.frame.feedback === 'empty') { notify('空仓'); ammoTime = 2.4; }
     if (run.frame.feedback === 'blocked') notify('攻击被掩体阻挡');
     if (run.frame.feedback === 'hit') { raid.log.hits++;hitTime = 0.17; audio.hit(run.frame.shot?.surface==='security-bot'); }
     noticeTime = Math.max(0, noticeTime - dt);
     hitTime = Math.max(0, hitTime - dt);
     hurtTime = Math.max(0, hurtTime - dt);
+    ammoTime = Math.max(0, ammoTime - dt);
     for (const enemy of run.frame.enemies) {
       if(enemy.action==='dead' && previousActions.get(enemy.id)!=='dead')raid.log.kills++;
       if(enemy.action==='windup' && previousActions.get(enemy.id)!=='windup') {
@@ -520,7 +557,7 @@ async function startGame() {
   function draw() {
     const { player, raid, map, frame } = run;
     const underground = player.feet[1] < -2.5;
-    audio.environment(entered && (input.locked() || bag.open) && !raid.result, underground, player.feet[0]<-120);
+    audio.environment(phase === 'raid' && (input.locked() || bag.open), underground, player.feet[0]<-120);
     weaponLight.intensity = underground ? 0.72 : 1.7;
     renderer.info.reset();
     camera.layers.set(0);
@@ -530,16 +567,17 @@ async function startGame() {
     const target = findInteraction(map, raid.targets, raid.consumed, player.eye, player.direction);
     const exit = raid.exitAt(player.feet);
     const reason = exit && raid.blockedReason(exit);
-    const prompt = target ? `E · ${target.kind === 'loot' ? '搜索容器 / ' : target.kind==='loose'?'拾取 / ':target.kind==='door'?(map.doors.isOpen(target.id)?'关门 / ':'开门 / '):''}${target.label}`
+    const action = target?.kind === 'loot' ? '搜索' : target?.kind === 'loose' ? isPack(target.item) ? '查看' : '拾取'
+      : target?.kind === 'door' ? map.doors.isOpen(target.id) ? '关门' : '开门' : '呼叫';
+    const prompt = target ? bindingName(settings.bindings.interact[0]) + '　' + action + '　' + target.label
       : exit && reason ? exit.label + ' · ' + reason : '';
     const region = map.regions?.filter((entry) => Math.abs(entry.center[1] - player.feet[1]) < 4)
       .sort((a, b) => Math.hypot(a.center[0] - player.feet[0], a.center[2] - player.feet[2]) -
         Math.hypot(b.center[0] - player.feet[0], b.center[2] - player.feet[2]))[0];
-    view.updateRoutes(map.exits, raid.exitStatus, player.feet);
     map.updateExitLights(exit => raid.exitStatus(exit).kind);
-    view.updateHud(frame, raid.spawn.id, underground, raid.items, region?.label,run.treatment.pose);
+    view.updateHud(frame, raid.spawn.id, underground, region?.label,run.treatment.pose, ammoTime > 0);
     const now=performance.now();
-    if(entered && now>=run.nextSurvey){
+    if(phase === 'raid' && now>=run.nextSurvey){
       run.nextSurvey=now+250;
       for(const t of map.interactions){
         if(t.kind!=='loot'||run.discovered.has(t.id))continue;
@@ -547,17 +585,19 @@ async function startGame() {
         if(d>.01 && d<=12 && map.blockedDistance(player.eye,[dx/d,dy/d,dz/d],Math.max(0,d-.24))===null)run.discovered.add(t.id);
       }
     }
+    view.updateObjectives(raid.objectives());
+    if (phase === 'raid' && settings.minimap) tacticalMap.updateMini(map, player.feet, player.yaw, now, run.discovered, raid.consumed, raid.exitStatus);
     tacticalMap.update(map, player.feet, player.yaw, now,run.discovered,raid.consumed,raid.exitStatus);
     const timerText = [countdown, raid.liftWindow].filter((t, i, both) => t && both.indexOf(t) === i)
       .map(t => (t!.exit.remote ? '货梯离站' : '撤离') + ' · ' + Math.ceil(t!.remaining) + ' 秒').join('　');
-    view.feedback(run.treatment.pose?(run.treatment.pose.preview?'演示 · ':'')+itemName(run.treatment.pose.item)+' '+run.treatment.remaining.toFixed(1)+' 秒 · H 取消':hurtTime>0?run.damageNotice:noticeTime?notice:run.nearWall?'枪口接近掩体':'', prompt, timerText, hitTime > 0, Math.min(1,hurtTime/.65), frame.weapon.aiming);
+    view.feedback(hurtTime>0?run.damageNotice:noticeTime?notice:'', prompt, timerText, hitTime > 0, Math.min(1,hurtTime/.65), frame.weapon.aiming);
   }
 
   let previous = performance.now();
   renderer.setAnimationLoop((now) => {
     const elapsed = (now - previous) / 1000;
     previous = now;
-    if((input.locked()||bag.open) && !document.hidden && !run.raid.result){
+    if(phase === 'raid' && (input.locked()||bag.open) && !document.hidden && !run.raid.result){
       sampledFrames++;statsTime+=elapsed;
       if(statsTime>=1){
         fps=Math.round(sampledFrames/statsTime);
@@ -565,7 +605,7 @@ async function startGame() {
         statsTime=0;sampledFrames=0;
       }
     }else{statsTime=0;sampledFrames=0;if(!meter.hidden)meter.value='已暂停';}
-    if ((input.locked() || bag.open) && !run.raid.result) {
+    if (phase === 'raid' && (input.locked() || bag.open) && !run.raid.result) {
       accumulator = Math.min(accumulator + elapsed, 0.1);
       while (accumulator >= 1 / 60 && !run.raid.result) {
         step(1 / 60);
@@ -583,7 +623,7 @@ async function startGame() {
     Object.assign(window, {
       raidQA: {
         state: () => structuredClone({
-          locked: input.locked(), seed: run.raid.seed, spawn: run.raid.spawn,
+          locked: phase === 'raid' && input.locked() && !launching, seed: run.raid.seed, spawn: run.raid.spawn,
           stance:run.player.sliding?'slide':run.player.climbing?'climb':run.player.crouched?'crouch':'stand', climb:run.player.climbPose, feet: run.player.feet, eye: run.player.eye, yaw: run.player.yaw, pitch: run.player.pitch, fov: camera.fov,
           health: run.frame.health, weapon: run.frame.weapon, enemies: run.frame.enemies,
           exits: run.map.exits, interactions: run.map.interactions,
@@ -603,6 +643,7 @@ async function startGame() {
   window.addEventListener('pagehide', (event) => {
     if (event.persisted) return;
     renderer.setAnimationLoop(null);
+    outpost.dispose();
     disposeRun();
     rendering.dispose();
     renderer.dispose();

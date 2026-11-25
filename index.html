@@ -22,9 +22,10 @@
           <span class="eyebrow" id="floor">地面</span>
           <strong id="spawn"></strong>
         </div>
-        <div class="routes" id="routes"></div>
+        <section id="hud-minimap" aria-label="小地图"><canvas id="minimap-canvas" width="216" height="216"></canvas><span id="minimap-floor"></span></section>
+        <section id="raid-objectives" aria-label="任务" hidden><h2>任务</h2><div id="objective-list"></div></section>
         <div class="compass"><span id="bearing">N</span><span id="heading"></span></div>
-        <div id="tactical-map" hidden><canvas id="map-canvas" width="900" height="750" aria-label="地区分布和撤离地图"></canvas><p>M 收起地图 · 地下出口以 B1 标注</p></div>
+        <div id="tactical-map" hidden><canvas id="map-canvas" width="900" height="750" aria-label="地区分布和撤离地图"></canvas></div>
         <div id="exfil-clock" role="status" hidden></div>
         <div id="crosshair" aria-hidden="true"></div>
         <div id="hurt" aria-hidden="true"></div>
@@ -36,37 +37,34 @@
         <div class="vitals">
           <div class="stat"><span>生命</span><strong id="health">100</strong></div>
           <div class="health-track"><div id="health-bar"></div></div>
-          <div id="pack"></div>
         </div>
         <div class="weapon">
           <span class="eyebrow" id="weapon"></span>
-          <strong id="ammo"></strong>
           <span id="weapon-action"></span>
+          <div id="ammo-popup" role="status" hidden><span id="ammo-type">9mm 弹药</span><strong id="ammo"></strong><small id="ammo-label">弹匣 / 备弹</small></div>
         </div>
-        <div class="hud-hint"><kbd>1</kbd> 主武器 I <kbd>2</kbd> 主武器 II <kbd>3</kbd> 手枪 <kbd>4</kbd> 近战 <kbd>X</kbd> 蹲 / 滑 <kbd>Tab</kbd> 背包 <kbd>M</kbd> 地图 <kbd>Esc</kbd> 暂停</div>
       </div>
 
       <div id="pickup-receipt" role="status" hidden></div>
-      <section id="overlay" aria-labelledby="title">
+      <section id="overlay" data-mode="home" aria-labelledby="title">
         <div class="panel">
-          <p id="stage" class="eyebrow">SALTLINE  /  港区出击</p>
-          <h1 id="title">盐港隔离区</h1>
-          <p id="summary">南侧公路可直接撤离。仓储值班室有维修通道的卡，地下货梯需先接通配电柜。公路和持卡通道入区后守候 5 秒。配电柜启动后须在货梯离站时身处梯内，错过可重新呼叫。</p>
-          <details id="controls"><summary>操作指南</summary><div class="controls">
-            <span><kbd>WASD</kbd> 移动</span><span><kbd>Space</kbd> 跳跃 · 边缘再按攀爬</span><span><kbd>Shift</kbd> 奔跑 · 按住 C 静走</span><span><kbd>X</kbd> 蹲伏 / 起身 · 冲刺时按 X 滑铲</span>
-            <span><kbd>鼠标</kbd> 转向</span><span><kbd>左键</kbd> 攻击</span>
-            <span><kbd>右键</kbd> 举枪</span><span><kbd>R</kbd> 换弹 · H 使用所选药 / 取消 · 长按 5 选药</span>
-            <span><kbd>1 / 2</kbd> 主武器槽</span><span><kbd>3</kbd> 手枪 <kbd>4</kbd> 近战</span>
-            <span><kbd>M</kbd> 地区地图</span><span><kbd>E</kbd> 开关门 / 搜刮 / 呼叫货梯</span>
-            <span><kbd>Tab</kbd> 背包 · <kbd>R</kbd> 旋转物品 · Shift + 左键快移 · F3 帧率</span>
+          <div class="outpost-top"><div><p id="stage" hidden></p><h1 id="title">盐港隔离区</h1></div><button type="button" id="settings-open">设置</button></div>
+          <p id="summary" hidden></p>
+          <div id="outpost">
+            <nav class="outpost-nav" aria-label="整备与交易">
+              <button type="button" data-outpost="prepare" aria-pressed="true">战前整备</button>
+              <button type="button" data-outpost="buy" aria-pressed="false">商店</button>
+              <button type="button" data-outpost="sell" aria-pressed="false">仓库</button>
+              <span class="wallet"><b id="credits">0</b> 券</span>
+            </nav>
+            <section id="prepare-pane" class="outpost-pane" aria-label="战前整备"><div id="prepare-slots"></div><div id="prepare-grid"></div></section>
+            <section id="buy-pane" class="outpost-pane" aria-label="商店" hidden><div id="buy-stock" class="trade-grid"></div></section>
+            <section id="sell-pane" class="outpost-pane" aria-label="仓库" hidden><div class="market-heading"><span>回收报价</span><time id="market-refresh"></time></div><div id="market-stock" class="trade-grid"></div></section>
           </div>
-          </details>
-          <div class="warehouse"><span class="eyebrow">仓库 · <span id="credits">0</span> 券</span><div id="warehouse">空</div><div id="market-stock"></div></div>
           <section id="creative-panel" aria-label="开发者创造模式" hidden>
             <button type="button" id="creative-toggle" aria-pressed="false" aria-controls="creative-options">开启开发者创造模式</button>
-            <p>开启后，本局按练习结算，物资不计入仓库。</p>
             <div id="creative-options" hidden>
-              <label><input id="creative-flight" type="checkbox" checked> 飞行　Space 上升 · Q 下降</label>
+              <label><input id="creative-flight" type="checkbox" checked> 飞行</label>
               <label>移速 <input id="creative-speed" type="range" min="0.5" max="5" step="0.5" value="1"><output id="speed-value">1×</output></label>
               <div class="creative-stock"><label>物品 <select id="creative-item"></select></label><label>数量 <input id="creative-qty" type="number" value="1" min="1" max="60"></label></div>
               <div><button type="button" id="creative-give">放入背包</button> <button type="button" id="creative-drop">生成在脚边</button></div>
@@ -74,14 +72,19 @@
             </div>
           </section>
           <p id="error" hidden role="alert"></p>
-          <label class="quality-control">画面质量 <select id="quality"><option value="balanced">Balanced</option><option value="high">High</option><option value="low">Low</option></select></label>
           <div class="actions">
-            <button id="primary" type="button" disabled>开始出击</button>
+            <button id="primary" type="button" disabled>出击</button>
             <button id="abandon" type="button" hidden>放弃出击</button>
           </div>
         </div>
-        <aside class="operator-card" aria-label="当前出击装备"><canvas class="operator-portrait" aria-label="盐港出击队员"></canvas><div><b>出击装备</b><span>手枪　/　战术刀</span></div></aside>
+        <aside class="operator-card" aria-label="盐港出击队员"><canvas class="operator-portrait"></canvas></aside>
       </section>
+      <dialog id="settings-dialog" aria-labelledby="settings-title">
+        <header><h2 id="settings-title">设置</h2><button type="button" id="settings-close" autofocus aria-label="关闭设置">×</button></header>
+        <section id="setting-options" aria-label="游戏设置"></section>
+        <h3>键位</h3><div id="bindings"></div>
+        <footer><output id="binding-status" role="status"></output><button type="button" id="settings-reset">恢复默认</button></footer>
+      </dialog>
     </main>
     <script type="module" src="/src/app/main.ts"></script>
   </body>

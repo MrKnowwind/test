@@ -12,6 +12,7 @@ import type { MapInteraction } from '../contracts/demo.ts';
 type Bag = ReturnType<typeof createBackpack>;
 type Action = {
   close(): void;
+  closeKey(code: string): boolean;
   take(id: string, entry: number, p?: Placement, quantity?:number): boolean;
   put(id:string,entry:number):boolean;
   use(id: number): boolean;
@@ -27,12 +28,14 @@ export function createBackpackView(actions: Action) {
   const panel = document.createElement('section');
   panel.id = 'backpack-panel';
   panel.hidden = true;
-  panel.innerHTML = `<div class="bag-window"><header><h2>装备与携带空间</h2><button id="bag-close">返回出击</button></header>
+  panel.innerHTML = `<div class="bag-window"><header><h2>随身装备</h2><div id="bag-danger" role="status"></div><button id="bag-close" aria-label="关闭背包">×</button></header>
   <div class="bag-columns"><div class="equipment"><h3>装备</h3><canvas class="operator-portrait"></canvas><div id="loadout"></div></div>
-  <div><h3>随身空间 <span id="bag-size"></span></h3><div id="carry-grids"></div></div>
-  <div class="bag-container"><h3 id="container-title">物品详情</h3><div id="container-content"></div><div id="selected-item"></div><div class="bag-actions"></div></div></div>
-  <p id="bag-danger" role="status"></p><p class="bag-help">单击选择、再点格子放置，或拖放 · R 旋转 · Shift + 左键 快移 · 点击堆叠物拆分 · 拖至右侧或 Delete 丢弃</p><p id="bag-feedback" role="status"></p>
-  <dialog class="swap-preview"><h3>确认换包</h3><div class="swap-comparison"></div><button value="cancel">返回</button> <button value="confirm">确认装备</button></dialog></div><aside id="drop-zone" aria-label="丢到地面"><strong>↓</strong><span>丢到地面</span></aside>`;
+  <div class="carry-column"><h3>携行 <span id="bag-size"></span></h3><div id="carry-grids"></div></div>
+  <div class="bag-container" hidden><h3 id="container-title"></h3><div id="container-content"></div></div></div>
+  <p id="bag-feedback" role="status"></p>
+  <dialog class="swap-preview"><h3>换包</h3><div class="swap-comparison"></div><button value="cancel">返回</button> <button value="confirm">确认装备</button></dialog></div>
+  <aside id="drop-zone" aria-label="丢到地面"><strong>↓</strong><span>丢到地面</span></aside>
+  <section id="bag-detail" aria-label="物品详情" hidden><button id="close-detail" aria-label="关闭物品详情">×</button><div id="selected-item"></div><div class="bag-actions"></div></section>`;
   document.body.append(panel);
   const q = (s: string) => panel.querySelector<HTMLElement>(s)!;
   const dialog = panel.querySelector('dialog')!;
@@ -43,6 +46,37 @@ export function createBackpackView(actions: Action) {
   let count = -1,
     dragging = false, draggingPack=false,
     confirmSwap: (() => void) | undefined;
+  const detail = q('#bag-detail');
+  let anchor: HTMLElement | undefined;
+  function positionDetail() {
+    if (detail.hidden || !anchor) return;
+    if (!anchor.isConnected) {
+      const replacement = selected?.from === 'source' && q('#container-content').querySelector<HTMLElement>('[data-source="' + selected.id + '"]');
+      if (!replacement) { clearSelection(); return; }
+      anchor = replacement;
+      anchor.classList.add('selected');
+    }
+    const r = anchor.getBoundingClientRect();
+    if (r.bottom < 0 || r.top > innerHeight) { clearSelection(); return; }
+    const margin = 8, gap = 8;
+    const { offsetWidth: w, offsetHeight: h } = detail;
+    const grid = anchor.closest('.section-grid')?.getBoundingClientRect();
+    const right = r.right + gap, left = r.left - gap - w;
+    const outsideSource = selected?.from === 'source' && grid && grid.right - r.right < 96
+      && grid.right + gap + w < innerWidth - margin;
+    const preferLeft = selected?.from !== 'source' && grid && r.left - grid.left < grid.right - r.right;
+    let x = outsideSource ? grid.right + gap : preferLeft && left >= margin ? left : right;
+    let y = r.top;
+    if (x + w > innerWidth - margin) x = r.left - gap - w;
+    if (x < margin) {
+      x = r.left;
+      y = r.bottom + h + gap < innerHeight ? r.bottom + gap : r.top - h - gap;
+    }
+    detail.style.left = Math.max(margin, Math.min(innerWidth - w - margin, x)) + 'px';
+    detail.style.top = Math.max(margin, Math.min(innerHeight - h - margin, y)) + 'px';
+  }
+  window.addEventListener('resize', positionDetail);
+  panel.addEventListener('scroll', positionDetail, true);
   const msg = (s: string) => {
     q('#bag-feedback').textContent = s;
   };
@@ -56,9 +90,13 @@ export function createBackpackView(actions: Action) {
   }
   function clearSelection() {
     selected = undefined;
+    anchor?.classList.remove('selected');
+    anchor = undefined;
+    detail.hidden = true;
     q('#selected-item').textContent = '';
     q('.bag-actions').replaceChildren();
   }
+  q('#close-detail').onclick = clearSelection;
   function action(label: string, fn: () => boolean) {
     button(q('.bag-actions'), label, () => {
       if (fn()) {
@@ -162,38 +200,42 @@ export function createBackpackView(actions: Action) {
     });
     bar.append(controls);
   }
-  function select(s: Selection) {
+  function openDetail(at: HTMLElement, entry: Cargo) {
+    clearSelection();
+    anchor = at;
+    anchor.classList.add('selected');
+    const spec = itemSpecs[entry.item], name = document.createElement('strong'), meta = document.createElement('small');
+    name.textContent = spec.name;
+    meta.textContent = [
+      spec.w + '×' + spec.h + ' 格', entry.quantity > 1 ? '×' + entry.quantity : '',
+      entry.durability !== undefined ? '剩余 ' + entry.durability + '/3' : '',
+      entry.loaded !== undefined ? '弹匣 ' + entry.loaded : '',
+      '基准 ' + (entry.durability !== undefined ? 30 * entry.durability : spec.price) + ' 券',
+      isPack(entry.item) ? '容量 ' + packs[entry.item].reduce((n, section) => n + section.w * section.h, 0) + ' 格' : '',
+    ].filter(Boolean).join('　');
+    q('#selected-item').append(itemIcon(entry.item), name, meta);
+    detail.style.setProperty('--detail-color', spec.color);
+    detail.hidden = false;
+  }
+  function select(s: Selection, at: HTMLElement) {
+    openDetail(at, s.entry);
     selected = s;
-    const spec = itemSpecs[s.entry.item];
-    q('#selected-item').textContent =
-      spec.name +
-      ' · ' +
-      spec.h +
-      '×' +
-      spec.w +
-      ' 格 · ' +
-      spec.price +
-      ' 券' +
-      (s.entry.durability!==undefined?' · 剩余 '+s.entry.durability+'/3':'')+
-      (s.entry.loaded !== undefined ? ' · 弹匣 ' + s.entry.loaded : '');
     const bar = q('.bag-actions');
-    bar.replaceChildren();
     stackControls(bar,s);
     if (s.from === 'slot') {
       action('收进格子', () => actions.stow(s.entry.item as 'pistol' | 'knife'));
-      return;
+    } else {
+      if (isPack(s.entry.item))
+        button(bar, '装备', () => requestEquip(s.entry.item, s.from === 'bag' ? 'carried' : target!.id, s.id));
+      if (s.from === 'source') button(bar, '拾取', () => transfer());
+      else {
+        if (itemSpecs[s.entry.item].tag === 'weapon') action('装备', () => actions.holster(s.id));
+        if (['medkit','healing-injector'].includes(s.entry.item)) action('使用', () => actions.use(s.id));
+        if (target && source) button(bar, '存入', () => quickMove(s));
+      }
     }
-    if (isPack(s.entry.item))
-      button(bar, '直接装备', () =>
-        requestEquip(s.entry.item, s.from === 'bag' ? 'carried' : target!.id, s.id),
-      );
-    if (s.from === 'source') {
-      button(bar, '快取', () => transfer());
-      return;
-    }
-    if (spec.tag === 'weapon') action('放回武器栏', () => actions.holster(s.id));
-    if (['medkit','healing-injector'].includes(s.entry.item)) action('使用', () => actions.use(s.id));
-    button(bar,'放到地上',discard);
+    button(bar, '丢弃', discard);
+    positionDetail();
   }
   function transfer(p?: Placement) {
     const s = selected;
@@ -229,20 +271,21 @@ export function createBackpackView(actions: Action) {
       h +
       ' * var(--cell));--item-color:' +
       (revealed ? spec.color : '#78909e');
+    b.style.setProperty('--icon-cells', String(Math.min(w, h)));
     b.title = revealed ? spec.name : '未知物品';
     b.setAttribute('aria-label', b.title);
     if (revealed) {
       b.append(itemIcon(e.item));
-      if (e.quantity > 1) {
+      if (e.quantity > 1 && spec.tag !== 'ammo') {
         const n = document.createElement('b');
         n.className = 'stack-count';
         n.textContent = String(e.quantity);
         b.append(n);
       }
-      const choose = () => select({ from, id: e.id, entry: e, rotated: e.rotated });
+      const choose = () => select({ from, id: e.id, entry: e, rotated: e.rotated }, b);
       b.onclick = (ev) => {
         if(ev.shiftKey){choose();quickMove(selected!);return;}
-        if (from === 'bag' && selected?.from === 'source')
+        if (from === 'bag' && selected?.from === 'source' && selected.entry.item === e.item && spec.stack > 1)
           transfer({ section: e.section, x: e.x, y: e.y, rotated: selected.rotated });
         else choose();
       };
@@ -373,16 +416,22 @@ export function createBackpackView(actions: Action) {
     const dest = q('#container-content');
     dest.replaceChildren();
     q('#container-title').textContent = target?.label ?? '物品详情';
+    q('.bag-container').hidden = !target;
+    panel.classList.toggle('has-source', !!target);
     if (target?.kind === 'loose' && isPack(target.item)) {
       const t = target;
-      button(dest, '装备此包', () => requestEquip(t.item, t.id));
-      if (!source?.entries.length)
-        button(dest, '折叠收起', () => {
-          if (actions.fold(t.id)) {
-            source = target = undefined;
-            refresh();
-          } else msg(bag.failure(t.item));
+      const gear = button(dest, t.label, () => {
+        openDetail(gear, {item: t.item, quantity: 1});
+        button(q('.bag-actions'), '装备此包', () => requestEquip(t.item, t.id));
+        if (!source?.entries.length) action('收起', () => {
+          if (!actions.fold(t.id)) return false;
+          source = target = undefined;
+          return true;
         });
+        positionDetail();
+      });
+      gear.className = 'pack-source';
+      gear.prepend(itemIcon(t.item));
     }
     if (!source) return;
     for (const s of source.sections ?? [{ id: 'grid', name: '容器', w: source.width, h: source.height }])
@@ -422,10 +471,8 @@ export function createBackpackView(actions: Action) {
     }
     for (const key of ['pistol', 'knife'] as const) {
       const e = bag.slots[key];
-      const choose = () => {
-        if (e) select({ from: 'slot', entry: e, id: -1, rotated: false });
-      };
-      const b = button(kit, (key === 'pistol' ? '3 · ' : '4 · ') + (e ? itemSpecs[key].name : '空'), choose);
+      const choose = () => { if (e) select({ from: 'slot', entry: e, id: -1, rotated: false }, b); };
+      const b = button(kit, e ? itemSpecs[key].name : (key === 'pistol' ? '手枪 · 空' : '近战 · 空'), choose);
       if(e){
         b.prepend(itemIcon(key));
         b.onclick=ev=>{choose();if(ev.shiftKey)quickMove(selected!);};
@@ -445,13 +492,13 @@ export function createBackpackView(actions: Action) {
         }
       };
     }
-    const packButton=button(kit, bag.equipped ? itemSpecs[bag.equipped.item].name + ' · 卸下' : '背包栏 · 空', () => {
-      if (bag.equipped && actions.unpack()) {
-        clearSelection();
-        refresh();
-        msg('背包和内容已一起放到地面');
-      }
+    const packButton=button(kit, bag.equipped ? itemSpecs[bag.equipped.item].name : '背包 · 空', () => {
+      if (!bag.equipped) return;
+      openDetail(packButton, bag.equipped);
+      action('卸下并丢弃', actions.unpack);
+      positionDetail();
     });
+    if (bag.equipped) packButton.prepend(itemIcon(bag.equipped.item));
     packButton.draggable=!!bag.equipped;
     packButton.ondragstart=ev=>{
       if(!bag.equipped)return;
@@ -491,7 +538,7 @@ export function createBackpackView(actions: Action) {
       selected.rotated = !selected.rotated;
       msg('已旋转，点击目标格放置');
     }
-    if (ev.code === 'Escape' || ev.code === 'Tab') {
+    if (actions.closeKey(ev.code) || ev.code === 'Escape') {
       ev.preventDefault();
       actions.close();
     }
@@ -521,12 +568,12 @@ export function createBackpackView(actions: Action) {
     updateSearch(paused = false) {
       if (!source || panel.hidden) return;
       const n = source.entries.filter((e) => e.revealed).length;
-      if (n !== count && !dragging) renderSource();
+      if (n !== count && !dragging) { renderSource(); positionDetail(); }
       const e = source.entries.find((e) => !e.revealed),
         status = q('#search-status');
       if (status)
         status.textContent =
-          e && paused ? '视线或距离中断 · 搜索暂停' : e ? '搜索中 · ' + n + ' 件已揭示' : '搜索完成';
+          e && paused ? '已暂停' : e ? '搜索中' : '';
       panel
         .querySelector<HTMLElement>('.search-ring')
         ?.style.setProperty('--progress', (e ? (360 * e.progress) / e.duration : 360) + 'deg');

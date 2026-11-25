@@ -74,9 +74,42 @@ test('slide requires actual ground sprint, decelerates and stops at a wall',()=>
   const advance=()=>{const z=p.feet[2];p.move(1/60,input,false);return z-p.feet[2];};
   assert.ok(advance()>advance());
   for(let i=0;i<60;i++)advance();
-  assert.equal(p.sliding,false);assert.equal(p.crouched,true);assert.ok(p.feet[2]>=.36);
+  assert.equal(p.sliding,false);assert.equal(p.crouched,false);assert.ok(p.feet[2]>=.36);
   p.move(1/60,{...input,stancePressed:true,running:true},false);
   assert.equal(p.sliding,false);
+});
+
+test('a slide jump leaves the ground immediately and preserves launch momentum', () => {
+  const p = player(createWorldQueries([]), [4, 0, 4]);
+  const sprint = { ...input, forward: 1, running: true };
+  for (let i = 0; i < 13; i++) p.move(1 / 60, sprint, false);
+  p.move(1 / 60, { ...sprint, stancePressed: true }, false);
+  assert.ok(p.sliding);
+  const [, , launchZ] = p.feet;
+  p.move(1 / 60, { ...input, jumpPressed: true }, false);
+  assert.ok(p.feet[1] > .07 && launchZ - p.feet[2] > .09);
+  assert.equal(p.sliding, false);
+  for (let i = 0; i < 60; i++) p.move(1 / 60, input, false);
+  assert.ok(p.grounded && !p.crouched);
+});
+
+test('hold-to-crouch releases normally and a slide does not leave the stance held', () => {
+  const p = player(createWorldQueries([]), [4, 0, 4]);
+  const hold = { ...input, holdStance: true };
+  p.move(1 / 60, { ...hold, stancePressed: true, stanceHeld: true }, false);
+  assert.ok(p.crouched);
+  p.move(1 / 60, hold, false);
+  assert.equal(p.crouched, false);
+  for (let i = 0; i < 13; i++) p.move(1 / 60, { ...hold, forward: 1, running: true }, false);
+  p.move(1 / 60, { ...hold, forward: 1, running: true, stanceHeld: true, stancePressed: true }, false);
+  assert.ok(p.sliding);
+  for (let i = 0; i < 70; i++) p.move(1 / 60, { ...hold, stanceHeld: true }, false);
+  assert.ok(!p.sliding && !p.crouched);
+  for (let i = 0; i < 13; i++) p.move(1 / 60, { ...hold, forward: 1, running: true }, false);
+  p.move(1 / 60, { ...hold, forward: 1, running: true, stanceHeld: true, stancePressed: true }, false);
+  assert.ok(p.sliding);
+  p.move(1 / 60, hold, false);
+  assert.ok(!p.sliding && !p.crouched);
 });
 
 test('climb hands plant on the detected edge during the support phase and both release',async()=>{

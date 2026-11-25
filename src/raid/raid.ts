@@ -10,6 +10,7 @@ import type {
 import { createContainerSearch, type Placement } from './containerSearch.ts';
 import { isPack, itemSpecs, packs } from './catalog.ts';
 import { type Cargo, createBackpack, portion } from './backpack.ts';
+import { buildLoadout, defaultLoadout, type Loadout } from './loadout.ts';
 
 export type Inventory = Partial<Record<ItemId, number>>;
 export type RaidLog = {
@@ -52,12 +53,11 @@ function contains(exit: ExitZone, feet: Vec3) {
   return Math.abs(feet[1] - y) < 1.2 && Math.hypot(feet[0] - x, feet[2] - z) <= exit.radius;
 }
 
-export function createRaid(runId: string, seed: number, map: RaidMap) {
+export function createRaid(runId: string, seed: number, map: RaidMap, plan: Loadout = defaultLoadout, stock: readonly Cargo[] = []) {
   const spawn = chooseSpawn(seed, map.spawnPoints);
-  const backpack = createBackpack(3, 2, true);
-  backpack.receive({ item: 'pistol-ammo', quantity: 15, issued: 15 });
-  backpack.slots.pistol = { item: 'pistol', quantity: 1, issued: 1, loaded: 8, instance: runId + '/pistol' };
-  backpack.slots.knife = { item: 'knife', quantity: 1, issued: 1, instance: runId + '/knife' };
+  const bag = buildLoadout(runId, plan, stock);
+  if (!bag) throw new Error('整备无法装入随身空间');
+  const backpack = bag;
   const targets = [...map.interactions],
     ground = new Map<string, Cargo>();
   for (const t of targets)
@@ -101,6 +101,7 @@ export function createRaid(runId: string, seed: number, map: RaidMap) {
   let countdown: Timer | undefined;
   let lift: Timer | undefined;
   let result: RaidResult | undefined;
+  let serviceTask = false;
 
   const exitAt = (feet: Vec3) => map.exits.find((exit) => contains(exit, feet));
 
@@ -135,6 +136,7 @@ export function createRaid(runId: string, seed: number, map: RaidMap) {
     if (!container || !entry?.revealed) return false;
     const part=portion(entry,quantity);
     if (!part || !backpack.receive(part, placement)) return false;
+    if (entry.item === 'service-card') serviceTask = true;
     log.first ??= itemSpecs[entry.item].name;
     if(part.quantity===entry.quantity)container.entries.splice(container.entries.indexOf(entry),1);
     else {entry.quantity-=part.quantity;entry.issued=(entry.issued??0)-(part.issued??0);}
@@ -248,6 +250,7 @@ export function createRaid(runId: string, seed: number, map: RaidMap) {
   function collect(id: string) {
     const c = ground.get(id);
     if (result || !c || !backpack.receive(c)) return false;
+    if (c.item === 'service-card') serviceTask = true;
     log.first ??= itemSpecs[c.item].name;
     removeGround(id);
     return true;
@@ -383,6 +386,15 @@ export function createRaid(runId: string, seed: number, map: RaidMap) {
     exitAt,
     blockedReason, exitStatus,
     get liftWindow() { return lift; },
+    objectives() {
+      const tasks: { title: string; detail: string }[] = [];
+      if (lift) tasks.push({title: '货梯撤离', detail: '抵达 B1 货梯 · ' + Math.ceil(lift.remaining) + ' 秒'});
+      const service = map.exits.find(exit => exit.id === 'service-passage');
+      if (service && countdown?.exit !== service && (serviceTask || visited.has('duty-card')))
+        tasks.push({title: service.label, detail: blockedReason(service) ? '获取维修卡' : '携带维修卡抵达通道'});
+      if (countdown) tasks.push({title: countdown.exit.label, detail: '留在撤离区 · ' + Math.ceil(countdown.remaining) + ' 秒'});
+      return tasks;
+    },
     interact,
     update,
     get result() {

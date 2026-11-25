@@ -1,5 +1,5 @@
 import { supplySites } from '../world/supplySites.ts';
-import { mapBounds } from '../world/worldQueries.ts';
+import { lab, mapBounds, ramp } from '../world/worldQueries.ts';
 import type { ExitZone, FirstMap, Vec3 } from '../contracts/demo.ts';
 
 import { arcadeWidth, portBlocks, shopSide } from '../world/portBlocks.ts';
@@ -10,13 +10,66 @@ export function createTacticalMap() {
   const panel = document.querySelector<HTMLElement>('#tactical-map')!;
   const canvas = document.querySelector<HTMLCanvasElement>('#map-canvas')!;
   const ctx = canvas.getContext('2d')!;
+  const mini = document.querySelector<HTMLCanvasElement>('#minimap-canvas')!;
+  const radar = mini.getContext('2d')!;
+  const miniFloor = document.querySelector<HTMLElement>('#minimap-floor')!;
+  let lastRadar = -Infinity;
   const project = (x: number, z: number) => [80 + (x - mapBounds.minX) / 400 * 740, 85 + (z - mapBounds.minZ) / 400 * 580];
   let lastDraw = 0;
   const compass = document.querySelector<HTMLElement>('#bearing')!;
   const heading = document.querySelector<HTMLElement>('#heading')!;
 
   return {
+    reset() { panel.hidden = true; lastDraw = 0; lastRadar = -Infinity; },
     toggle() { panel.hidden = !panel.hidden; lastDraw = 0; },
+    updateMini(map: FirstMap, feet: Vec3, yaw: number, now: number, discovered: ReadonlySet<string>,
+      consumed: ReadonlySet<string>, statusFor: (exit: ExitZone) => {kind: string}) {
+      if (now - lastRadar < 90) return;
+      lastRadar = now;
+      const underground = feet[1] < -2.5;
+      const floor = underground ? 'B1' : '地面';
+      if (miniFloor.textContent !== floor) miniFloor.textContent = floor;
+      const half = mini.width / 2, scale = half / (underground ? 25 : 45);
+      const point = (x: number, z: number) => [half + (x - feet[0]) * scale, half + (z - feet[2]) * scale];
+      function rect(x1: number, z1: number, x2: number, z2: number, color: string, stroke?: string) {
+        const [x, y] = point(x1, z1);
+        const w = (x2 - x1) * scale, h = (z2 - z1) * scale;
+        radar.fillStyle = color; radar.fillRect(x, y, w, h);
+        if (stroke) { radar.strokeStyle = stroke; radar.strokeRect(x, y, w, h); }
+      }
+      radar.fillStyle = underground ? '#141e2a' : '#1d2b30';
+      radar.fillRect(0, 0, mini.width, mini.height);
+      if (underground) {
+        rect(lab.minX, lab.minZ, lab.maxX, lab.maxZ, '#304457', '#709497');
+        rect(ramp.minX, ramp.minZ, ramp.maxX, ramp.maxZ, '#53666b');
+      } else {
+        for (const road of roads) rect(road.x1, road.z1, road.x2, road.z2, '#4b5d5e');
+        for (const path of footpaths) rect(path.x1, path.z1, path.x2, path.z2, '#394b4d');
+        for (const [x, z, w, d] of portBlocks)
+          rect(x - w / 2, z - d / 2, x + w / 2, z + d / 2, '#2c3e43', '#708386');
+        for (const [x, z, w, d] of freightHalls)
+          rect(x - w / 2, z - d / 2, x + w / 2, z + d / 2, '#2c3e43', '#708386');
+      }
+      radar.fillStyle = '#a2cfc5';
+      for (const target of map.interactions) {
+        if (!discovered.has(target.id) || consumed.has(target.id) || (target.position[1] < -2.5) !== underground) continue;
+        const [x, z] = point(target.position[0], target.position[2]);
+        radar.fillRect(x - 2, z - 2, 4, 4);
+      }
+      for (const exit of map.exits) {
+        if ((exit.position[1] < -2.5) !== underground) continue;
+        const [x, z] = point(exit.position[0], exit.position[2]);
+        const state = statusFor(exit);
+        radar.strokeStyle = state.kind === 'locked' ? '#d2a188' : state.kind === 'active' ? '#ffe3a1' : '#9fe8be';
+        radar.lineWidth = 2; radar.strokeRect(x - 5, z - 5, 10, 10);
+      }
+      radar.save(); radar.translate(half, half); radar.rotate(-yaw);
+      radar.fillStyle = '#ffe0a4'; radar.strokeStyle = '#172429'; radar.lineWidth = 3;
+      radar.beginPath(); radar.moveTo(0, -12); radar.lineTo(7, 8); radar.lineTo(0, 4);
+      radar.lineTo(-7, 8); radar.closePath(); radar.stroke(); radar.fill(); radar.restore();
+      radar.fillStyle = '#f3e9d2'; radar.font = '700 14px monospace'; radar.textAlign = 'center';
+      radar.fillText('N', half, 19);
+    },
     update(map: FirstMap, feet: Vec3, yaw: number, now: number,discovered:ReadonlySet<string>,consumed:ReadonlySet<string>,statusFor:(exit:ExitZone)=>{kind:string;label:string}) {
       const degrees = ((-yaw * 180 / Math.PI) % 360 + 360) % 360;
       compass.textContent = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'][Math.round(degrees / 45) % 8];

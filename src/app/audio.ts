@@ -5,6 +5,15 @@ export function createAudio() {
   let noise: AudioBuffer | undefined;
   let ambience: GainNode | undefined;
   let environmentFilter: BiquadFilterNode | undefined;
+  let master: GainNode | undefined, effects: GainNode | undefined, background: GainNode | undefined;
+  let levels = { master: .85, effects: 1, ambience: .8 };
+  function volumes(next: typeof levels) {
+    levels = { master: next.master, effects: next.effects, ambience: next.ambience };
+    if (!context || !master || !effects || !background) return;
+    master.gain.setTargetAtTime(levels.master ** 2, context.currentTime, .025);
+    effects.gain.setTargetAtTime(levels.effects ** 2, context.currentTime, .025);
+    background.gain.setTargetAtTime(levels.ambience ** 2, context.currentTime, .025);
+  }
   function ready() {
     context ??= new AudioContext();
     void context.resume();
@@ -14,15 +23,22 @@ export function createAudio() {
       for (let i = 0; i < values.length; i++) values[i] = Math.random() * 2 - 1;
     }
     if(!ambience) {
+      master = context.createGain(); effects = context.createGain(); background = context.createGain();
+      master.gain.value = levels.master ** 2;
+      effects.gain.value = levels.effects ** 2;
+      background.gain.value = levels.ambience ** 2;
+      effects.connect(master);
+      background.connect(master);
+      master.connect(context.destination);
       const source=context.createBufferSource();source.buffer=noise;source.loop=true;
       environmentFilter=context.createBiquadFilter();environmentFilter.type='lowpass';environmentFilter.frequency.value=450;
       ambience=context.createGain();ambience.gain.value=.003;
-      source.connect(environmentFilter).connect(ambience).connect(context.destination);source.start();
+      source.connect(environmentFilter).connect(ambience).connect(background);source.start();
     }
     return context;
   }
   function burst(duration: number, volume: number, cutoff: number, tone?: number, pan=0,delay=0) {
-    if (!context || context.state !== 'running' || !noise) return;
+    if (!context || context.state !== 'running' || !noise || !effects) return;
     const at = context.currentTime+delay;
     const source = context.createBufferSource();
     source.buffer = noise;
@@ -33,7 +49,7 @@ export function createAudio() {
     gain.gain.setValueAtTime(volume, at);
     gain.gain.exponentialRampToValueAtTime(.0001, at + duration);
     const stereo=context.createStereoPanner();stereo.pan.value=Math.max(-1,Math.min(1,pan));
-    source.connect(filter).connect(gain).connect(stereo).connect(context.destination);
+    source.connect(filter).connect(gain).connect(stereo).connect(effects);
     source.start(at); source.stop(at + duration);
     if (tone) {
       const oscillator = context.createOscillator();
@@ -44,8 +60,9 @@ export function createAudio() {
     }
   }
   return {
-    ready,
+    ready, volumes,
     slide() { burst(.28,.037,860); burst(.13,.023,510,90,0,.16); },
+    slideJump() { burst(.09, .036, 1160, 135); },
     liftSwitch() { burst(.05,.032,1700,170); burst(.11,.024,940,290,0,.09); },
     grip() { burst(.07,.031,1150,130,0,.08); burst(.055,.018,850,0,0,.13); },
     land() { burst(.10,.038,680,105); },

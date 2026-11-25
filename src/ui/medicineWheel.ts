@@ -47,7 +47,7 @@ export function createMedicineWheel() {
             })),
             i - start,
             entries[i] ? itemSpecs[entries[i].item].name : '随身无药物',
-            '方向键或鼠标选择 · 松开 5 确认',
+            '',
           );
         }
       } else {

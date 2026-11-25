@@ -1,35 +1,43 @@
 import type { WeaponId } from '../contracts/demo.ts';
+import { defaultSettings, type InputAction } from './settings.ts';
 
-export function createInput(canvas: HTMLCanvasElement) {
-  const keys = new Set<string>();
-  const pressed = new Set<string>();
-  let attack = false;
-  let attackHeld = false;
-  let aiming = false;
-  let lookX = 0;
-  let lookY = 0;
-  let medicineDown:number|undefined,medicineRelease:'quick'|'confirm'|undefined;
-  let acceptLook = false;
-
-  const locked = () => document.pointerLockElement === canvas;
+export function createInput(canvas: HTMLCanvasElement, settings = defaultSettings()) {
+  const keys = new Set<string>(), pressed = new Set<string>();
+  const ownsPointer = () => document.pointerLockElement === canvas;
+  let lookX = 0, lookY = 0, captureReady = ownsPointer();
+  let medicineDown: number | undefined, medicineRelease: 'quick' | 'confirm' | undefined;
+  const locked = () => captureReady && ownsPointer();
+  const held = (action: InputAction) => settings.bindings[action].some(code => keys.has(code));
+  const tapped = (action: InputAction) => settings.bindings[action].some(code => pressed.has(code));
+  function press(code: string) {
+    if (keys.has(code)) return;
+    if (settings.bindings.medicine.includes(code) && !held('medicine')) medicineDown = performance.now();
+    keys.add(code);
+    pressed.add(code);
+  }
+  function release(code: string) {
+    keys.delete(code);
+    if (settings.bindings.medicine.includes(code) && !held('medicine') && medicineDown !== undefined) {
+      medicineRelease = performance.now() - medicineDown >= 330 ? 'confirm' : 'quick';
+      medicineDown = undefined;
+    }
+  }
   function clear() {
-    medicineDown=medicineRelease=undefined;
+    medicineDown = medicineRelease = undefined;
     keys.clear();
     pressed.clear();
-    attack = attackHeld = aiming = false;
     lookX = lookY = 0;
   }
-
-  window.addEventListener('keydown', (event) => {
+  window.addEventListener('keydown', event => {
     if (!locked()) return;
     if (event.code === 'Escape') document.exitPointerLock();
-    if (!event.repeat){pressed.add(event.code);if(event.code==='Digit5')medicineDown=performance.now();}
-    if (event.code === 'Tab' || event.code === 'Space'||event.code.startsWith('Arrow')) event.preventDefault();
-    keys.add(event.code);
+    if (!event.repeat) press(event.code);
+    if (Object.values(settings.bindings).some(codes => codes.includes(event.code)) || event.code.startsWith('Arrow'))
+      event.preventDefault();
   });
-  window.addEventListener('keyup', event=>{
-    keys.delete(event.code);
-    if(event.code==='Digit5' && medicineDown!==undefined){medicineRelease=performance.now()-medicineDown>=330?'confirm':'quick';medicineDown=undefined;}
+  window.addEventListener('keyup', event => {
+    if (locked() && settings.bindings.quiet.includes(event.code) && event.code.startsWith('Alt')) event.preventDefault();
+    release(event.code);
   });
   window.addEventListener('blur', () => {
     clear();
@@ -37,51 +45,40 @@ export function createInput(canvas: HTMLCanvasElement) {
   });
   document.addEventListener('pointerlockchange', () => {
     clear();
-    acceptLook = locked();
+    captureReady = ownsPointer();
   });
-  document.addEventListener('mousemove', (event) => {
-    // Chromium can send cursor-recentering deltas before pointerlockchange is delivered.
-    if (!acceptLook || !locked()) return;
+  document.addEventListener('mousemove', event => {
+    if (!locked()) return;
     lookX += event.movementX;
     lookY += event.movementY;
   });
-  document.addEventListener('mousedown', (event) => {
-    if (!locked()) return;
-    if (event.button === 0) attack = attackHeld = true;
-    if (event.button === 2) aiming = true;
-  });
-  document.addEventListener('mouseup', (event) => {
-    if (event.button === 0) attackHeld = false;
-    if (event.button === 2) aiming = false;
-  });
-  canvas.addEventListener('contextmenu', (event) => event.preventDefault());
+  document.addEventListener('mousedown', event => { if (locked()) press('Mouse' + event.button); });
+  document.addEventListener('mouseup', event => release('Mouse' + event.button));
+  canvas.addEventListener('contextmenu', event => event.preventDefault());
 
   return {
     locked,
     sample() {
-      const slots: readonly [string, WeaponId][] = [['Digit1', 'rifle'], ['Digit2', 'shotgun'], ['Digit3', 'pistol'], ['Digit4', 'knife']];
-      const switchTo = slots.find(([code]) => pressed.has(code))?.[1];
+      const slots: readonly [InputAction, WeaponId][] = [['primaryA', 'rifle'], ['primaryB', 'shotgun'], ['pistol', 'pistol'], ['knife', 'knife']];
       const frame = {
-        forward: Number(keys.has('KeyW')) - Number(keys.has('KeyS')),
-        strafe: Number(keys.has('KeyD')) - Number(keys.has('KeyA')),
-        running: keys.has('ShiftLeft') || keys.has('ShiftRight'),
-        quiet: keys.has('KeyC'),
-        stancePressed: pressed.has('KeyX'),
-        lift:Number(keys.has('Space'))-Number(keys.has('KeyQ')),
-        medicineHeld: medicineDown!==undefined && performance.now()-medicineDown>=330,
+        forward: Number(held('forward')) - Number(held('backward')),
+        strafe: Number(held('right')) - Number(held('left')),
+        running: held('sprint'), quiet: held('quiet'),
+        stancePressed: tapped('stance'), stanceHeld: held('stance'), holdStance: settings.stance === 'hold',
+        lift: Number(held('jump')) - Number(held('descend')),
+        medicineHeld: medicineDown !== undefined && performance.now() - medicineDown >= 330,
         medicineRelease,
-        medicineCycle:Number(pressed.has('ArrowRight')||pressed.has('ArrowDown'))-Number(pressed.has('ArrowLeft')||pressed.has('ArrowUp')),
-        healPressed: pressed.has('KeyH'),
-        lookX, lookY, aiming, switchTo,
-        attackPressed: attack || attackHeld,
-        reloadPressed: pressed.has('KeyR'),
-        interactPressed: pressed.has('KeyE'),
-        mapPressed: pressed.has('KeyM'),
-        backpackPressed: pressed.has('Tab'),
-        jumpPressed: pressed.has('Space'),
+        medicineCycle: Number(pressed.has('ArrowRight') || pressed.has('ArrowDown')) - Number(pressed.has('ArrowLeft') || pressed.has('ArrowUp')),
+        healPressed: tapped('heal'),
+        lookX: lookX * settings.sensitivity, lookY: lookY * settings.sensitivity,
+        aiming: held('aim'), switchTo: slots.find(([action]) => tapped(action))?.[1],
+        attackPressed: held('attack') || tapped('attack'),
+        reloadPressed: tapped('reload'), interactPressed: tapped('interact'),
+        mapPressed: tapped('map'), backpackPressed: tapped('backpack'),
+        jumpPressed: tapped('jump'), ammoPressed: tapped('ammo'),
       };
-      medicineRelease=undefined;pressed.clear();
-      attack = false;
+      medicineRelease = undefined;
+      pressed.clear();
       lookX = lookY = 0;
       return frame;
     },

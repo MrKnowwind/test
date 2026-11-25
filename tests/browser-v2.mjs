@@ -112,14 +112,17 @@ try {
   await wait(() => window.raidQA.state().result?.outcome === 'extracted');
   await shot('10-extracted');
   assert.ok((await state()).warehouse['service-card'] >= 1);
-  const credits = (await state()).credits;
-  await page.locator('[data-sell="service-card"]').click();
-  await wait(credits => window.raidQA.state().credits === credits + 40, credits);
+  await page.locator('#primary').click();
+  await page.locator('[data-outpost=sell]').click();
+  const offer = page.locator('[data-sell="service-card"]');
+  const credits = (await state()).credits + Number((await offer.textContent()).match(/\d+/)[0]);
+  await offer.click();
+  await wait(credits => window.raidQA.state().credits === credits, credits);
   const stock = (await state()).warehouse['service-card'] ?? 0;
   await page.reload();
   await page.locator('#primary:not([disabled])').waitFor();
   assert.equal((await state()).warehouse['service-card'] ?? 0, stock);
-  assert.equal((await state()).credits, credits + 40);
+  assert.equal((await state()).credits, credits);
   report.checks.push('conditional extraction, one-time stash credit, sale and persisted currency after reload');
 
   await enter();

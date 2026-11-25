@@ -79,7 +79,7 @@ test('partial injector shipment keeps remaining charges through retry, sale and 
     getItem: (k) => records.get(k) ?? null,
     setItem: (k, v) => records.set(k, v),
   };
-  const stock = createWarehouse(() => storage);
+  const stock = createWarehouse(() => storage, () => 0);
   const item = 'healing-injector',
     data = {
       runId: 'medicine',
@@ -90,8 +90,9 @@ test('partial injector shipment keeps remaining charges through retry, sale and 
     };
   assert.ok(stock.commit(data));
   assert.ok(stock.commit(data));
-  assert.equal(stock.price(item), 60);
+  const credits = stock.credits(), quote = stock.price(item);
+  assert.ok(quote >= 48 && quote <= 72);
   assert.ok(await stock.sell(item));
   assert.equal(await stock.sell(item), false);
-  assert.equal(createWarehouse(() => storage).credits(), 60);
+  assert.equal(createWarehouse(() => storage).credits(), credits + quote);
 });

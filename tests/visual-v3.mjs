@@ -63,7 +63,9 @@ try {
   await pose(origin.position, origin.yaw);
   for (const quality of ['low', 'high', 'balanced']) {
     await page.keyboard.press('Escape');
+    await page.locator('#settings-open').click();
     await page.locator('#quality').selectOption(quality);
+    await page.locator('#settings-close').click();
     await enter();
     await page.waitForTimeout(700);
     report.performance[quality] = await page.evaluate(() => new Promise(resolve => {

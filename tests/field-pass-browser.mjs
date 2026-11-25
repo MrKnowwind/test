@@ -58,6 +58,9 @@ const state = () => page.evaluate(() => {
 const pose = (feet,yaw=0,pitch=0) => page.evaluate(([p,y,t]) => window.raidQA.pose(p,y,t),[feet,yaw,pitch]);
 const press = async key => { await page.keyboard.press(key); await tick(); };
 const click = selector => page.locator(selector).click({force:true});
+async function quality(value) {
+  await click('#settings-open'); await page.selectOption('#quality', value); await click('#settings-close');
+}
 const capture = async (name, quality=80) => {
   await tick(1,true);
   await page.screenshot({path:path.join(output,name+'.jpg'),quality,timeout:60000});
@@ -65,8 +68,8 @@ const capture = async (name, quality=80) => {
 async function start(seed=42, liveUI=false) {
   await page.goto('http://127.0.0.1:4173/?qa=1&seed='+seed+(liveUI?'&liveUI=1':''),{timeout:90000});
   await page.locator('#primary:enabled').waitFor({timeout:90000});
-  await page.selectOption('#quality','balanced');await click('#primary');
-  await page.waitForFunction(()=>document.pointerLockElement,undefined,{polling:10});
+  await quality('balanced');await click('#primary');
+  await page.waitForFunction(()=>raidQA.state().locked,undefined,{polling:10});
   await tick();
 }
 async function resume() {
@@ -104,8 +107,8 @@ async function bags() {
       await pose([-100-i*9,0,155],0,-1.03);
       await press('Escape');
       await page.selectOption('#creative-item',pack); await click('#creative-drop'); await resume();
-      await page.waitForFunction(()=>document.querySelector('#prompt').textContent.includes('拾取'),undefined,{polling:25,timeout:5000});
-      await press('e');await page.getByRole('button',{name:'装备此包'}).click({force:true,timeout:5000});
+      await page.waitForFunction(()=>document.querySelector('#prompt').textContent.includes('查看'),undefined,{polling:25,timeout:5000});
+      await press('e');await click('button.pack-source');await page.getByRole('button',{name:'装备此包'}).click({force:true,timeout:5000});
       const confirm=page.getByRole('button',{name:'确认装备'});
       if(await confirm.isVisible())await confirm.click({force:true});
     }else await press('Tab');
@@ -136,13 +139,13 @@ async function movement() {
   let index=0;report.motion=[];
   const record=async n=>{for(let i=0;i<n;i++){await tick(3);await capture('motion/'+String(index++).padStart(3,'0'),77);
     const s=await state();report.motion.push({i:index-1,stance:s.stance,h:s.eye[1]-s.feet[1],p:s.climb?.progress,feet:s.feet});}};
-  await pose([-11.1,0,1.70],0,-.07);await record(2);await press('x');await record(4);
+  await pose([-11.1,0,1.70],0,-.07);await record(2);await press('c');await record(4);
   await page.keyboard.down('w');await record(23);await page.keyboard.up('w');
-  await press('x');await record(2);
+  await press('c');await record(2);
   await page.keyboard.down('w');await record(6);await page.keyboard.up('w');await record(3);
   assert.equal((await state()).stance,'stand');
   await pose([-4,0,19],0,-.04);await page.keyboard.down('Shift');await page.keyboard.down('w');await record(5);
-  await press('x');await record(10);await page.keyboard.up('Shift');await page.keyboard.up('w');await record(3);
+  await press('c');await record(10);await page.keyboard.up('Shift');await page.keyboard.up('w');await record(3);
   await pose([-38,0,123.85],0,-.12);await record(2);await press('Space');await record(2);
   await press('Space');await record(12);
   assert.ok(report.motion.some(s=>s.stance==='slide'));assert.ok(report.motion.some(s=>s.stance==='climb'));
@@ -183,7 +186,7 @@ async function controls() {
   await pose([-4,0,20]);
   await page.mouse.down({button:'right'}); await tick(22);
   assert.ok((await state()).weapon.aiming); await page.mouse.up({button:'right'}); await tick(8);
-  await page.keyboard.down('Shift'); await page.keyboard.down('w'); await tick(14); await press('x');
+  await page.keyboard.down('Shift'); await page.keyboard.down('w'); await tick(14); await press('c');
   assert.equal((await state()).stance,'slide');
   const loaded=(await state()).weapon.loaded;
   await page.mouse.click(448,252); await press('r'); await press('Tab');
@@ -195,9 +198,9 @@ async function controls() {
   await press('Digit4'); assert.equal((await state()).weapon.id,'knife',JSON.stringify(await state()));
   await press('Digit3'); assert.equal((await state()).weapon.id,'pistol');
   await pose([-110,0,155]); // clear air above the public road
-  await press('Escape'); await page.locator('#creative-flight:visible').check(); await page.selectOption('#quality','high'); await resume();
+  await press('Escape'); await page.locator('#creative-flight:visible').check(); await quality('high'); await resume();
   const y=(await state()).feet[1]; await page.keyboard.down('Space'); await tick(20); await page.keyboard.up('Space');
-  assert.ok((await state()).feet[1]>y+1.1,JSON.stringify({y,after:await state()})); await press('x'); assert.equal((await state()).stance,'stand');
+  assert.ok((await state()).feet[1]>y+1.1,JSON.stringify({y,after:await state()})); await press('c'); assert.equal((await state()).stance,'stand');
   await tick(1,true);
   report.controls='ADS, slide blocks fire/reload/bag, pause interrupts movement, pistol/knife switching and creative flight at High.';
 }

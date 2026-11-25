@@ -2,8 +2,62 @@ import * as THREE from 'three';
 import type { FirstMap, MapInteraction, ItemId } from '../contracts/demo.ts';
 import { box, cylinder } from '../world/detail/geometry.ts';
 import { enamel, emissive } from '../world/detail/materialLibrary.ts';
-import { itemSpecs, isPack } from '../raid/catalog.ts';
+import { itemSpecs, isPack, type PackId } from '../raid/catalog.ts';
 import { caseProfile } from '../raid/loot.ts';
+
+const packLooks = {
+  sling: [.44, .25, .18, 0x469f94],
+  daypack: [.35, .43, .23, 0x6799ac],
+  repairpack: [.51, .32, .27, 0xd4904e],
+  tube: [.30, .60, .30, 0x849d75],
+  school: [.40, .49, .25, 0xc46c63],
+  alpine: [.41, .66, .30, 0x9475ac],
+  longpack: [.34, .76, .25, 0x546c88],
+} as const;
+
+function groundPack(root: THREE.Group, item: PackId, fabric: THREE.Material, webbing: THREE.Material, trim: THREE.Material) {
+  const [w, h, d] = packLooks[item];
+  if (item === 'tube') {
+    root.rotation.y = -.28;
+    const roll = new THREE.Group();
+    root.add(roll);
+    roll.position.y = d * .52;
+    roll.rotation.z = Math.PI / 2;
+    cylinder(roll, fabric, d / 2, h, 0, 0, 0, 16);
+    for (const y of [-.24, .24]) cylinder(roll, webbing, d * .52, .035, 0, y, 0, 16);
+    box(root, trim, .13, .03, .08, 0, d, 0, .01);
+    return;
+  }
+  box(root, fabric, w, h, d, 0, h / 2, 0, Math.min(h * .22, .09));
+  const pocket = (x: number, y: number, width: number, height: number) => {
+    box(root, fabric, width, height, .095, x, y, d / 2, .027);
+    box(root, webbing, width * .86, .016, .014, x, y + height * .26, d / 2 + .049, .004);
+    box(root, trim, .026, .023, .013, x + width * .24, y + height * .26, d / 2 + .056, .004);
+  };
+  for (const side of [-1, 1]) {
+    box(root, webbing, .034, h * .77, .035, side * w * .29, h * .51, -d / 2, .012);
+    box(root, webbing, .023, .068, .04, side * .065, h, -.018, .008);
+  }
+  box(root, webbing, .15, .024, .042, 0, h + .034, -.018, .01);
+  if (item === 'repairpack') {
+    for (const x of [-.155, 0, .155]) pocket(x, h * .47, .125, .18);
+    box(root, webbing, w * .94, .055, d + .025, 0, .03, 0, .012);
+  } else if (item === 'alpine') {
+    for (const x of [-1, 1]) box(root, fabric, .112, .31, .20, x * w * .52, .19, 0, .04);
+    box(root, webbing, w * .99, .118, d * 1.08, 0, h * .92, .011, .045);
+    pocket(0, h * .46, w * .65, .30);
+  } else if (item === 'longpack') {
+    for (const y of [.21, .51]) box(root, webbing, w * 1.04, .035, d * 1.04, 0, y, 0, .009);
+    for (const x of [-.09, .09]) box(root, trim, .022, .54, .018, x, .41, d / 2, .008);
+  } else {
+    pocket(0, h * .35, w * .76, h * .46);
+    if (item !== 'daypack')
+      box(root, webbing, w * .89, h * .26, .084, 0, h * .74, d / 2, .025);
+    if (item === 'sling') root.rotation.y = -.42;
+    if (item === 'school') for (const x of [-.09, .09])
+      box(root, trim, .038, .044, .025, x, h * .66, d / 2 + .047, .009);
+  }
+}
 
 export function addSearchContainers(map: FirstMap & { scene: THREE.Group }) {
   const shell = enamel(0xdde9eb),
@@ -16,7 +70,7 @@ export function addSearchContainers(map: FirstMap & { scene: THREE.Group }) {
   function paint(id: ItemId) {
     let m = pigments.get(id);
     if (!m) {
-      m = enamel(itemSpecs[id].color);
+      m = enamel(isPack(id) ? packLooks[id][3] : itemSpecs[id].color);
       pigments.set(id, m);
     }
     return m;
@@ -38,9 +92,8 @@ export function addSearchContainers(map: FirstMap & { scene: THREE.Group }) {
       const w = Math.min(0.96, 0.14 + 0.093 * s.w),
         d = 0.13 + 0.056 * s.h;
       if (isPack(t.item)) {
-        box(root, accent, 0.42, 0.48, 0.28, 0, 0.24, 0, 0.06);
-        box(root, seal, 0.27, 0.17, 0.09, 0, 0.17, 0.15, 0.022);
-        for (const x of [-0.13, 0.13]) box(root, seal, 0.038, 0.39, 0.04, x, 0.25, -0.14, 0.013);
+        groundPack(root, t.item, accent, seal, shell);
+        root.traverse(mesh => { if (mesh instanceof THREE.Mesh) mesh.castShadow = mesh.receiveShadow = true; });
       } else if (
         ['turbine', 'coil', 'lens', 'valve', 'seals', 'spectrum', 'research-sample'].includes(t.item)
       ) {

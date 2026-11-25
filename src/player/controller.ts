@@ -12,7 +12,9 @@ type InputFrame = ReturnType<ReturnType<typeof createInput>['sample']>;
 export function createPlayer(camera: PerspectiveCamera, world: WorldQueries, spawn: SpawnPoint) {
   let feet = spawn.position, yaw = spawn.yaw, pitch = 0, recoil = 0, verticalSpeed = 0;
   let crouchRequested = false, crouched = false, eyeHeight = 1.65, sprintTime = 0;
+  let holdConsumed = false, usesHold = false;
   let slide: { x: number; z: number; speed: number } | undefined;
+  let slideLeap: { x: number; z: number; remaining: number } | undefined;
   let climb: { from: Vec3; ledge: Ledge; elapsed: number } | undefined;
   const forwardRay = new Vector3();
 
@@ -36,7 +38,7 @@ export function createPlayer(camera: PerspectiveCamera, world: WorldQueries, spa
     return floor != null && Math.abs(feet[1] - floor) < .04 && verticalSpeed <= 0;
   }
   function interrupt() {
-    climb = slide = undefined;
+    climb = slide = slideLeap = undefined;
     sprintTime = 0;
   }
   syncCamera();
@@ -58,7 +60,7 @@ export function createPlayer(camera: PerspectiveCamera, world: WorldQueries, spa
     kick(amount: number) { recoil = Math.min(.07, recoil + amount); },
     pose(position: Vec3, angle: number, tilt = 0) {
       interrupt(); feet = position; yaw = angle; pitch = tilt; recoil = verticalSpeed = 0;
-      crouchRequested = crouched = false; eyeHeight = 1.65; syncCamera();
+      crouchRequested = crouched = holdConsumed = false; eyeHeight = 1.65; syncCamera();
     },
     move(dt: number, input: InputFrame, aiming: boolean, creative?:{flight:boolean;speed:number}) {
       recoil = MathUtils.damp(recoil, 0, 9, dt);
@@ -69,15 +71,27 @@ export function createPlayer(camera: PerspectiveCamera, world: WorldQueries, spa
       const previous = feet, onGround = grounded();
       const direction: Vec3 = [-Math.sin(yaw), 0, -Math.cos(yaw)];
       const wantsSprint = input.running && forward > 0 && !aiming && !input.quiet;
+      if (usesHold !== !!input.holdStance) { usesHold = !!input.holdStance; crouchRequested = false; }
+      if (!input.stanceHeld) holdConsumed = false;
       if (creative?.flight) { interrupt(); crouchRequested = false; }
       else if (input.stancePressed && !climb) {
         if (slide) slide = undefined;
         else if (wantsSprint && onGround && sprintTime >= .13) {
           slide = { x: direction[0], z: direction[2], speed: 7.15 };
-          crouchRequested = true;
-        } else crouchRequested = !crouchRequested;
+          crouchRequested = false;
+          holdConsumed = true;
+        } else if (!input.holdStance) crouchRequested = !crouchRequested;
       }
-      crouched = crouchRequested || (crouched && world.bodyClear?.(feet, radius, standingHeight) === false);
+      if (input.holdStance) crouchRequested = input.stanceHeld && !holdConsumed && !creative?.flight;
+      const standClear = !crouched || world.bodyClear?.(feet, radius, standingHeight) !== false;
+      if (input.jumpPressed && slide && onGround && standClear && world.moveBody && world.groundHeight) {
+        const speed = Math.max(4.5, slide.speed);
+        slideLeap = { x: slide.x * speed, z: slide.z * speed, remaining: .28 };
+        slide = undefined;
+        verticalSpeed = 5.8;
+      }
+      if (input.holdStance && !input.stanceHeld) slide = undefined;
+      crouched = !!slide || crouchRequested || !standClear;
       const height = crouched ? crouchingHeight : standingHeight;
       const speed = crouched ? (input.quiet ? 1.55 : 2.15) : input.quiet ? 2 : aiming ? 2.55 : wantsSprint ? 6.25 : 4.15;
       const scale = speed * (creative?.speed ?? 1) * dt / Math.max(1, Math.hypot(strafe, forward));
@@ -90,7 +104,7 @@ export function createPlayer(camera: PerspectiveCamera, world: WorldQueries, spa
           (-Math.sin(yaw)*strafe + direction[2]*forward)*travel, radius, height);
         verticalSpeed = 0;
       } else if (world.moveBody && world.groundHeight) {
-        if (input.jumpPressed && !climb && !slide && !crouched) {
+        if (input.jumpPressed && !climb && !slide && !slideLeap && !crouched) {
           const ledge = !onGround && world.climbLedge?.(feet, direction, radius, standingHeight);
           if (ledge) climb = { from: feet, ledge, elapsed: 0 };
           else if (onGround) verticalSpeed = 6.1;
@@ -106,6 +120,13 @@ export function createPlayer(camera: PerspectiveCamera, world: WorldQueries, spa
           if (t === 1) climb = undefined;
         } else {
           if (slide) { dx = slide.x * slide.speed * dt; dz = slide.z * slide.speed * dt; }
+          if (slideLeap) {
+            const blend = slideLeap.remaining / .28;
+            dx = MathUtils.lerp(dx, slideLeap.x * dt, blend);
+            dz = MathUtils.lerp(dz, slideLeap.z * dt, blend);
+            slideLeap.remaining -= dt;
+            if (slideLeap.remaining <= 0) slideLeap = undefined;
+          }
           verticalSpeed = onGround && verticalSpeed <= 0 ? 0 : Math.max(-24, verticalSpeed - 18 * dt);
           const expectedY = feet[1] + verticalSpeed * dt;
           feet = world.moveBody(feet, dx, verticalSpeed * dt, dz, radius, height);

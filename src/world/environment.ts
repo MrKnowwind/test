@@ -41,6 +41,7 @@ export const mapInteractions: readonly MapInteraction[] = [
   { id: 'quarantine-samples', label: '隔离保存柜', kind: 'loot', item: 'research-sample', quantity: 1, position: [78.2,1.12,-167.7] },
   { id: 'transit-tools', label: '转运仓工具箱', kind: 'loot', item: 'salvage', quantity: 2, position: [-84,1.12,-12.7] },
   { id: 'workshop-supplies', label: '工棚应急箱', kind: 'loot', item: 'medkit', quantity: 1, position: [-42,1.12,2.3] },
+  { id: 'evac-daypack', label: '基础小包', kind: 'loose', item: 'daypack', quantity: 1, position: [-24, .18, 140.75] },
 ];
 
 export function createEnvironment() {
@@ -739,7 +740,7 @@ export function createEnvironment() {
   function rampHeightLocal(z:number) { return slopeHeight(rampSlope,40.5,z - 130); }
 
   function addPickup(target: MapInteraction) {
-    if(target.kind!=='loot' && target.kind!=='loose') return;
+    if(target.kind!=='loot') return;
     const group=new THREE.Group();
     group.name=target.id; group.position.set(...target.position); scene.add(group);
     if(target.item==='research-sample') {
