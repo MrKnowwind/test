@@ -221,21 +221,21 @@ test('an infected telegraphs its strike, and stepping out of reach prevents the 
   const warning = update(combat);
   assert.equal(warning.enemies[0].action, 'windup');
   assert.equal(warning.health, 100);
-  const almost = update(combat, 0.64);
+  const almost = update(combat, 0.45);
   assert.equal(almost.health, 100);
   assert.ok(almost.enemies[0].actionProgress > 0.9);
   const hit = update(combat, 0.01);
   assert.equal(hit.enemies[0].action, 'attacking');
   assert.equal(hit.health, 75);
   assert.equal(update(combat, 0.18).enemies[0].action, 'recovering');
-  assert.equal(update(combat, 0.57).health, 75);
-  assert.equal(update(combat, 0.64).health, 75);
+  assert.equal(update(combat, 0.40).health, 75);
+  assert.equal(update(combat, 0.45).health, 75);
   assert.equal(update(combat, 0.01).health, 50);
 
   const evade = createCombat(openWorld, [target]);
   update(evade);
   const retreat = { playerFeet: [0, 0, 2], eye: [0, 1.65, 2] };
-  const missed = update(evade, 0.65, retreat);
+  const missed = update(evade, 0.46, retreat);
   assert.equal(missed.health, 100);
   assert.notEqual(missed.enemies[0].action, 'attacking');
 });
@@ -255,6 +255,23 @@ test('an infected pursues a visible player and uses the world movement constrain
   const patrol = update(concealed, 0.5).enemies[0];
   assert.ok(patrol.intent === 'patrol' && moving.position[2] > patrol.position[2]);
   assert.equal(update(concealed, 0.5).health, 100);
+});
+
+test('an infected closes the gap on a walking avatar while sprinting creates space', () => {
+  function gap(speed) {
+    const enemy = { ...infected('runner', [0, 0, -6]), yaw: Math.PI };
+    const combat = createCombat(openWorld, [enemy]);
+    let frame;
+    for (let i = 1; i <= 60; i++) {
+      const z = speed * i / 60;
+      frame = update(combat, 1 / 60, { playerFeet: [0, 0, z], eye: [0, 1.65, z] });
+    }
+    assert.equal(frame.enemies[0].intent, 'chase');
+    assert.equal(frame.health, 100);
+    return speed - frame.enemies[0].position[2];
+  }
+  assert.ok(gap(4.5) < 6);
+  assert.ok(gap(7.5) > 6);
 });
 
 test('an infected routes around low cover instead of staying against its front edge', () => {
@@ -290,7 +307,7 @@ test('losing sight searches the last observed position without tracking through 
 test('solid cover cancels a security bot lock, and peeking starts a fresh warning', () => {
   const combat = createCombat(wallAtZ(-2, (x) => x > 0.5), [securityBot([0, 0, -4])]);
   assert.equal(update(combat).enemies[0].action, 'windup');
-  const warning = update(combat, 0.85);
+  const warning = update(combat, 0.71);
   assert.equal(warning.health, 100);
   assert.ok(warning.enemies[0].actionProgress > 0.9);
 
@@ -302,8 +319,8 @@ test('solid cover cancels a security bot lock, and peeking starts a fresh warnin
   assert.equal(update(combat, 1, behindCover).health, 100);
 
   assert.equal(update(combat).enemies[0].action, 'windup');
-  assert.equal(update(combat, 0.8).health, 100);
-  const fired = update(combat, 0.1);
+  assert.equal(update(combat, 0.71).health, 100);
+  const fired = update(combat, 0.01);
   assert.equal(fired.health, 80);
   assert.equal(fired.enemies[0].action, 'attacking');
   assert.equal(update(combat, 0.05).health, 80);
@@ -324,9 +341,9 @@ test('supplies restore health and reserve, and death ends combat until the next 
   const enemies = [infected('infected', [0, 0, -1.2])];
   const combat = createCombat(openWorld, enemies);
   update(combat);
-  assert.equal(update(combat, 0.65).health, 75);
-  update(combat, 0.75);
-  assert.equal(update(combat, 0.65).health, 50);
+  assert.equal(update(combat, 0.46).health, 75);
+  update(combat, 0.58);
+  assert.equal(update(combat, 0.46).health, 50);
   combat.heal(40);
   assert.equal(combat.snapshot().health, 90);
   combat.heal(40);
@@ -340,8 +357,8 @@ test('supplies restore health and reserve, and death ends combat until the next 
   assert.equal(combat.snapshot().weapon.reserve, 21);
 
   for (let i = 0; i < 4; i += 1) {
-    update(combat, 0.75);
-    update(combat, 0.65);
+    update(combat, 0.58);
+    update(combat, 0.46);
   }
   assert.equal(combat.snapshot().health, 0);
   combat.heal(40);

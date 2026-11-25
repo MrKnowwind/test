@@ -19,6 +19,7 @@ export function defaultSettings() {
   return {
     stance: 'toggle' as 'toggle' | 'hold',
     sensitivity: 1, master: .85, effects: 1, ambience: .8,
+    fov: 62, cameraMotion: 1,
     quality: 'balanced', minimap: true,
     bindings: Object.fromEntries(inputActions.map(action => [action, actions[action].slice(1)])) as Bindings,
   };
@@ -38,7 +39,7 @@ export function readSettings(storage: Pick<Storage, 'getItem'>) {
   const settings = defaultSettings();
   try {
     const saved = JSON.parse(storage.getItem(key) ?? '{}');
-    for (const [name, min, max] of [['sensitivity', .2, 3], ['master', 0, 1], ['effects', 0, 1], ['ambience', 0, 1]] as const)
+    for (const [name, min, max] of [['sensitivity', .2, 3], ['master', 0, 1], ['effects', 0, 1], ['ambience', 0, 1], ['fov', 55, 80], ['cameraMotion', 0, 1]] as const)
       if (typeof saved[name] === 'number') settings[name] = Math.max(min, Math.min(max, saved[name]));
     if (saved.stance === 'hold') settings.stance = 'hold';
     if (['high', 'balanced', 'low'].includes(saved.quality)) settings.quality = saved.quality;

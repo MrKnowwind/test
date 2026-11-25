@@ -51,7 +51,7 @@ export function createViewmodel() {
   }
 
   function update(dt: number, weapon: WeaponState, moving: boolean,
-    motion: { climb?:ClimbPose; crouched?:boolean; sliding?:boolean; treatment?:TreatmentPose; lowered?:boolean; running?: boolean; lookX?: number; lookY?: number } = {}) {
+    motion: { climb?:ClimbPose; crouched?:boolean; sliding?:boolean; treatment?:TreatmentPose; lowered?:boolean; running?: boolean; lookX?: number; lookY?: number; speed?:number; airborne?:boolean; vertical?:number; landing?:number; intensity?:number } = {}) {
     const climb = motion.climb;
     if (climbingLastFrame && !climb) switchBlend = .65;
     climbingLastFrame = !!climb;
@@ -86,12 +86,16 @@ export function createViewmodel() {
     aimBlend = THREE.MathUtils.damp(aimBlend, Number(aiming), 22, dt);
     if (aimBlend > 0.999) aimBlend = 1;
     if (aimBlend < 0.001) aimBlend = 0;
-    walkBlend = THREE.MathUtils.damp(walkBlend, Number(moving), 10, dt);
+    const intensity = motion.intensity ?? 1;
+    const speedBlend = motion.speed === undefined ? Number(moving) : Math.min(1, motion.speed / 4.5);
+    walkBlend = THREE.MathUtils.damp(walkBlend, motion.airborne || motion.sliding ? 0 : speedBlend, 10, dt);
     sprintBlend=THREE.MathUtils.damp(sprintBlend,Number(!!motion.running && moving && !aiming && !shot && !reloading),10,dt);
-    const cadence = motion.running ? 11 : motion.crouched ? 4.5 : 7;
+    const cadence = motion.running ? 13 : motion.crouched ? 4.5 : 7;
     stepPhase+=dt*cadence*walkBlend;
-    const bobX = Math.sin(stepPhase) * .007 * walkBlend;
-    const bobY = Math.cos(stepPhase * 2) * .0045 * walkBlend + Math.sin(time * 2.1) * .0012;
+    const bobX = Math.sin(stepPhase) * (.007 + sprintBlend*.008) * walkBlend * intensity;
+    const bobY = (Math.cos(stepPhase * 2) * (.0045 + sprintBlend*.009) * walkBlend + Math.sin(time * 2.1) * .0012) * intensity;
+    group.position.y -= (1-aimBlend) * intensity * ((motion.airborne ? (motion.vertical ?? 0) * .028 : 0) + (motion.landing ?? 0) * .052);
+    group.rotation.x -= (1-aimBlend) * intensity * (motion.landing ?? 0) * .09;
 
     for (const [id, gun] of Object.entries(firearms)) gun.body.visible = weapon.id === id;
     knife.body.visible = freeHand.root.visible = weapon.id === 'knife';

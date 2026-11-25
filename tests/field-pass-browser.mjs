@@ -2,10 +2,11 @@ import assert from 'node:assert/strict';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { chromium } from 'playwright';
+import { movement as speeds } from '../src/player/controller.ts';
 
 const root = path.resolve(process.argv[2] ?? 'dist');
 const output = path.resolve(process.argv[3] ?? 'test-results/field-pass');
-const cases = new Set((process.argv[4] ?? 'districts,bags,movement,exits,service,routes,controls').split(','));
+const cases = new Set((process.argv[4] ?? 'districts,bags,movement,exits,service,routes,controls,feel').split(','));
 await mkdir(output, { recursive: true });
 const browser = await chromium.launch({
   executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE || undefined,
@@ -52,8 +53,8 @@ await page.addInitScript(() => {
 });
 const tick = (n=2, paint=false) => page.evaluate(([n,paint]) => window.advanceRaid(n,paint),[n,paint]);
 const state = () => page.evaluate(() => {
-  const {feet,stance,climb,eye,countdown,result,flags,weapon,locked,backpack,items,spawn} = window.raidQA.state();
-  return {feet,stance,climb,eye,countdown,result,flags,weapon,locked,backpack,items,spawn};
+  const {feet,stance,climb,eye,countdown,result,flags,weapon,locked,backpack,items,spawn,fov,speed,grounded,health} = window.raidQA.state();
+  return {feet,stance,climb,eye,countdown,result,flags,weapon,locked,backpack,items,spawn,fov,speed,grounded,health};
 });
 const pose = (feet,yaw=0,pitch=0) => page.evaluate(([p,y,t]) => window.raidQA.pose(p,y,t),[feet,yaw,pitch]);
 const press = async key => { await page.keyboard.press(key); await tick(); };
@@ -73,7 +74,7 @@ async function start(seed=42, liveUI=false) {
   await tick();
 }
 async function resume() {
-  await click('#primary');await page.waitForFunction(()=>document.pointerLockElement && document.querySelector('#overlay').hidden,undefined,{polling:10});await tick();
+  await click('#primary');await page.waitForFunction(()=>raidQA.state().locked && document.querySelector('#overlay').hidden,undefined,{polling:10});await tick();
 }
 async function practice() {
   await press('Escape');await click('#creative-toggle');
@@ -81,8 +82,9 @@ async function practice() {
   await resume();
 }
 async function closeBag() {
+  await page.waitForFunction(()=>!document.pointerLockElement,undefined,{polling:15});
   await page.keyboard.press('Tab');
-  try {await page.waitForFunction(()=>document.pointerLockElement,undefined,{polling:15,timeout:2000});}
+  try {await page.waitForFunction(()=>raidQA.state().locked,undefined,{polling:15,timeout:5000});}
   catch(error){
     if(await page.locator('#overlay').isVisible()) await resume();
     else {await page.screenshot({path:path.join(output,'bag-return.jpg')}); throw error;}
@@ -150,8 +152,51 @@ async function movement() {
   await press('Space');await record(12);
   assert.ok(report.motion.some(s=>s.stance==='slide'));assert.ok(report.motion.some(s=>s.stance==='climb'));
 }
+async function feel() {
+  await start(42); await practice();
+  const runUp = async () => {
+    await pose([-110,0,155],-Math.PI/2);
+    await page.keyboard.down('Shift'); await page.keyboard.down('w'); await tick(24);
+    const run = await state();
+    assert.ok(run.speed > 7.4 && run.fov > 64, JSON.stringify(run));
+    return run;
+  };
+  const run = await runUp();
+  await press('c'); await tick(6); await capture('feel-slide');
+  await page.keyboard.up('w'); await page.keyboard.up('Shift');
+  let slideEnd = await state();
+  for (let i=0; i<25 && slideEnd.stance==='slide'; i++) { await tick(3); slideEnd = await state(); }
+  const slideDistance = slideEnd.feet[0]-run.feet[0];
+  assert.ok(slideDistance > 5.5 && slideDistance < 7, JSON.stringify(slideEnd));
+  await runUp(); await press('c');
+  await page.keyboard.up('w'); await page.keyboard.up('Shift');
+  const launch = await state();
+  await press('Space'); await tick(12); await capture('feel-slide-jump');
+  let landed = await state();
+  for (let i=0; i<25 && !landed.grounded; i++) { await tick(3); landed=await state(); }
+  const jumpDistance = landed.feet[0]-launch.feet[0];
+  assert.ok(landed.grounded && jumpDistance > 6 && jumpDistance < 7.5, JSON.stringify(landed));
+
+  await start(42);
+  const enemy = () => page.evaluate(() => raidQA.state().enemies.find(e=>e.id==='infected-7'));
+  const before = await enemy();
+  await pose([128,0,-3],0);
+  await tick(45); const chasing = await enemy();
+  const chaseDistance = Math.hypot(chasing.position[0]-before.position[0],chasing.position[2]-before.position[2]);
+  assert.equal(chasing.intent,'chase');
+  assert.ok(chaseDistance > 3.5 && chaseDistance < 4.5, JSON.stringify(chasing));
+  assert.equal((await state()).health,100);
+  await capture('feel-chase');
+  let warning = await enemy();
+  for(let i=0;i<45 && warning.action!=='windup';i++){await tick(1);warning=await enemy();}
+  assert.equal(warning.action,'windup');
+  assert.equal((await state()).health,100);
+  await capture('feel-warning');
+  report.feel = { sprintSpeed: run.speed, sprintFov:run.fov, slideDistance, jumpDistance, chaseDistance, warning:warning.action };
+}
 async function exits() {
-  await start();await pose([-151,0,145]);await tick(72);
+  // Isolate exit timing and floor checks from the revised PvE pressure.
+  await start();await practice();await pose([-151,0,145]);await tick(72);
   assert.ok((await state()).countdown.remaining<4);await pose([-146,0,145]);await tick();assert.ok(!(await state()).countdown);
   await pose([189,0,-90]);await tick();assert.ok(!(await state()).countdown);
   await pose([15.4,-5.4,-155]);await tick();assert.ok(!(await state()).countdown);
@@ -159,7 +204,7 @@ async function exits() {
   await pose([15.4,0,-155]);await tick(730);assert.ok(!(await state()).result && !(await state()).countdown);
   await pose([16,-5.4,-166.7],0,-.16);await press('e');await pose([15.4,-5.4,-155]);
   await tick(360);await capture('lift-countdown');await tick(370);assert.equal((await state()).result?.exitId,'lab-lift');
-  report.exits='Automatic road entry and exit, missing card, locked lift, wrong-floor departure, recall and successful B1 extraction.';
+  report.exits='Practice mode: automatic road entry and exit, missing card, locked lift, wrong-floor departure, recall and successful B1 extraction.';
 }
 async function service() {
   await start();
@@ -174,8 +219,14 @@ async function service() {
   const entry=(await state()).backpack.find(x=>x.item==='service-card');
   await page.locator('[data-entry="'+entry.id+'"]').click({force:true});
   await press('Delete');await tick(2);assert.ok(!(await state()).countdown);
-  await closeBag();await pose([189,0,-90],0,-1.06);await tick();await press('e');
-  assert.equal((await state()).items['service-card'],1);
+  await closeBag();
+  const drop = await page.evaluate(() => raidQA.state().interactions.find(t=>t.id.startsWith('drop-') && t.item==='service-card'));
+  assert.ok(drop, 'the discarded card must exist on the ground');
+  const feet=(await state()).feet, [x,y,z]=drop.position;
+  await pose(feet,Math.atan2(feet[0]-x,feet[2]-z),Math.atan2(y-feet[1]-1.65,Math.hypot(x-feet[0],z-feet[2])));
+  await tick();await press('e');
+  const recovered = await state();
+  assert.equal(recovered.items['service-card'],1,JSON.stringify({feet,drop,recovered,prompt:await page.locator('#prompt').textContent()}));
   await tick(310);const result=(await state()).result;
   assert.equal(result.exitId,'service-passage');
   assert.equal(result.items['service-card'],1);
@@ -222,8 +273,15 @@ async function routes() {
       const { feet } = await state();
       await pose(feet,Math.atan2(feet[0]-x,feet[2]-z)); // turn in place
       await page.keyboard.down('Shift'); await page.keyboard.down('w');
-      const frames = Math.round(Math.hypot(feet[0]-x,feet[2]-z)*60/6.25);
-      await tick(frames); ticks += frames;
+      // Account for acceleration from rest, then check the actual approach in single steps.
+      const distance=Math.hypot(feet[0]-x,feet[2]-z);
+      const frames=Math.max(0,Math.floor((distance-1)*60/speeds.sprint));
+      if(frames) {await tick(frames);ticks+=frames;}
+      for(let i=0;i<24;i++){
+        const current=(await state()).feet;
+        if(Math.hypot(current[0]-x,current[2]-z)<.13)break;
+        await tick(1);ticks++;
+      }
       await page.keyboard.up('w'); await page.keyboard.up('Shift');
       const end = (await state()).feet;
       assert.ok(Math.hypot(end[0]-x,end[2]-z)<.2,JSON.stringify({route:route.name,target:[x,z],end}));
@@ -235,7 +293,7 @@ async function routes() {
   }
 }
 try {
-  for(const [name,fn] of Object.entries({districts,bags,movement,exits,service,routes,controls})){
+  for(const [name,fn] of Object.entries({districts,bags,movement,exits,service,routes,controls,feel})){
     if(cases.has(name)){await fn();console.log(name+' passed');}
   }
   assert.deepEqual(errors,[]);

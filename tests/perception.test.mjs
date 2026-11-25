@@ -36,7 +36,7 @@ test('a security bot facing away waits for evidence; a nearby shot starts a full
   assert.equal(combat.update(0, player).enemies[0].action, 'idle');
   const alerted = combat.update(0, { ...player, attackPressed: true });
   assert.equal(alerted.enemies[0].action, 'windup');
-  assert.equal(combat.update(0.89, player).health, 100);
+  assert.equal(combat.update(0.71, player).health, 100);
   assert.equal(combat.update(0.01, player).health, 80);
 });
 test('interruption on the last treatment tick keeps the kit, and completion consumes it once', () => {

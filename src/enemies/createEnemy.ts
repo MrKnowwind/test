@@ -4,11 +4,11 @@ import {detour,distance as separation,inView} from './perception.ts';
 import { enemySpecs } from './specs.ts';
 
 const TIME_EPSILON = 1e-8;
-const INFECTED_NOTICE_RANGE = 12;
+const INFECTED_NOTICE_RANGE = 14;
 const INFECTED_MELEE_HEIGHT = 0.9;
-const CHASE_SPEED = 2.05;
-const PATROL_SPEED = 0.85;
-const PATROL_DISTANCE = 1.4;
+const CHASE_SPEED = 5.25;
+const PATROL_SPEED = 1.25;
+const PATROL_DISTANCE = 3.2;
 const SEARCH_TIME = 5;
 
 export function createEnemy(world: WorldQueries, spawn: EnemySpawn) {
@@ -86,10 +86,11 @@ export function createEnemy(world: WorldQueries, spawn: EnemySpawn) {
   function pursue(goal:Vec3,dt:number,speed:number) {
     if(routeGoal && separation(routeGoal,goal)>2){route=[];routeGoal=undefined;stuck=0;}
     if(route[0] && separation(state.position,route[0])<.8)route.shift();
-    const before=separation(state.position,goal);
-    const moved=moveToward(route[0]??goal,speed*dt,route.length?.25:.6);
-    if(!route.length && before>1.2){
-      stuck=before-separation(state.position,goal)<speed*dt*.2?stuck+dt:0;
+    const waypoint=route[0]??goal;
+    const before=separation(state.position,waypoint);
+    const moved=moveToward(waypoint,speed*dt,route.length?.25:.6);
+    if(before>(route.length?.8:1.2)){
+      stuck=before-separation(state.position,waypoint)<speed*dt*.2?stuck+dt:0;
       if(stuck>=.6){route=detour(world,state.position,goal,spec.radius,spec.height);routeGoal=[...goal];stuck=-1;}
     }
     return moved;

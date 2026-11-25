@@ -230,6 +230,7 @@ export function makeInfected(group: THREE.Group) {
   let health: number | undefined;
   let lastPosition: readonly number[] | undefined;
   let phase = 0;
+  let runBlend = 0;
   let initialized = false;
   function pose(node: THREE.Object3D, x: number, y: number, z: number, dt: number) {
     const damping = initialized ? 1 - Math.exp(-12 * dt) : 1;
@@ -251,12 +252,14 @@ export function makeInfected(group: THREE.Group) {
     const recover = enemy.action === 'recovering' ? (1 - ease(p, 0, 1)) * 0.22 : 0;
     const travel = lastPosition ? Math.hypot(enemy.position[0]-lastPosition[0],enemy.position[2]-lastPosition[2]) : 0;
     lastPosition = [...enemy.position];
-    phase += Math.min(travel,.2) * 7.8;
+    const running = enemy.action === 'moving' && dt > 0 ? THREE.MathUtils.clamp((travel / dt - 1.5) / 3.75, 0, 1) : 0;
+    runBlend = THREE.MathUtils.damp(runBlend, running, 10, dt);
+    phase += Math.min(travel,.25) * THREE.MathUtils.lerp(7.8,3.8,runBlend);
     const stride = Math.sin(phase) * gait;
 
     rig.position.set(0, 0, 0);
     rig.rotation.set(0, dead * Math.PI / 2, -dead * Math.PI / 2, 'ZYX');
-    pose(chest,-0.34 + windup * 0.24 - attack * 0.49 - recover + damage * 0.25,
+    pose(chest,-0.34 - runBlend*.23 + windup * 0.24 - attack * 0.49 - recover + damage * 0.25,
       windup * 0.42 - attack * 0.24 + stride * 0.075, -0.09 - dead * 0.15, dt);
     chest.position.z = THREE.MathUtils.damp(chest.position.z, -attack * .12, 12, dt);
     pose(head,0.18 + windup * 0.22 + attack * 0.29 - damage * 0.28,
@@ -264,15 +267,15 @@ export function makeInfected(group: THREE.Group) {
     const guard=damage*(1-dead);
     head.rotation.z-=guard*.13;
     jaw.rotation.x = guard*.24 + 0.14 + windup * 0.44 + attack * 0.38;
-    pose(arms[0].shoulder,0.17 + guard*.43 + stride * 0.35 + windup * 0.49 + attack * 1.20, 0, -0.14 - windup * 0.43, dt);
-    pose(arms[1].shoulder,0.33 - guard*.25 - stride * 0.35 + windup * 1.24 + attack * 1.12, windup * -0.30, 0.19 + windup * 0.72, dt);
+    pose(arms[0].shoulder,0.17 + guard*.43 + stride * (0.35+runBlend*.3) + windup * 0.49 + attack * 1.20, 0, -0.14 - windup * 0.43, dt);
+    pose(arms[1].shoulder,0.33 - guard*.25 - stride * (0.35+runBlend*.3) + windup * 1.24 + attack * 1.12, windup * -0.30, 0.19 + windup * 0.72, dt);
     pose(arms[0].elbow,0.32 + windup * 0.29 - dead * 0.23,0,0,dt);
     pose(arms[1].elbow,0.22 + windup * 1.09 - attack * 0.17 - dead * 0.14,0,0,dt);
     pose(arms[1].hand,0.07 + windup * 0.32 - attack * 0.24,0,0,dt);
     for (const [index, leg] of legs.entries()) {
       const step = index === 0 ? stride : -stride;
-      leg.thigh.rotation.set(0.19 * (1-dead) + step * 0.53 + attack * (index === 0 ? 0.45 : -0.28) + dead * 0.05, 0, index === 0 ? -0.02 : 0.06);
-      leg.knee.rotation.x = -0.13 - .21*(1-dead) - Math.max(0, step) * 0.58 - dead * 0.15;
+      leg.thigh.rotation.set(0.19 * (1-dead) + step * (0.53+runBlend*.38) + attack * (index === 0 ? 0.45 : -0.28) + dead * 0.05, 0, index === 0 ? -0.02 : 0.06);
+      leg.knee.rotation.x = -0.13 - .21*(1-dead) - Math.max(0, step) * (0.58+runBlend*.25) - dead * 0.15;
       leg.foot.rotation.x = -leg.thigh.rotation.x - leg.knee.rotation.x;
     }
     initialized = true;

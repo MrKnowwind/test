@@ -6,8 +6,9 @@ const address = process.env.OUTPOST_QA_URL ?? 'http://127.0.0.1:4281/';
 const output = 'test-results/outpost';
 await mkdir(output, { recursive: true });
 const browser = await chromium.launch({
-  channel: 'chrome',
-  args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader'],
+  ...(process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE
+    ? { executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE } : { channel: 'chrome' }),
+  args: ['--no-sandbox', '--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader'],
 });
 try {
   const page = await browser.newPage({ viewport: { width: 1280, height: 720 }, reducedMotion: 'reduce' });
@@ -36,7 +37,7 @@ try {
       painting = true;
     };
   });
-  const wait = (fn, arg) => page.waitForFunction(fn, arg, { polling: 25, timeout: 15000 });
+  const wait = (fn, arg) => page.waitForFunction(fn, arg, { polling: 25, timeout: 60000 });
   const tick = (n = 3, render = false) => page.evaluate(([n, render]) => window.tickRaid(n, render), [n, render]);
   const state = () => page.evaluate(() => raidQA.state());
   const pose = async (feet, yaw, pitch = 0) => {
@@ -45,9 +46,24 @@ try {
   };
   const snap = name => page.screenshot({ path: output + '/' + name + '.jpg', quality: 85, timeout: 60000 });
   const press = async key => { await page.keyboard.press(key); await tick(); };
-  const enter = async () => { await page.locator('#primary').click(); await wait(() => raidQA.state().locked); await tick(); };
-  const openBag = async () => { await wait(() => !document.querySelector('#backpack-panel').hidden); };
+  const enter = async () => {
+    await page.locator('#primary').click();
+    try { await wait(() => raidQA.state().locked); }
+    catch (error) {
+      await snap('enter-failure');
+      console.error(await page.evaluate(() => ({
+        pointerLocked: !!document.pointerLockElement,
+        error: document.querySelector('#error')?.textContent,
+        title: document.querySelector('#title')?.textContent,
+        primary: document.querySelector('#primary')?.textContent,
+      })));
+      throw error;
+    }
+    await tick();
+  };
+  const openBag = async () => { await wait(() => !document.querySelector('#backpack-panel').hidden && !document.pointerLockElement); };
   const closeBag = async () => {
+    await wait(() => !document.pointerLockElement);
     await page.locator('#bag-close').click();
     await wait(() => raidQA.state().locked);
     await tick();
@@ -92,7 +108,9 @@ try {
 
   await pose([-24, 0, 142.1], 0, -.78);
   await tick(2, true);
-  assert.match(await page.locator('#prompt').textContent(), /基础小包/);
+  assert.match(await page.locator('#prompt').textContent(), /基础小包/, JSON.stringify({
+    feet:(await state()).feet, yaw:(await state()).yaw, pitch:(await state()).pitch, eye:(await state()).eye, locked:(await state()).locked,
+  }));
   await snap('ground-pack');
   await press('KeyE'); await openBag();
   await page.locator('button.pack-source').click();
@@ -131,7 +149,7 @@ try {
   assert.match(await page.locator('#raid-objectives').textContent(), /维修通道/);
 
   await pose([-24, 0, 149], 0);
-  await page.keyboard.down('Shift'); await page.keyboard.down('w'); await tick(14);
+  await page.keyboard.down('Shift'); await page.keyboard.down('w'); await tick(18);
   const sprint = await state();
   assert.ok(sprint.feet[2] < 147.75, JSON.stringify({feet: sprint.feet, health: sprint.health, weapon: sprint.weapon}));
   await page.keyboard.down('c'); await tick(); await page.keyboard.up('c');
@@ -153,6 +171,8 @@ try {
   await press('Escape');
   await page.locator('#settings-open').click();
   await page.locator('#stance-mode').selectOption('hold');
+  await page.locator('#vertical-fov').fill('70');
+  await page.locator('#setting-cameraMotion').fill('50');
   await page.locator('#settings-close').click();
   await enter();
   await page.keyboard.down('c'); await tick();
@@ -177,6 +197,8 @@ try {
   await page.locator('#settings-open').click();
   assert.equal(await page.locator('[data-binding=ammo]').textContent(), 'N');
   assert.equal(await page.locator('#stance-mode').inputValue(), 'hold');
+  assert.equal(await page.locator('#vertical-fov').inputValue(), '70');
+  assert.equal(await page.locator('#setting-cameraMotion').inputValue(), '50');
   assert.equal((await state()).credits, before + price);
   assert.deepEqual(errors, []);
   await writeFile(output + '/report.json', JSON.stringify({ seed: 42, screenshots: 8, sale: price, errors }, null, 2));

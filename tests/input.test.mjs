@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { createInput } from '../src/player/input.ts';
+import { readSettings, saveSettings } from '../src/player/settings.ts';
 
 test('number keys select primary slots, sidearm and melee through the actual input sampler', () => {
   const win = new EventTarget();
@@ -49,4 +50,18 @@ test('the cursor recenter event at pointer capture leaves the initial view level
   mouseMove(120, -80);
   const playing = input.sample();
   assert.deepEqual([playing.lookX, playing.lookY], [120, -80]);
+});
+
+test('camera preferences persist and older settings keep their controls and new defaults', () => {
+  const records = new Map([['wasteland-raid.settings.v1', JSON.stringify({ sensitivity: 1.5, stance: 'hold' })]]);
+  const storage = { getItem: key => records.get(key) ?? null, setItem: (key, value) => records.set(key, value) };
+  const settings = readSettings(storage);
+  assert.equal(settings.sensitivity, 1.5);
+  assert.equal(settings.stance, 'hold');
+  assert.equal(settings.fov, 62);
+  assert.equal(settings.cameraMotion, 1);
+  settings.fov = 72;
+  settings.cameraMotion = 0;
+  saveSettings(storage, settings);
+  assert.deepEqual(readSettings(storage), settings);
 });

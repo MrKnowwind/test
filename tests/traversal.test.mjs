@@ -93,6 +93,66 @@ test('a slide jump leaves the ground immediately and preserves launch momentum',
   assert.ok(p.grounded && !p.crouched);
 });
 
+test('movement accelerates, brakes, and a clear slide covers more ground than walking', () => {
+  const p = player(createWorldQueries([]), [4, 0, 4]);
+  const sprint = { ...input, forward: 1, running: true };
+  p.move(1 / 60, sprint, false);
+  assert.ok(p.speed > 0 && p.speed < 4);
+  for (let i = 0; i < 20; i++) p.move(1 / 60, sprint, false);
+  assert.ok(p.speed > 7.4 && p.sprinting);
+  const z = p.feet[2];
+  p.move(1 / 60, { ...sprint, stancePressed: true }, false);
+  let frames = 1;
+  while (p.sliding && frames < 90) { p.move(1 / 60, input, false); frames++; }
+  assert.ok(frames / 60 > .8 && frames / 60 < 1.1);
+  assert.ok(z - p.feet[2] > 5.5 && z - p.feet[2] < 7);
+  const speed = p.speed;
+  p.move(1 / 60, input, false);
+  assert.ok(p.speed > 0 && p.speed < speed);
+  for (let i = 0; i < 20; i++) p.move(1 / 60, input, false);
+  assert.equal(p.speed, 0);
+  p.move(1 / 60, sprint, false);
+  p.interrupt();
+  const stopped = p.feet;
+  p.move(1 / 60, input, false);
+  assert.deepEqual(p.feet, stopped, 'menu or focus interruption clears momentum');
+});
+
+test('run and slide-jump carry launch speed through the entire jump, with a landing response', () => {
+  function leap(slide) {
+    const p = player(createWorldQueries([]), [4, 0, 4]);
+    const sprint = { ...input, forward: 1, running: true };
+    for (let i = 0; i < 20; i++) p.move(1 / 60, sprint, false);
+    if (slide) p.move(1 / 60, { ...sprint, stancePressed: true }, false);
+    const z = p.feet[2];
+    p.move(1 / 60, { ...input, jumpPressed: true }, false);
+    let frames = 1;
+    while (!p.grounded && frames < 90) { p.move(1 / 60, input, false); frames++; }
+    assert.ok(p.grounded && p.landing > .4);
+    return z - p.feet[2];
+  }
+  const run = leap(false), slide = leap(true);
+  assert.ok(run > 5 && run < 5.5);
+  assert.ok(slide > 6 && slide > run);
+});
+
+test('camera motion can be disabled without changing navigation or jump physics', () => {
+  const camera = new PerspectiveCamera(62);
+  const p = createPlayer(camera, createWorldQueries([]), { id: 'test', position: [4, 0, 4], yaw: 0 });
+  const sprint = { ...input, forward: 1, running: true };
+  for (let i = 0; i < 60; i++) {
+    p.move(1 / 60, sprint, false, undefined, 0);
+    p.setAim(1 / 60, false, 70, 0);
+  }
+  assert.ok(p.speed > 7.4 && Math.abs(camera.fov - 70) < .01);
+  assert.equal(p.eye[1], 1.65);
+  for (let i = 0; i < 60; i++) {
+    p.move(1 / 60, sprint, false);
+    p.setAim(1 / 60, false, 70, 1);
+  }
+  assert.ok(camera.fov > 76.9 && p.eye[1] < 1.65);
+});
+
 test('hold-to-crouch releases normally and a slide does not leave the stance held', () => {
   const p = player(createWorldQueries([]), [4, 0, 4]);
   const hold = { ...input, holdStance: true };

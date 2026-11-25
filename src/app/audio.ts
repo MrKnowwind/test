@@ -61,11 +61,12 @@ export function createAudio() {
   }
   return {
     ready, volumes,
-    slide() { burst(.28,.037,860); burst(.13,.023,510,90,0,.16); },
+    slide() { burst(.48,.042,930); burst(.22,.023,570,90,0,.19); },
+    jump() { burst(.08,.025,1050,145); },
     slideJump() { burst(.09, .036, 1160, 135); },
     liftSwitch() { burst(.05,.032,1700,170); burst(.11,.024,940,290,0,.09); },
     grip() { burst(.07,.031,1150,130,0,.08); burst(.055,.018,850,0,0,.13); },
-    land() { burst(.10,.038,680,105); },
+    land(impact = .5) { burst(.10,.026 + impact*.035,680,105); },
     reveal() { burst(.08,.016,1800,620); },
     pickup() { burst(.035,.022,1800,490);burst(.07,.016,2600,780,0,.035); },
     door(open:boolean){burst(.21,.026,open?1150:800,open?190:125);burst(.045,.025,1500,100,0,.34);},
@@ -86,6 +87,12 @@ export function createAudio() {
       burst(surface==='metal'?.13:.08,.018,surface==='metal'?2100:surface==='concrete'?1300:700,surface==='metal'?220:undefined);
     },
     warning(mechanical: boolean, distance: number, pan:number) { burst(.17,.04*Math.max(0,1-distance/25),mechanical?2600:600,mechanical?780:90,pan); },
+    alert(distance: number, pan: number) {
+      const level = Math.max(0, 1-distance/25);
+      if (level <= 0) return;
+      burst(.23,.035*level,740,145,pan);
+      burst(.16,.02*level,480,96,pan,.12);
+    },
     environment(active: boolean, underground: boolean, coast: boolean) {
       if(!context||!ambience||!environmentFilter) return;
       ambience.gain.setTargetAtTime(active?(underground?.0018:coast?.008:.003):0,context.currentTime,.5);

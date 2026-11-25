@@ -4,7 +4,7 @@ import {createTreatment} from '../combat/treatment.ts';
 import {soundPath} from '../enemies/perception.ts';
 import { createCombat } from '../combat/createCombat.ts';
 import type { EnemyState, MapInteraction } from '../contracts/demo.ts';
-import { createPlayer, findInteraction } from '../player/controller.ts';
+import { createPlayer, findInteraction, movement } from '../player/controller.ts';
 import { createInput } from '../player/input.ts';
 import { bindingName, readSettings, saveSettings } from '../player/settings.ts';
 import { createRaidEnemy } from '../presentation/enemyVisuals.ts';
@@ -205,7 +205,7 @@ async function startGame() {
     const raid = createRaid(runId, seed, map, plan, stock);
     const combat = createCombat(map, map.enemies,raid.backpack);
     const player = createPlayer(camera, map, raid.spawn);
-    camera.fov = 62;
+    camera.fov = settings.fov;
     camera.updateProjectionMatrix();
     const viewmodel = createViewmodel();
     viewmodel.group.traverse((object) => object.layers.set(1));
@@ -228,7 +228,7 @@ async function startGame() {
     rendering.bindMap(map.scene);
     tacticalMap.reset();
     notice = '';
-    accumulator = noticeTime = hitTime = hurtTime = ammoTime = 0;
+    accumulator = noticeTime = hitTime = hurtTime = ammoTime = footstepTime = 0;
     dirty = true;
     return { effects:createShotEffects(map.scene), treatment:createTreatment(raid.backpack), nearWall:false, damageNotice:'', discovered:new Set<string>(), nextSurvey:0, map, raid, combat, player, viewmodel, enemies, frame, containers, searched: new Set<string>() };
   }
@@ -360,6 +360,7 @@ async function startGame() {
       if (phase === 'home') void launchRaid(outpost.plan);
       else view.showPlaying();
     } else if (bag.open) {
+      run.player.interrupt();
       view.showPlaying();
     } else if (phase === 'raid') {
       run.player.interrupt();run.treatment.cancel();
@@ -439,14 +440,22 @@ async function startGame() {
     if (control.mapPressed) tacticalMap.toggle();
     if (control.backpackPressed && !player.busy) {
       control.jumpPressed = control.stancePressed = false;
+      control.forward = control.strafe = 0;
+      player.interrupt();
       bag.show(raid.backpack);
       document.exitPointerLock();
+    }
+    if (bag.open) {
+      control.forward = control.strafe = 0;
+      control.lookX = control.lookY = control.lift = 0;
+      control.running = control.jumpPressed = control.stancePressed = control.stanceHeld = false;
+      control.attackPressed = control.reloadPressed = control.aiming = false;
     }
     if (control.switchTo === 'rifle' || control.switchTo === 'shotgun') notify('该主武器槽为空');
     map.doors.update(dt,player.feet,run.frame.enemies);
     run.effects.update(dt);
     const wasSliding = player.sliding, wasClimbing = player.climbing, wasGrounded = player.grounded;
-    const moving = player.move(dt, control, run.frame.weapon.aiming,raid.creative?creativeView.settings:undefined);
+    const moving = player.move(dt, control, run.frame.weapon.aiming,raid.creative?creativeView.settings:undefined,settings.cameraMotion);
     const target = findInteraction(map, raid.targets, raid.consumed, player.eye, player.direction);
     if (player.busy && run.treatment.remaining) run.treatment.cancel();
     if (control.interactPressed && target && !player.busy && !bag.open) {
@@ -461,6 +470,7 @@ async function startGame() {
       }else {
         const contents=target.kind==='loose'?raid.groundContainer(target.id):raid.containers.get(target.id);
         raid.visited.add(target.id);
+        player.interrupt();
         bag.show(raid.backpack,target,contents);
         document.exitPointerLock();
       }
@@ -477,19 +487,21 @@ async function startGame() {
       bag.updateSearch(paused);
     }
     viewmodel.muzzle.getWorldPosition(muzzlePosition);
-    const previousActions = new Map(run.frame.enemies.map(enemy=>[enemy.id,enemy.action]));
+    const previousEnemies = new Map(run.frame.enemies.map(enemy=>[enemy.id,enemy]));
     const previousHealth = run.frame.health;
     const previousWeapon = run.frame.weapon;
     footstepTime-=dt;
-    const sprinting=control.running && control.forward>0 && !previousWeapon.aiming;
+    const sprinting=player.sprinting;
     if (player.sliding && !wasSliding) audio.slide();
     if (wasSliding && !player.sliding && wasGrounded && !player.grounded && control.jumpPressed) audio.slideJump();
+    else if (wasGrounded && !player.grounded && control.jumpPressed && !player.climbing) audio.jump();
     if (player.climbing && !wasClimbing) audio.grip();
-    if (!wasGrounded && player.grounded && !wasClimbing) audio.land();
-    const stepping=moving && !player.busy && player.grounded && footstepTime<=0;
+    if (!wasGrounded && player.grounded && !wasClimbing) audio.land(player.landing);
+    const stepping=player.speed>.5 && !player.busy && player.grounded && footstepTime<=0;
     if(stepping){
       audio.footstep(map.surfaceAt?.(player.feet) ?? 'gravel');
-      footstepTime=control.quiet || player.crouched ? .58:sprinting?.29:.44;
+      const stride=control.quiet || player.crouched ? movement.quietStep : sprinting ? movement.sprintStep : movement.walkStep;
+      footstepTime=Math.max(.24,Math.min(.75,stride/player.speed));
     }
     run.nearWall=previousWeapon.id==='pistol'&&!previousWeapon.unarmed && map.blockedDistance(player.eye,player.direction,.78)!==null;
     run.frame = combat.update(dt, {
@@ -539,18 +551,25 @@ async function startGame() {
     hurtTime = Math.max(0, hurtTime - dt);
     ammoTime = Math.max(0, ammoTime - dt);
     for (const enemy of run.frame.enemies) {
-      if(enemy.action==='dead' && previousActions.get(enemy.id)!=='dead')raid.log.kills++;
-      if(enemy.action==='windup' && previousActions.get(enemy.id)!=='windup') {
+      const previous = previousEnemies.get(enemy.id);
+      if(enemy.action==='dead' && previous?.action!=='dead')raid.log.kills++;
+      const warning = enemy.action==='windup' && previous?.action!=='windup';
+      const alert = enemy.kind==='infected' && enemy.intent==='chase' && previous?.intent!=='chase' && enemy.action==='moving';
+      if(warning || alert) {
         const dx=enemy.position[0]-player.feet[0],dz=enemy.position[2]-player.feet[2];
-        audio.warning(enemy.kind==='security-bot',soundPath(map,enemy.position,player.feet),(dx*Math.cos(player.yaw)-dz*Math.sin(player.yaw))/Math.max(.01,Math.hypot(dx,dz)));
+        const distance = soundPath(map,enemy.position,player.feet);
+        const pan = (dx*Math.cos(player.yaw)-dz*Math.sin(player.yaw))/Math.max(.01,Math.hypot(dx,dz));
+        if (warning) audio.warning(enemy.kind==='security-bot',distance,pan);
+        else audio.alert(distance,pan);
       }
       updateEnemy(run.enemies.get(enemy.id)!, enemy, dt,player.feet);
     }
     viewmodel.group.visible=!run.frame.weapon.unarmed || !!run.treatment.remaining || player.climbing;
     viewmodel.update(dt, run.frame.weapon, moving, {
       treatment:run.treatment.pose,lowered:run.nearWall && !run.treatment.remaining, running: sprinting && !player.crouched && player.grounded, crouched:player.crouched, sliding:player.sliding, climb:player.climbPose, lookX: control.lookX, lookY: control.lookY,
+      speed:player.speed, airborne:!player.grounded, vertical:player.verticalMotion, landing:player.landing, intensity:settings.cameraMotion,
     });
-    player.setAim(dt, run.frame.weapon.aiming);
+    player.setAim(dt, run.frame.weapon.aiming, settings.fov, settings.cameraMotion);
     if (raid.result) showResult();
   }
 
@@ -624,9 +643,9 @@ async function startGame() {
       raidQA: {
         state: () => structuredClone({
           locked: phase === 'raid' && input.locked() && !launching, seed: run.raid.seed, spawn: run.raid.spawn,
-          stance:run.player.sliding?'slide':run.player.climbing?'climb':run.player.crouched?'crouch':'stand', climb:run.player.climbPose, feet: run.player.feet, eye: run.player.eye, yaw: run.player.yaw, pitch: run.player.pitch, fov: camera.fov,
+          stance:run.player.sliding?'slide':run.player.climbing?'climb':run.player.crouched?'crouch':'stand', climb:run.player.climbPose, feet: run.player.feet, eye: run.player.eye, yaw: run.player.yaw, pitch: run.player.pitch, fov: camera.fov, speed: run.player.speed, grounded: run.player.grounded,
           health: run.frame.health, weapon: run.frame.weapon, enemies: run.frame.enemies,
-          exits: run.map.exits, interactions: run.map.interactions,
+          exits: run.map.exits, interactions: run.raid.targets,
           items: run.raid.items, consumed: [...run.raid.consumed], flags: [...run.raid.flags],
           backpack: run.raid.backpack.entries, containers: [...run.raid.containers.values()], searched: [...run.searched], credits: warehouse.credits(),
           countdown: run.raid.countdown, result: run.raid.result, warehouse: warehouse.read(),

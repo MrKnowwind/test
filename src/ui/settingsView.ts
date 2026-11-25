@@ -17,8 +17,10 @@ export function createSettingsView(settings: Settings, change: () => void) {
     for (const [key, text, min, max] of [
       ['master', '总音量', 0, 100], ['effects', '音效', 0, 100],
       ['ambience', '环境音', 0, 100], ['sensitivity', '鼠标灵敏度', 20, 300],
+      ['cameraMotion', '镜头动态效果', 0, 100],
     ] as const) {
       const slider = document.createElement('input'), output = document.createElement('output');
+      slider.id = 'setting-' + key;
       slider.type = 'range'; slider.min = String(min); slider.max = String(max);
       slider.value = String(Math.round(settings[key] * 100));
       const update = () => { output.value = slider.value + '%'; };
@@ -26,6 +28,16 @@ export function createSettingsView(settings: Settings, change: () => void) {
       update();
       addOption(text, slider).append(output);
     }
+    const fov = document.createElement('input'), fovLabel = document.createElement('output');
+    fov.type = 'range'; fov.min = '55'; fov.max = '80';
+    fov.id = 'vertical-fov'; fov.value = String(settings.fov);
+    fovLabel.value = fov.value + '°';
+    fov.oninput = () => {
+      settings.fov = Number(fov.value);
+      fovLabel.value = fov.value + '°';
+      change();
+    };
+    addOption('垂直视野', fov).append(fovLabel);
     const stance = document.createElement('select');
     stance.id = 'stance-mode';
     stance.add(new Option('切换', 'toggle'));
