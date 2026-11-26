@@ -1,260 +1,427 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1340" height="1000" viewBox="0 0 1340 1000" role="img" aria-labelledby="title desc"><title id="title">盐港隔离区 3.5A 总体规划</title><desc id="desc">400×400米、五个地面地区、二层邮轮、B1、八个出生候选与四个撤离口的游戏地图设计草案。</desc><defs><pattern id="grid" width="95" height="95" patternUnits="userSpaceOnUse" x="76" y="106"><path d="M95 0H0V95" fill="none" stroke="#66818a" stroke-opacity=".26" stroke-width="1"/></pattern><pattern id="waves" width="18" height="13" patternUnits="userSpaceOnUse"><path d="M0 8 Q4 4 9 8T18 8" fill="none" stroke="#76d6df" stroke-opacity=".22" stroke-width="1"/></pattern></defs><style>text{font-family:'Noto Sans CJK SC','Microsoft YaHei',sans-serif;fill:#e9f0ee} .mono{font-family:monospace} .muted{fill:#9aafb3} .small{font-size:13px} .poi{font-weight:700;font-size:15px;text-anchor:middle} .zone{font-weight:700;font-size:14px;text-anchor:middle} .marker{font-size:12px;font-weight:700;paint-order:stroke;stroke:#12232d;stroke-width:3px;stroke-linejoin:round}</style>
-<rect width="1340" height="1000" fill="#102129"/><rect x="0" width="9" height="1000" fill="#74d6c9"/><path d="M54 88H1290" stroke="#324950"/>
-<text x="35" y="37" class="mono" font-size="13" letter-spacing="3" fill="#99d7ca">SALTLINE  /  LEVEL DESIGN</text>
-<text x="35" y="73" font-size="29" font-weight="700">盐港隔离区 · 总体规划</text>
-<text x="1080" y="38" font-size="15" font-weight="700" fill="#9bd6c6">3.5A  /  草案 V1</text>
-<text x="1080" y="66" class="small muted">400 × 400 m · 未上线</text>
-<rect x="76" y="106" width="760" height="760" fill="#1c333a" stroke="#80979a" stroke-width="2"/>
-<rect x="76" y="320.7" width="140.6" height="340.09999999999997" fill="#57c9ce" fill-opacity=".10" stroke="#57c9ce" stroke-opacity=".30" stroke-dasharray="5 4"/>
-<rect x="239.4" y="337.79999999999995" width="277.4" height="323" fill="#d1ae63" fill-opacity=".10" stroke="#d1ae63" stroke-opacity=".30" stroke-dasharray="5 4"/>
-<rect x="549.0999999999999" y="337.79999999999995" width="247" height="323" fill="#e28a65" fill-opacity=".10" stroke="#e28a65" stroke-opacity=".30" stroke-dasharray="5 4"/>
-<rect x="76" y="106" width="760" height="214.7" fill="#ad9ade" fill-opacity=".10" stroke="#ad9ade" stroke-opacity=".30" stroke-dasharray="5 4"/>
-<rect x="76" y="691.1999999999999" width="760" height="174.79999999999998" fill="#8fc68f" fill-opacity=".10" stroke="#8fc68f" stroke-opacity=".30" stroke-dasharray="5 4"/>
-<rect x="76" y="328.29999999999995" width="57" height="279.3" fill="#16475c"/>
-<rect x="76" y="328.29999999999995" width="57" height="279.3" fill="url(#waves)"/>
-<line x1="133" y1="328.29999999999995" x2="133" y2="607.5999999999999" stroke="#82d3cd" stroke-width="2"/>
-<rect x="76" y="106" width="760" height="760" fill="url(#grid)"/>
-<text x="76" y="97" class="small muted mono" text-anchor="middle">-172</text>
-<text x="66" y="110" class="small muted mono" text-anchor="end">-220</text>
-<text x="266" y="97" class="small muted mono" text-anchor="middle">-72</text>
-<text x="66" y="300" class="small muted mono" text-anchor="end">-120</text>
-<text x="456" y="97" class="small muted mono" text-anchor="middle">28</text>
-<text x="66" y="490" class="small muted mono" text-anchor="end">-20</text>
-<text x="646" y="97" class="small muted mono" text-anchor="middle">128</text>
-<text x="66" y="680" class="small muted mono" text-anchor="end">80</text>
-<text x="836" y="97" class="small muted mono" text-anchor="middle">228</text>
-<text x="66" y="870" class="small muted mono" text-anchor="end">180</text>
-<line x1="228" y1="138.3" x2="228" y2="824.1999999999999" stroke="#5f777a" stroke-opacity=".72" stroke-width="15.2" stroke-linecap="round"/>
-<line x1="228" y1="138.3" x2="228" y2="824.1999999999999" stroke="#c5d4cb" stroke-opacity=".55" stroke-width="1" stroke-dasharray="7 8"/>
-<line x1="370.5" y1="138.3" x2="370.5" y2="824.1999999999999" stroke="#5f777a" stroke-opacity=".72" stroke-width="15.2" stroke-linecap="round"/>
-<line x1="370.5" y1="138.3" x2="370.5" y2="824.1999999999999" stroke="#c5d4cb" stroke-opacity=".55" stroke-width="1" stroke-dasharray="7 8"/>
-<line x1="528.2" y1="138.3" x2="528.2" y2="824.1999999999999" stroke="#5f777a" stroke-opacity=".72" stroke-width="19" stroke-linecap="round"/>
-<line x1="528.2" y1="138.3" x2="528.2" y2="824.1999999999999" stroke="#c5d4cb" stroke-opacity=".55" stroke-width="1" stroke-dasharray="7 8"/>
-<line x1="805.5999999999999" y1="138.3" x2="805.5999999999999" y2="824.1999999999999" stroke="#5f777a" stroke-opacity=".72" stroke-width="15.2" stroke-linecap="round"/>
-<line x1="805.5999999999999" y1="138.3" x2="805.5999999999999" y2="824.1999999999999" stroke="#c5d4cb" stroke-opacity=".55" stroke-width="1" stroke-dasharray="7 8"/>
-<line x1="129.2" y1="138.3" x2="805.5999999999999" y2="138.3" stroke="#5f777a" stroke-opacity=".72" stroke-width="15.2" stroke-linecap="round"/>
-<line x1="129.2" y1="138.3" x2="805.5999999999999" y2="138.3" stroke="#c5d4cb" stroke-opacity=".55" stroke-width="1" stroke-dasharray="7 8"/>
-<line x1="129.2" y1="195.3" x2="228" y2="195.3" stroke="#5f777a" stroke-opacity=".72" stroke-width="11.399999999999999" stroke-linecap="round"/>
-<line x1="129.2" y1="138.3" x2="129.2" y2="195.3" stroke="#5f777a" stroke-opacity=".72" stroke-width="11.399999999999999" stroke-linecap="round"/>
-<line x1="136.8" y1="328.29999999999995" x2="805.5999999999999" y2="328.29999999999995" stroke="#5f777a" stroke-opacity=".72" stroke-width="15.2" stroke-linecap="round"/>
-<line x1="136.8" y1="328.29999999999995" x2="805.5999999999999" y2="328.29999999999995" stroke="#c5d4cb" stroke-opacity=".55" stroke-width="1" stroke-dasharray="7 8"/>
-<line x1="228" y1="531.5999999999999" x2="805.5999999999999" y2="531.5999999999999" stroke="#5f777a" stroke-opacity=".72" stroke-width="19" stroke-linecap="round"/>
-<line x1="228" y1="531.5999999999999" x2="805.5999999999999" y2="531.5999999999999" stroke="#c5d4cb" stroke-opacity=".55" stroke-width="1" stroke-dasharray="7 8"/>
-<line x1="136.8" y1="550.5999999999999" x2="228" y2="550.5999999999999" stroke="#5f777a" stroke-opacity=".72" stroke-width="11.399999999999999" stroke-linecap="round"/>
-<line x1="136.8" y1="328.29999999999995" x2="136.8" y2="626.6" stroke="#5f777a" stroke-opacity=".72" stroke-width="7.6" stroke-linecap="round"/>
-<line x1="121.6" y1="432.8" x2="136.8" y2="432.8" stroke="#77e0db" stroke-width="3.8" stroke-dasharray="4 3"/>
-<line x1="121.6" y1="524" x2="136.8" y2="524" stroke="#77e0db" stroke-width="3.8" stroke-dasharray="4 3"/>
-<line x1="117.8" y1="679.8" x2="805.5999999999999" y2="679.8" stroke="#5f777a" stroke-opacity=".72" stroke-width="19" stroke-linecap="round"/>
-<line x1="117.8" y1="679.8" x2="805.5999999999999" y2="679.8" stroke="#c5d4cb" stroke-opacity=".55" stroke-width="1" stroke-dasharray="7 8"/>
-<line x1="117.8" y1="824.1999999999999" x2="805.5999999999999" y2="824.1999999999999" stroke="#5f777a" stroke-opacity=".72" stroke-width="15.2" stroke-linecap="round"/>
-<line x1="117.8" y1="824.1999999999999" x2="805.5999999999999" y2="824.1999999999999" stroke="#c5d4cb" stroke-opacity=".55" stroke-width="1" stroke-dasharray="7 8"/>
-<line x1="117.8" y1="679.8" x2="117.8" y2="824.1999999999999" stroke="#5f777a" stroke-opacity=".72" stroke-width="11.399999999999999" stroke-linecap="round"/>
-<line x1="452.2" y1="126.9" x2="452.2" y2="138.3" stroke="#5f777a" stroke-opacity=".72" stroke-width="11.399999999999999" stroke-linecap="round"/>
-<line x1="452.2" y1="824.1999999999999" x2="452.2" y2="845.0999999999999" stroke="#5f777a" stroke-opacity=".72" stroke-width="11.399999999999999" stroke-linecap="round"/>
-<line x1="761.9" y1="353" x2="805.5999999999999" y2="353" stroke="#5f777a" stroke-opacity=".72" stroke-width="11.399999999999999" stroke-linecap="round"/>
-<line x1="479.75" y1="271.29999999999995" x2="479.75" y2="328.29999999999995" stroke="#5f777a" stroke-opacity=".72" stroke-width="9.5" stroke-linecap="round"/>
-<polygon points="245.1,284.6 271.7,269.4 334.4,275.1 359.09999999999997,294.1 355.3,311.2 245.1,311.2" fill="#ad9ade" fill-opacity=".12" stroke="#ad9ade" stroke-opacity=".55" stroke-dasharray="3 3"/>
-<text x="301.7833333333333" y="293.93333333333334" font-size="11" text-anchor="middle" fill="#b0cbc6">隔离缓冲带</text>
-<polygon points="252.7,356.79999999999995 353.4,356.79999999999995 343.9,391 264.1,392.9 245.1,381.5" fill="#d1ae63" fill-opacity=".12" stroke="#d1ae63" stroke-opacity=".55" stroke-dasharray="3 3"/>
-<text x="291.84" y="378.8" font-size="11" text-anchor="middle" fill="#b0cbc6">装卸前场</text>
-<polygon points="554.8,486 779,486 790.4,501.2 782.8,514.5 554.8,514.5" fill="#e28a65" fill-opacity=".12" stroke="#e28a65" stroke-opacity=".55" stroke-dasharray="3 3"/>
-<text x="692.36" y="503.43999999999994" font-size="11" text-anchor="middle" fill="#b0cbc6">管线与排水带</text>
-<polygon points="381.9,693.1 486.4,693.1 507.29999999999995,710.1999999999999 488.29999999999995,717.8 410.4,717.8 381.9,710.1999999999999" fill="#8fc68f" fill-opacity=".12" stroke="#8fc68f" stroke-opacity=".55" stroke-dasharray="3 3"/>
-<text x="442.7" y="710.0333333333333" font-size="11" text-anchor="middle" fill="#b0cbc6">社区广场</text>
-<rect x="81.7" y="377.7" width="39.9" height="169.1" fill="none" stroke="#57c9ce" stroke-dasharray="4 3" opacity=".6"/>
-<path d="M83.6 392.9Q101.65 370.09999999999997 119.69999999999999 392.9V535.4Q101.65 548.7 83.6 535.4Z" fill="#3b747c" stroke="#57c9ce" stroke-width="2"/>
-<text x="101.65" y="462.25" class="poi" transform="rotate(-90 101.65 462.25)">W1 邮轮</text>
-<rect x="146.3" y="339.7" width="60.8" height="49.4" rx="4" fill="#57c9ce" fill-opacity=".24" stroke="#57c9ce" stroke-width="1.5"/>
-<text x="176.7" y="368.4" class="poi">W2</text>
-<rect x="146.3" y="406.2" width="62.699999999999996" height="95" rx="4" fill="#57c9ce" fill-opacity=".24" stroke="#57c9ce" stroke-width="1.5"/>
-<text x="177.65" y="457.7" class="poi">W3</text>
-<rect x="146.3" y="508.79999999999995" width="62.699999999999996" height="34.199999999999996" rx="4" fill="#57c9ce" fill-opacity=".24" stroke="#57c9ce" stroke-width="1.5"/>
-<text x="177.65" y="529.9" class="poi">W4</text>
-<rect x="146.3" y="558.2" width="62.699999999999996" height="55.099999999999994" rx="4" fill="#57c9ce" fill-opacity=".24" stroke="#57c9ce" stroke-width="1.5"/>
-<text x="177.65" y="589.75" class="poi">W5</text>
-<rect x="254.6" y="404.3" width="100.69999999999999" height="96.89999999999999" rx="4" fill="#d1ae63" fill-opacity=".24" stroke="#d1ae63" stroke-width="1.5"/>
-<text x="304.95" y="456.75" class="poi">C1</text>
-<rect x="254.6" y="554.4" width="100.69999999999999" height="83.6" rx="4" fill="#d1ae63" fill-opacity=".24" stroke="#d1ae63" stroke-width="1.5"/>
-<text x="304.95" y="600.2" class="poi">C2</text>
-<rect x="383.8" y="404.3" width="115.89999999999999" height="96.89999999999999" rx="4" fill="#d1ae63" fill-opacity=".24" stroke="#d1ae63" stroke-width="1.5"/>
-<text x="441.75" y="456.75" class="poi">C3</text>
-<rect x="410.4" y="556.3" width="77.89999999999999" height="49.4" rx="4" fill="#d1ae63" fill-opacity=".24" stroke="#d1ae63" stroke-width="1.5"/>
-<text x="449.34999999999997" y="585" class="poi">C4</text>
-<rect x="385.7" y="617.0999999999999" width="114" height="34.199999999999996" rx="4" fill="#d1ae63" fill-opacity=".24" stroke="#d1ae63" stroke-width="1.5"/>
-<text x="442.7" y="638.1999999999999" class="poi">C5</text>
-<rect x="560.5" y="391" width="100.69999999999999" height="87.39999999999999" rx="4" fill="#e28a65" fill-opacity=".24" stroke="#e28a65" stroke-width="1.5"/>
-<text x="610.8499999999999" y="438.7" class="poi">E1</text>
-<rect x="684" y="391" width="98.8" height="87.39999999999999" rx="4" fill="#e28a65" fill-opacity=".24" stroke="#e28a65" stroke-width="1.5"/>
-<text x="733.4" y="438.7" class="poi">E2</text>
-<rect x="560.5" y="554.4" width="87.39999999999999" height="70.3" rx="4" fill="#e28a65" fill-opacity=".24" stroke="#e28a65" stroke-width="1.5"/>
-<text x="604.2" y="593.55" class="poi">E3</text>
-<rect x="684" y="554.4" width="96.89999999999999" height="68.39999999999999" rx="4" fill="#e28a65" fill-opacity=".24" stroke="#e28a65" stroke-width="1.5"/>
-<text x="732.45" y="592.5999999999999" class="poi">E4</text>
-<rect x="121.6" y="227.6" width="72.2" height="60.8" rx="4" fill="#ad9ade" fill-opacity=".24" stroke="#ad9ade" stroke-width="1.5"/>
-<text x="157.7" y="262" class="poi">N1</text>
-<rect x="260.29999999999995" y="176.3" width="91.19999999999999" height="83.6" rx="4" fill="#ad9ade" fill-opacity=".24" stroke="#ad9ade" stroke-width="1.5"/>
-<text x="305.9" y="222.1" class="poi">N2</text>
-<rect x="416.09999999999997" y="176.3" width="100.69999999999999" height="87.39999999999999" rx="4" fill="#ad9ade" fill-opacity=".24" stroke="#ad9ade" stroke-width="1.5"/>
-<text x="466.44999999999993" y="191.3" class="poi">N3</text>
-<rect x="556.7" y="172.5" width="110.19999999999999" height="76" rx="4" fill="#ad9ade" fill-opacity=".24" stroke="#ad9ade" stroke-width="1.5"/>
-<text x="611.8" y="214.5" class="poi">N4</text>
-<rect x="689.6999999999999" y="182" width="83.6" height="64.6" rx="4" fill="#ad9ade" fill-opacity=".24" stroke="#ad9ade" stroke-width="1.5"/>
-<text x="731.5" y="218.3" class="poi">N5</text>
-<rect x="133" y="719.6999999999999" width="72.2" height="79.8" rx="4" fill="#8fc68f" fill-opacity=".24" stroke="#8fc68f" stroke-width="1.5"/>
-<text x="169.1" y="763.5999999999999" class="poi">S1</text>
-<rect x="252.7" y="710.1999999999999" width="93.1" height="49.4" rx="4" fill="#8fc68f" fill-opacity=".24" stroke="#8fc68f" stroke-width="1.5"/>
-<text x="299.25" y="738.9" class="poi">S2</text>
-<rect x="262.2" y="778.6" width="74.1" height="30.4" rx="4" fill="#8fc68f" fill-opacity=".24" stroke="#8fc68f" stroke-width="1.5"/>
-<text x="299.25" y="797.8" class="poi">S3</text>
-<rect x="410.4" y="723.5" width="83.6" height="51.3" rx="4" fill="#8fc68f" fill-opacity=".24" stroke="#8fc68f" stroke-width="1.5"/>
-<text x="452.2" y="753.15" class="poi">S4</text>
-<rect x="556.7" y="721.6" width="45.599999999999994" height="77.89999999999999" rx="4" fill="#8fc68f" fill-opacity=".24" stroke="#8fc68f" stroke-width="1.5"/>
-<text x="579.5" y="764.55" class="poi">S5</text>
-<rect x="627" y="717.8" width="96.89999999999999" height="76" rx="4" fill="#8fc68f" fill-opacity=".24" stroke="#8fc68f" stroke-width="1.5"/>
-<text x="675.45" y="759.8" class="poi">S6</text>
-<rect x="739.1" y="719.6999999999999" width="45.599999999999994" height="81.7" rx="4" fill="#8fc68f" fill-opacity=".24" stroke="#8fc68f" stroke-width="1.5"/>
-<text x="761.9" y="764.55" class="poi">S7</text>
-<rect x="425.59999999999997" y="197.2" width="64.6" height="41.8" fill="#7962b4" fill-opacity=".13" stroke="#ded0ff" stroke-width="1.5" stroke-dasharray="4 4"/>
-<path d="M475.75 263.29999999999995l8 0v8h5l-9 9-9-9h5z" fill="#d6bdf6"/>
-<text x="490.75" y="275.29999999999995" class="marker" fill="#f1dcff">↓ B1</text>
-<text x="146.3" y="643.9" class="zone" fill="#57c9ce" style="paint-order:stroke;stroke:#102129;stroke-width:4;stroke-linejoin:round">西部港口</text>
-<text x="391.4" y="364.6" class="zone" fill="#d1ae63" style="paint-order:stroke;stroke:#102129;stroke-width:4;stroke-linejoin:round">中央物流</text>
-<text x="674.5" y="368.4" class="zone" fill="#e28a65" style="paint-order:stroke;stroke:#102129;stroke-width:4;stroke-linejoin:round">东部工业</text>
-<text x="410.4" y="121.4" class="zone" fill="#ad9ade" style="paint-order:stroke;stroke:#102129;stroke-width:4;stroke-linejoin:round">北部科研</text>
-<text x="193.8" y="706.6" class="zone" fill="#8fc68f" style="paint-order:stroke;stroke:#102129;stroke-width:4;stroke-linejoin:round">南部生活</text>
-<circle cx="129.2" cy="195.3" r="8" fill="#11252c" stroke="#6fdaf0" stroke-width="2"/><circle cx="129.2" cy="195.3" r="3" fill="#6fdaf0"/>
-<text x="141.2" y="186.3" class="marker" text-anchor="start" fill="#6fdaf0">N-A</text>
-<circle cx="279.29999999999995" cy="138.3" r="8" fill="#11252c" stroke="#6fdaf0" stroke-width="2"/><circle cx="279.29999999999995" cy="138.3" r="3" fill="#6fdaf0"/>
-<text x="291.29999999999995" y="129.3" class="marker" text-anchor="start" fill="#6fdaf0">N-B</text>
-<circle cx="670.6999999999999" cy="138.3" r="8" fill="#11252c" stroke="#6fdaf0" stroke-width="2"/><circle cx="670.6999999999999" cy="138.3" r="3" fill="#6fdaf0"/>
-<text x="682.6999999999999" y="129.3" class="marker" text-anchor="start" fill="#6fdaf0">N-C</text>
-<circle cx="805.5999999999999" cy="267.5" r="8" fill="#11252c" stroke="#6fdaf0" stroke-width="2"/><circle cx="805.5999999999999" cy="267.5" r="3" fill="#6fdaf0"/>
-<text x="794.5999999999999" y="258.5" class="marker" text-anchor="end" fill="#6fdaf0">N-D</text>
-<circle cx="117.8" cy="679.8" r="8" fill="#11252c" stroke="#f9d17b" stroke-width="2"/><circle cx="117.8" cy="679.8" r="3" fill="#f9d17b"/>
-<text x="129.8" y="670.8" class="marker" text-anchor="start" fill="#f9d17b">S-A</text>
-<circle cx="245.1" cy="824.1999999999999" r="8" fill="#11252c" stroke="#f9d17b" stroke-width="2"/><circle cx="245.1" cy="824.1999999999999" r="3" fill="#f9d17b"/>
-<text x="257.1" y="815.1999999999999" class="marker" text-anchor="start" fill="#f9d17b">S-B</text>
-<circle cx="636.5" cy="824.1999999999999" r="8" fill="#11252c" stroke="#f9d17b" stroke-width="2"/><circle cx="636.5" cy="824.1999999999999" r="3" fill="#f9d17b"/>
-<text x="648.5" y="815.1999999999999" class="marker" text-anchor="start" fill="#f9d17b">S-C</text>
-<circle cx="790.4" cy="679.8" r="8" fill="#11252c" stroke="#f9d17b" stroke-width="2"/><circle cx="790.4" cy="679.8" r="3" fill="#f9d17b"/>
-<text x="779.4" y="670.8" class="marker" text-anchor="end" fill="#f9d17b">S-D</text>
-<path d="M452.2 117.9l9 9-9 9-9-9Z" fill="#17363b" stroke="#92efb9" stroke-width="2.5"/>
-<text x="464.2" y="117.9" class="marker" text-anchor="start" fill="#92efb9">北部撤离 N</text>
-<path d="M452.2 836.0999999999999l9 9-9 9-9-9Z" fill="#17363b" stroke="#92efb9" stroke-width="2.5"/>
-<text x="464.2" y="836.0999999999999" class="marker" text-anchor="start" fill="#92efb9">南部撤离 S</text>
-<path d="M761.9 344l9 9-9 9-9-9Z" fill="#17363b" stroke="#ffc184" stroke-width="2.5"/>
-<text x="749.9" y="344" class="marker" text-anchor="end" fill="#ffc184">持卡维修口</text>
-<path d="M432.06 220.5l9 9-9 9-9-9Z" fill="#17363b" stroke="#ffc184" stroke-width="2.5"/>
-<text x="444.06" y="220.5" class="marker" text-anchor="start" fill="#ffc184">B1 货梯</text>
-<path d="M811 139l-7 17 7-5 7 5Z" fill="#dce8e3"/>
-<text x="811" y="130" class="small" text-anchor="middle">N</text>
-<rect x="862" y="106" width="442" height="760" rx="7" fill="#162b33" stroke="#354f58"/>
-<text x="884" y="136" font-size="19" font-weight="700">区块与重点地标</text>
-<text x="884" y="158" class="small muted">方框为预留建设范围，不代表最终建筑外墙。</text>
-<rect x="884" y="176" width="5" height="15" fill="#57c9ce"/>
-<text x="898" y="188" font-size="15" font-weight="700" fill="#57c9ce">西部港口</text>
-<text x="884" y="209" class="small mono" fill="#57c9ce">W1</text>
-<text x="924" y="209" font-size="14">盐港客运邮轮</text>
-<text x="1280" y="209" class="small muted" text-anchor="end">新建</text>
-<text x="884" y="228" class="small mono" fill="#57c9ce">W2</text>
-<text x="924" y="228" font-size="14">客运候船厅</text>
-<text x="1280" y="228" class="small muted" text-anchor="end">新建</text>
-<text x="884" y="247" class="small mono" fill="#57c9ce">W3</text>
-<text x="924" y="247" font-size="14">开放集装箱堆场</text>
-<text x="1280" y="247" class="small muted" text-anchor="end">重构</text>
-<text x="884" y="266" class="small mono" fill="#57c9ce">W4</text>
-<text x="924" y="266" font-size="14">装卸维修工棚</text>
-<text x="1280" y="266" class="small muted" text-anchor="end">重构</text>
-<text x="884" y="285" class="small mono" fill="#57c9ce">W5</text>
-<text x="924" y="285" font-size="14">港务调度办公室</text>
-<text x="1280" y="285" class="small muted" text-anchor="end">新建</text>
-<rect x="884" y="303" width="5" height="15" fill="#d1ae63"/>
-<text x="898" y="315" font-size="15" font-weight="700" fill="#d1ae63">中央物流</text>
-<text x="884" y="336" class="small mono" fill="#d1ae63">C1</text>
-<text x="924" y="336" font-size="14">普货仓库</text>
-<text x="1280" y="336" class="small muted" text-anchor="end">重构</text>
-<text x="884" y="355" class="small mono" fill="#d1ae63">C2</text>
-<text x="924" y="355" font-size="14">冷链仓库</text>
-<text x="1280" y="355" class="small muted" text-anchor="end">新建</text>
-<text x="884" y="374" class="small mono" fill="#d1ae63">C3</text>
-<text x="924" y="374" font-size="14">物流分拣中心</text>
-<text x="1280" y="374" class="small muted" text-anchor="end">重构</text>
-<text x="884" y="393" class="small mono" fill="#d1ae63">C4</text>
-<text x="924" y="393" font-size="14">物流办公楼·值班室</text>
-<text x="1280" y="393" class="small muted" text-anchor="end">重构</text>
-<text x="884" y="412" class="small mono" fill="#d1ae63">C5</text>
-<text x="924" y="412" font-size="14">车辆转运场</text>
-<text x="1280" y="412" class="small muted" text-anchor="end">重构</text>
-<rect x="884" y="430" width="5" height="15" fill="#e28a65"/>
-<text x="898" y="442" font-size="15" font-weight="700" fill="#e28a65">东部工业</text>
-<text x="884" y="463" class="small mono" fill="#e28a65">E1</text>
-<text x="924" y="463" font-size="14">设备维修厂</text>
-<text x="1280" y="463" class="small muted" text-anchor="end">重构</text>
-<text x="884" y="482" class="small mono" fill="#e28a65">E2</text>
-<text x="924" y="482" font-size="14">水处理设施</text>
-<text x="1280" y="482" class="small muted" text-anchor="end">重构</text>
-<text x="884" y="501" class="small mono" fill="#e28a65">E3</text>
-<text x="924" y="501" font-size="14">备件配电仓</text>
-<text x="1280" y="501" class="small muted" text-anchor="end">新建</text>
-<text x="884" y="520" class="small mono" fill="#e28a65">E4</text>
-<text x="924" y="520" font-size="14">工业控制中心</text>
-<text x="1280" y="520" class="small muted" text-anchor="end">新建</text>
-<rect x="884" y="538" width="5" height="15" fill="#ad9ade"/>
-<text x="898" y="550" font-size="15" font-weight="700" fill="#ad9ade">北部科研</text>
-<text x="884" y="571" class="small mono" fill="#ad9ade">N1</text>
-<text x="924" y="571" font-size="14">北侧海关检查站</text>
-<text x="1280" y="571" class="small muted" text-anchor="end">重构</text>
-<text x="884" y="590" class="small mono" fill="#ad9ade">N2</text>
-<text x="924" y="590" font-size="14">隔离观察设施</text>
-<text x="1280" y="590" class="small muted" text-anchor="end">新建</text>
-<text x="884" y="609" class="small mono" fill="#ad9ade">N3</text>
-<text x="924" y="609" font-size="14">科研主楼</text>
-<text x="1280" y="609" class="small muted" text-anchor="end">重构</text>
-<text x="884" y="628" class="small mono" fill="#ad9ade">N4</text>
-<text x="924" y="628" font-size="14">科研档案中心</text>
-<text x="1280" y="628" class="small muted" text-anchor="end">新建</text>
-<text x="884" y="647" class="small mono" fill="#ad9ade">N5</text>
-<text x="924" y="647" font-size="14">北部观测站</text>
-<text x="1280" y="647" class="small muted" text-anchor="end">重构</text>
-<rect x="884" y="665" width="5" height="15" fill="#8fc68f"/>
-<text x="898" y="677" font-size="15" font-weight="700" fill="#8fc68f">南部生活</text>
-<text x="884" y="698" class="small mono" fill="#8fc68f">S1</text>
-<text x="924" y="698" font-size="14">港务家属区·联排住宅</text>
-<text x="1280" y="698" class="small muted" text-anchor="end">新建</text>
-<text x="884" y="717" class="small mono" fill="#8fc68f">S2</text>
-<text x="924" y="717" font-size="14">生活商街</text>
-<text x="1280" y="717" class="small muted" text-anchor="end">重构</text>
-<text x="884" y="736" class="small mono" fill="#8fc68f">S3</text>
-<text x="924" y="736" font-size="14">极光药局</text>
-<text x="1280" y="736" class="small muted" text-anchor="end">重构</text>
-<text x="884" y="755" class="small mono" fill="#8fc68f">S4</text>
-<text x="924" y="755" font-size="14">社区救护与活动中心</text>
-<text x="1280" y="755" class="small muted" text-anchor="end">新建</text>
-<text x="884" y="774" class="small mono" fill="#8fc68f">S5</text>
-<text x="924" y="774" font-size="14">海员旅馆</text>
-<text x="1280" y="774" class="small muted" text-anchor="end">新建</text>
-<text x="884" y="793" class="small mono" fill="#8fc68f">S6</text>
-<text x="924" y="793" font-size="14">交通站与餐饮广场</text>
-<text x="1280" y="793" class="small muted" text-anchor="end">新建</text>
-<text x="884" y="812" class="small mono" fill="#8fc68f">S7</text>
-<text x="924" y="812" font-size="14">公共停车场</text>
-<text x="1280" y="812" class="small muted" text-anchor="end">新建</text>
-<path d="M76 891H1304" stroke="#3c5559"/>
-<circle cx="87" cy="918" r="7" stroke="#6fdaf0" fill="none" stroke-width="2"/>
-<text x="102" y="923" class="small">N-A～D 北组出生</text>
-<circle cx="267" cy="918" r="7" stroke="#f9d17b" fill="none" stroke-width="2"/>
-<text x="282" y="923" class="small">S-A～D 南组出生</text>
-<path d="M452 909l9 9-9 9-9-9Z" fill="none" stroke="#92efb9" stroke-width="2"/>
-<text x="467" y="923" class="small">常规撤离</text>
-<path d="M565 909l9 9-9 9-9-9Z" fill="none" stroke="#ffc184" stroke-width="2"/>
-<text x="580" y="923" class="small">条件撤离</text>
-<rect x="684" y="910" width="17" height="15" fill="none" stroke="#ded0ff" stroke-dasharray="4 3"/>
-<text x="710" y="923" class="small">B1 投影</text>
-<line x1="815" y1="918" x2="845" y2="918" stroke="#77e0db" stroke-width="3" stroke-dasharray="4 3"/>
-<text x="852" y="923" class="small">登船连桥</text>
-<path d="M76 951h95m-95-5v10m95-10v10" stroke="#c1d9d4" stroke-width="1.5"/>
-<text x="76" y="973" class="small muted">0</text>
-<text x="171" y="973" class="small muted" text-anchor="end">50 m</text>
-<text x="203" y="956" font-size="14" fill="#b0d9cb">北组仅南部常规口开放；南组仅北部常规口开放。两处条件口规则独立。</text>
-<text x="1304" y="972" class="small muted" text-anchor="end">设计预留 · 场景、碰撞与实走距离待 B/C 验证</text>
+<svg xmlns="http://www.w3.org/2000/svg" width="1430" height="1130" viewBox="0 0 1430 1130" role="img" aria-labelledby="title desc"><title id="title">盐港隔离区 3.5A 总体规划 V2</title><desc id="desc">400×400米陆地参考范围、外海邮轮凸出、地形等高线、五个地面区、八个出生候选及四个撤离口的游戏设计草案。</desc><defs><clipPath id="land"><polygon points="226.67999999999998,106 873.4,106 916.64,134.2 929.8,228.2 914.76,299.64 920.4,397.4 929.8,478.23999999999995 918.52,579.76 912.88,654.9599999999999 929.8,760.24 914.76,835.4399999999999 864,858 258.64,858 196.6,829.8 177.8,754.5999999999999 183.44,647.4399999999999 177.8,592.92 177.8,504.56 177.8,399.28 185.32,316.56 211.64,250.76 200.35999999999999,171.8" /></clipPath><pattern id="waves" width="22" height="16" patternUnits="userSpaceOnUse"><path d="M0 10Q5 5 11 10T22 10" fill="none" stroke="#67b7c8" stroke-opacity=".23" stroke-width="1"/></pattern><pattern id="grid" width="94" height="94" patternUnits="userSpaceOnUse" x="177.8" y="106"><path d="M94 0H0V94" fill="none" stroke="#839ba0" stroke-opacity=".16" stroke-width="1"/></pattern></defs><style>text{font-family:'Noto Sans CJK SC','Microsoft YaHei',sans-serif;fill:#e9f0ee}.mono{font-family:monospace}.muted{fill:#a4b9bb}.small{font-size:13px}.poi{font-weight:700;font-size:14px;text-anchor:middle;paint-order:stroke;stroke:#172e33;stroke-width:3px;stroke-linejoin:round}.zone{font-weight:700;font-size:14px;text-anchor:middle;paint-order:stroke;stroke:#14252d;stroke-width:4px;stroke-linejoin:round}.marker{font-size:12px;font-weight:700;paint-order:stroke;stroke:#12232d;stroke-width:3px;stroke-linejoin:round}</style>
+<rect width="1430" height="1130" fill="#102129"/><rect x="0" width="9" height="1130" fill="#74d6c9"/><path d="M55 88H1380" stroke="#354d56"/>
+<text x="35" y="35" class="mono" font-size="13" letter-spacing="3" fill="#99d7ca">SALTLINE  /  LEVEL DESIGN</text>
+<text x="35" y="73" font-size="29" font-weight="700">盐港隔离区 · 立体地形规划</text>
+<text x="1110" y="37" font-size="16" font-weight="700" fill="#a2d7c7">3.5A  /  草案 V2</text>
+<text x="1110" y="65" class="small muted">400 × 400 m 陆地 ＋ 海上延伸区</text>
+<rect x="65" y="106" width="864.8" height="752" fill="#172b33"/>
+<rect x="65" y="106" width="161.67999999999998" height="752" fill="#123d53"/>
+<rect x="65" y="106" width="161.67999999999998" height="752" fill="url(#waves)"/>
+<polygon points="226.67999999999998,106 873.4,106 916.64,134.2 929.8,228.2 914.76,299.64 920.4,397.4 929.8,478.23999999999995 918.52,579.76 912.88,654.9599999999999 929.8,760.24 914.76,835.4399999999999 864,858 258.64,858 196.6,829.8 177.8,754.5999999999999 183.44,647.4399999999999 177.8,592.92 177.8,504.56 177.8,399.28 185.32,316.56 211.64,250.76 200.35999999999999,171.8" fill="#24434c"/>
+<g clip-path="url(#land)">
+<path d="M177.80 275.20h9.50v9.50h-9.50zM177.80 284.60h18.90v9.50h-18.90zM177.80 294.00h28.30v9.50h-28.30zM177.80 303.40h37.70v9.50h-37.70zM177.80 312.80h47.10v9.50h-47.10zM177.80 322.20h56.50v9.50h-56.50zM177.80 331.60h65.90v9.50h-65.90zM177.80 341.00h84.70v9.50h-84.70zM177.80 350.40h103.50v9.50h-103.50zM177.80 359.80h112.90v9.50h-112.90zM177.80 369.20h131.70v9.50h-131.70zM177.80 378.60h150.50v9.50h-150.50zM177.80 388.00h159.90v9.50h-159.90zM177.80 397.40h159.90v9.50h-159.90zM177.80 406.80h159.90v9.50h-159.90zM177.80 416.20h169.30v9.50h-169.30zM177.80 425.60h169.30v9.50h-169.30zM177.80 435.00h169.30v9.50h-169.30zM741.80 435.00h94.10v9.50h-94.10zM177.80 444.40h178.70v9.50h-178.70zM732.40 444.40h122.30v9.50h-122.30zM177.80 453.80h178.70v9.50h-178.70zM732.40 453.80h131.70v9.50h-131.70zM177.80 463.20h178.70v9.50h-178.70zM723.00 463.20h150.50v9.50h-150.50zM177.80 472.60h188.10v9.50h-188.10zM723.00 472.60h159.90v9.50h-159.90zM177.80 482.00h188.10v9.50h-188.10zM713.60 482.00h178.70v9.50h-178.70zM177.80 491.40h178.70v9.50h-178.70zM713.60 491.40h178.70v9.50h-178.70zM177.80 500.80h178.70v9.50h-178.70zM713.60 500.80h178.70v9.50h-178.70zM177.80 510.20h178.70v9.50h-178.70zM704.20 510.20h188.10v9.50h-188.10zM177.80 519.60h169.30v9.50h-169.30zM704.20 519.60h188.10v9.50h-188.10zM177.80 529.00h169.30v9.50h-169.30zM704.20 529.00h188.10v9.50h-188.10zM177.80 538.40h169.30v9.50h-169.30zM704.20 538.40h188.10v9.50h-188.10zM177.80 547.80h159.90v9.50h-159.90zM694.80 547.80h206.90v9.50h-206.90zM177.80 557.20h159.90v9.50h-159.90zM694.80 557.20h206.90v9.50h-206.90zM177.80 566.60h159.90v9.50h-159.90zM685.40 566.60h216.30v9.50h-216.30zM177.80 576.00h150.50v9.50h-150.50zM694.80 576.00h206.90v9.50h-206.90zM177.80 585.40h150.50v9.50h-150.50zM694.80 585.40h197.50v9.50h-197.50zM177.80 594.80h141.10v9.50h-141.10zM704.20 594.80h188.10v9.50h-188.10zM177.80 604.20h141.10v9.50h-141.10zM713.60 604.20h169.30v9.50h-169.30zM177.80 613.60h131.70v9.50h-131.70zM723.00 613.60h159.90v9.50h-159.90zM177.80 623.00h131.70v9.50h-131.70zM732.40 623.00h141.10v9.50h-141.10zM177.80 632.40h122.30v9.50h-122.30zM741.80 632.40h122.30v9.50h-122.30zM177.80 641.80h112.90v9.50h-112.90zM770.00 641.80h94.10v9.50h-94.10zM177.80 651.20h103.50v9.50h-103.50zM798.20 651.20h56.50v9.50h-56.50zM177.80 660.60h94.10v9.50h-94.10zM826.40 660.60h18.90v9.50h-18.90zM177.80 670.00h84.70v9.50h-84.70zM177.80 679.40h75.30v9.50h-75.30zM177.80 688.80h65.90v9.50h-65.90zM177.80 698.20h56.50v9.50h-56.50zM177.80 707.60h47.10v9.50h-47.10zM177.80 717.00h37.70v9.50h-37.70zM177.80 726.40h28.30v9.50h-28.30zM177.80 735.80h18.90v9.50h-18.90zM177.80 745.20h9.50v9.50h-9.50zM177.80 754.60h9.50v9.50h-9.50z" fill="#24434c"/>
+<path d="M177.80 200.00h9.50v9.50h-9.50zM177.80 209.40h18.90v9.50h-18.90zM177.80 218.80h28.30v9.50h-28.30zM177.80 228.20h37.70v9.50h-37.70zM177.80 237.60h56.50v9.50h-56.50zM177.80 247.00h65.90v9.50h-65.90zM177.80 256.40h75.30v9.50h-75.30zM177.80 265.80h84.70v9.50h-84.70zM187.20 275.20h94.10v9.50h-94.10zM196.60 284.60h94.10v9.50h-94.10zM206.00 294.00h94.10v9.50h-94.10zM215.40 303.40h103.50v9.50h-103.50zM224.80 312.80h103.50v9.50h-103.50zM234.20 322.20h112.90v9.50h-112.90zM243.60 331.60h112.90v9.50h-112.90zM262.40 341.00h216.30v9.50h-216.30zM281.20 350.40h235.10v9.50h-235.10zM290.60 359.80h263.30v9.50h-263.30zM704.20 359.80h75.30v9.50h-75.30zM309.40 369.20h272.70v9.50h-272.70zM676.00 369.20h150.50v9.50h-150.50zM328.20 378.60h300.90v9.50h-300.90zM657.20 378.60h206.90v9.50h-206.90zM337.60 388.00h554.70v9.50h-554.70zM337.60 397.40h573.50v9.50h-573.50zM337.60 406.80h582.90v9.50h-582.90zM347.00 416.20h582.90v9.50h-582.90zM347.00 425.60h582.90v9.50h-582.90zM347.00 435.00h394.90v9.50h-394.90zM835.80 435.00h94.10v9.50h-94.10zM356.40 444.40h376.10v9.50h-376.10zM854.60 444.40h75.30v9.50h-75.30zM356.40 453.80h376.10v9.50h-376.10zM864.00 453.80h65.90v9.50h-65.90zM356.40 463.20h366.70v9.50h-366.70zM873.40 463.20h56.50v9.50h-56.50zM365.80 472.60h357.30v9.50h-357.30zM882.80 472.60h47.10v9.50h-47.10zM365.80 482.00h347.90v9.50h-347.90zM892.20 482.00h37.70v9.50h-37.70zM356.40 491.40h357.30v9.50h-357.30zM892.20 491.40h37.70v9.50h-37.70zM356.40 500.80h357.30v9.50h-357.30zM892.20 500.80h37.70v9.50h-37.70zM356.40 510.20h347.90v9.50h-347.90zM892.20 510.20h37.70v9.50h-37.70zM347.00 519.60h357.30v9.50h-357.30zM892.20 519.60h37.70v9.50h-37.70zM347.00 529.00h357.30v9.50h-357.30zM892.20 529.00h37.70v9.50h-37.70zM347.00 538.40h357.30v9.50h-357.30zM892.20 538.40h37.70v9.50h-37.70zM337.60 547.80h357.30v9.50h-357.30zM901.60 547.80h28.30v9.50h-28.30zM337.60 557.20h357.30v9.50h-357.30zM901.60 557.20h28.30v9.50h-28.30zM337.60 566.60h347.90v9.50h-347.90zM901.60 566.60h28.30v9.50h-28.30zM328.20 576.00h366.70v9.50h-366.70zM901.60 576.00h28.30v9.50h-28.30zM328.20 585.40h366.70v9.50h-366.70zM892.20 585.40h37.70v9.50h-37.70zM318.80 594.80h385.50v9.50h-385.50zM892.20 594.80h37.70v9.50h-37.70zM318.80 604.20h394.90v9.50h-394.90zM882.80 604.20h47.10v9.50h-47.10zM309.40 613.60h413.70v9.50h-413.70zM882.80 613.60h47.10v9.50h-47.10zM309.40 623.00h423.10v9.50h-423.10zM873.40 623.00h56.50v9.50h-56.50zM300.00 632.40h441.90v9.50h-441.90zM864.00 632.40h65.90v9.50h-65.90zM290.60 641.80h479.50v9.50h-479.50zM864.00 641.80h65.90v9.50h-65.90zM281.20 651.20h517.10v9.50h-517.10zM854.60 651.20h75.30v9.50h-75.30zM271.80 660.60h554.70v9.50h-554.70zM845.20 660.60h84.70v9.50h-84.70zM262.40 670.00h366.70v9.50h-366.70zM657.20 670.00h272.70v9.50h-272.70zM253.00 679.40h347.90v9.50h-347.90zM666.60 679.40h263.30v9.50h-263.30zM243.60 688.80h329.10v9.50h-329.10zM676.00 688.80h253.90v9.50h-253.90zM234.20 698.20h197.50v9.50h-197.50zM685.40 698.20h244.50v9.50h-244.50zM224.80 707.60h178.70v9.50h-178.70zM694.80 707.60h235.10v9.50h-235.10zM215.40 717.00h169.30v9.50h-169.30zM704.20 717.00h225.70v9.50h-225.70zM206.00 726.40h159.90v9.50h-159.90zM713.60 726.40h216.30v9.50h-216.30zM196.60 735.80h159.90v9.50h-159.90zM723.00 735.80h206.90v9.50h-206.90zM187.20 745.20h159.90v9.50h-159.90zM732.40 745.20h197.50v9.50h-197.50zM187.20 754.60h150.50v9.50h-150.50zM741.80 754.60h188.10v9.50h-188.10zM177.80 764.00h150.50v9.50h-150.50zM741.80 764.00h188.10v9.50h-188.10zM177.80 773.40h141.10v9.50h-141.10zM751.20 773.40h178.70v9.50h-178.70zM177.80 782.80h141.10v9.50h-141.10zM751.20 782.80h178.70v9.50h-178.70zM177.80 792.20h131.70v9.50h-131.70zM760.60 792.20h169.30v9.50h-169.30zM177.80 801.60h122.30v9.50h-122.30zM760.60 801.60h169.30v9.50h-169.30zM177.80 811.00h122.30v9.50h-122.30zM770.00 811.00h159.90v9.50h-159.90zM177.80 820.40h112.90v9.50h-112.90zM770.00 820.40h159.90v9.50h-159.90zM177.80 829.80h103.50v9.50h-103.50zM779.40 829.80h150.50v9.50h-150.50zM177.80 839.20h103.50v9.50h-103.50zM779.40 839.20h150.50v9.50h-150.50zM177.80 848.60h94.10v9.50h-94.10zM788.80 848.60h141.10v9.50h-141.10z" fill="#345352"/>
+<path d="M177.80 106.00h9.50v9.50h-9.50zM177.80 115.40h18.90v9.50h-18.90zM177.80 124.80h28.30v9.50h-28.30zM177.80 134.20h37.70v9.50h-37.70zM177.80 143.60h47.10v9.50h-47.10zM177.80 153.00h56.50v9.50h-56.50zM177.80 162.40h65.90v9.50h-65.90zM177.80 171.80h75.30v9.50h-75.30zM177.80 181.20h84.70v9.50h-84.70zM177.80 190.60h94.10v9.50h-94.10zM187.20 200.00h94.10v9.50h-94.10zM196.60 209.40h94.10v9.50h-94.10zM544.40 209.40h9.50v9.50h-9.50zM206.00 218.80h94.10v9.50h-94.10zM544.40 218.80h18.90v9.50h-18.90zM215.40 228.20h94.10v9.50h-94.10zM535.00 228.20h28.30v9.50h-28.30zM234.20 237.60h84.70v9.50h-84.70zM516.20 237.60h47.10v9.50h-47.10zM243.60 247.00h84.70v9.50h-84.70zM488.00 247.00h84.70v9.50h-84.70zM253.00 256.40h84.70v9.50h-84.70zM441.00 256.40h131.70v9.50h-131.70zM262.40 265.80h94.10v9.50h-94.10zM403.40 265.80h178.70v9.50h-178.70zM281.20 275.20h310.30v9.50h-310.30zM290.60 284.60h310.30v9.50h-310.30zM300.00 294.00h310.30v9.50h-310.30zM318.80 303.40h319.70v9.50h-319.70zM328.20 312.80h432.50v9.50h-432.50zM347.00 322.20h479.50v9.50h-479.50zM356.40 331.60h573.50v9.50h-573.50zM478.60 341.00h451.30v9.50h-451.30zM516.20 350.40h413.70v9.50h-413.70zM553.80 359.80h150.50v9.50h-150.50zM779.40 359.80h150.50v9.50h-150.50zM582.00 369.20h94.10v9.50h-94.10zM826.40 369.20h103.50v9.50h-103.50zM629.00 378.60h28.30v9.50h-28.30zM864.00 378.60h65.90v9.50h-65.90zM892.20 388.00h37.70v9.50h-37.70zM911.00 397.40h18.90v9.50h-18.90zM920.40 406.80h9.50v9.50h-9.50zM629.00 670.00h28.30v9.50h-28.30zM600.80 679.40h65.90v9.50h-65.90zM572.60 688.80h103.50v9.50h-103.50zM431.60 698.20h253.90v9.50h-253.90zM403.40 707.60h291.50v9.50h-291.50zM384.60 717.00h319.70v9.50h-319.70zM365.80 726.40h347.90v9.50h-347.90zM356.40 735.80h366.70v9.50h-366.70zM347.00 745.20h385.50v9.50h-385.50zM337.60 754.60h404.30v9.50h-404.30zM328.20 764.00h413.70v9.50h-413.70zM318.80 773.40h432.50v9.50h-432.50zM318.80 782.80h432.50v9.50h-432.50zM309.40 792.20h451.30v9.50h-451.30zM300.00 801.60h460.70v9.50h-460.70zM300.00 811.00h150.50v9.50h-150.50zM469.20 811.00h300.90v9.50h-300.90zM290.60 820.40h150.50v9.50h-150.50zM488.00 820.40h282.10v9.50h-282.10zM281.20 829.80h141.10v9.50h-141.10zM506.80 829.80h272.70v9.50h-272.70zM281.20 839.20h122.30v9.50h-122.30zM525.60 839.20h253.90v9.50h-253.90zM271.80 848.60h103.50v9.50h-103.50zM544.40 848.60h244.50v9.50h-244.50z" fill="#40594e"/>
+<path d="M187.20 106.00h122.30v9.50h-122.30zM535.00 106.00h28.30v9.50h-28.30zM196.60 115.40h112.90v9.50h-112.90zM506.80 115.40h75.30v9.50h-75.30zM206.00 124.80h112.90v9.50h-112.90zM488.00 124.80h103.50v9.50h-103.50zM215.40 134.20h112.90v9.50h-112.90zM478.60 134.20h122.30v9.50h-122.30zM224.80 143.60h103.50v9.50h-103.50zM469.20 143.60h141.10v9.50h-141.10zM234.20 153.00h94.10v9.50h-94.10zM450.40 153.00h169.30v9.50h-169.30zM243.60 162.40h94.10v9.50h-94.10zM441.00 162.40h188.10v9.50h-188.10zM253.00 171.80h84.70v9.50h-84.70zM431.60 171.80h206.90v9.50h-206.90zM262.40 181.20h84.70v9.50h-84.70zM422.20 181.20h216.30v9.50h-216.30zM271.80 190.60h75.30v9.50h-75.30zM412.80 190.60h235.10v9.50h-235.10zM281.20 200.00h75.30v9.50h-75.30zM403.40 200.00h244.50v9.50h-244.50zM290.60 209.40h75.30v9.50h-75.30zM375.20 209.40h169.30v9.50h-169.30zM553.80 209.40h103.50v9.50h-103.50zM300.00 218.80h244.50v9.50h-244.50zM563.20 218.80h103.50v9.50h-103.50zM309.40 228.20h225.70v9.50h-225.70zM563.20 228.20h122.30v9.50h-122.30zM318.80 237.60h197.50v9.50h-197.50zM563.20 237.60h131.70v9.50h-131.70zM328.20 247.00h159.90v9.50h-159.90zM572.60 247.00h141.10v9.50h-141.10zM920.40 247.00h9.50v9.50h-9.50zM337.60 256.40h103.50v9.50h-103.50zM572.60 256.40h169.30v9.50h-169.30zM901.60 256.40h28.30v9.50h-28.30zM356.40 265.80h47.10v9.50h-47.10zM582.00 265.80h197.50v9.50h-197.50zM873.40 265.80h56.50v9.50h-56.50zM591.40 275.20h338.50v9.50h-338.50zM600.80 284.60h329.10v9.50h-329.10zM610.20 294.00h319.70v9.50h-319.70zM638.40 303.40h291.50v9.50h-291.50zM760.60 312.80h169.30v9.50h-169.30zM826.40 322.20h103.50v9.50h-103.50zM450.40 811.00h18.90v9.50h-18.90zM441.00 820.40h47.10v9.50h-47.10zM422.20 829.80h84.70v9.50h-84.70zM403.40 839.20h122.30v9.50h-122.30zM375.20 848.60h169.30v9.50h-169.30z" fill="#4e6049"/>
+<path d="M309.40 106.00h225.70v9.50h-225.70zM563.20 106.00h150.50v9.50h-150.50zM901.60 106.00h28.30v9.50h-28.30zM309.40 115.40h197.50v9.50h-197.50zM582.00 115.40h131.70v9.50h-131.70zM901.60 115.40h28.30v9.50h-28.30zM318.80 124.80h169.30v9.50h-169.30zM591.40 124.80h131.70v9.50h-131.70zM901.60 124.80h28.30v9.50h-28.30zM328.20 134.20h150.50v9.50h-150.50zM600.80 134.20h122.30v9.50h-122.30zM901.60 134.20h28.30v9.50h-28.30zM328.20 143.60h141.10v9.50h-141.10zM610.20 143.60h112.90v9.50h-112.90zM892.20 143.60h37.70v9.50h-37.70zM328.20 153.00h122.30v9.50h-122.30zM619.60 153.00h112.90v9.50h-112.90zM892.20 153.00h37.70v9.50h-37.70zM337.60 162.40h103.50v9.50h-103.50zM629.00 162.40h103.50v9.50h-103.50zM892.20 162.40h37.70v9.50h-37.70zM337.60 171.80h94.10v9.50h-94.10zM638.40 171.80h94.10v9.50h-94.10zM892.20 171.80h37.70v9.50h-37.70zM347.00 181.20h75.30v9.50h-75.30zM638.40 181.20h103.50v9.50h-103.50zM882.80 181.20h47.10v9.50h-47.10zM347.00 190.60h65.90v9.50h-65.90zM647.80 190.60h94.10v9.50h-94.10zM882.80 190.60h47.10v9.50h-47.10zM356.40 200.00h47.10v9.50h-47.10zM647.80 200.00h112.90v9.50h-112.90zM873.40 200.00h56.50v9.50h-56.50zM365.80 209.40h9.50v9.50h-9.50zM657.20 209.40h131.70v9.50h-131.70zM864.00 209.40h65.90v9.50h-65.90zM666.60 218.80h159.90v9.50h-159.90zM845.20 218.80h84.70v9.50h-84.70zM685.40 228.20h244.50v9.50h-244.50zM694.80 237.60h235.10v9.50h-235.10zM713.60 247.00h206.90v9.50h-206.90zM741.80 256.40h159.90v9.50h-159.90zM779.40 265.80h94.10v9.50h-94.10z" fill="#605f48"/>
+<path d="M713.60 106.00h188.10v9.50h-188.10zM713.60 115.40h188.10v9.50h-188.10zM723.00 124.80h178.70v9.50h-178.70zM723.00 134.20h178.70v9.50h-178.70zM723.00 143.60h169.30v9.50h-169.30zM732.40 153.00h159.90v9.50h-159.90zM732.40 162.40h159.90v9.50h-159.90zM732.40 171.80h159.90v9.50h-159.90zM741.80 181.20h141.10v9.50h-141.10zM741.80 190.60h141.10v9.50h-141.10zM760.60 200.00h112.90v9.50h-112.90zM788.80 209.40h75.30v9.50h-75.30zM826.40 218.80h18.90v9.50h-18.90z" fill="#706346"/>
+<path d="M187.2 282.7L177.8 275.2M189.6 284.6L187.2 282.7M189.6 284.6L196.6 290.2M201.3 294.0L196.6 290.2M201.3 294.0L206.0 299.8M209.1 303.4L206.0 299.8M209.1 303.4L215.4 310.1M218.1 312.8L215.4 310.1M218.1 312.8L224.8 319.1M228.4 322.2L224.8 319.1M228.4 322.2L234.2 326.9M240.5 331.6L234.2 326.9M240.5 331.6L243.6 333.8M253.0 340.0L243.6 333.8M254.7 341.0L253.0 340.0M254.7 341.0L262.4 345.5M271.8 350.4L262.4 345.5M271.8 350.4L271.8 350.4M281.2 356.7L271.8 350.4M286.0 359.8L281.2 356.7M286.0 359.8L290.6 362.7M300.0 368.5L290.6 362.7M301.2 369.2L300.0 368.5M301.2 369.2L309.4 374.1M317.3 378.6L309.4 374.1M317.3 378.6L318.8 379.5M328.2 384.6L318.8 379.5M334.5 388.0L328.2 384.6M334.5 388.0L336.6 397.4M336.6 397.4L337.6 401.4M338.9 406.8L337.6 401.4M338.9 406.8L341.4 416.2M341.4 416.2L344.1 425.6M344.1 425.6L347.0 435.0M347.0 435.0L347.0 435.0M350.1 444.4L347.0 435.0M741.8 435.0L736.6 444.4M751.2 436.0L741.8 435.0M760.6 436.7L751.2 436.0M770.0 437.3L760.6 436.7M779.4 437.8L770.0 437.3M788.8 438.1L779.4 437.8M798.2 438.4L788.8 438.1M807.6 438.7L798.2 438.4M817.0 438.9L807.6 438.7M826.4 439.1L817.0 438.9M835.8 439.3L826.4 439.1M843.9 444.4L835.8 439.3M350.1 444.4L353.5 453.8M732.4 452.3L731.6 453.8M736.6 444.4L732.4 452.3M843.9 444.4L845.2 445.3M854.6 451.9L845.2 445.3M857.1 453.8L854.6 451.9M353.5 453.8L356.4 461.1M357.3 463.2L356.4 461.1M731.6 453.8L727.0 463.2M857.1 453.8L864.0 459.2M868.7 463.2L864.0 459.2M357.3 463.2L361.3 472.6M723.0 471.6L722.5 472.6M727.0 463.2L723.0 471.6M868.7 463.2L873.4 467.4M878.9 472.6L873.4 467.4M361.3 472.6L365.8 482.0M722.5 472.6L718.3 482.0M878.9 472.6L882.8 476.5M888.0 482.0L882.8 476.5M365.8 482.0L361.3 491.4M718.3 482.0L715.6 491.4M888.0 482.0L889.2 491.4M361.3 491.4L357.3 500.8M713.6 498.3L712.9 500.8M715.6 491.4L713.6 498.3M889.2 491.4L890.5 500.8M356.4 502.9L353.5 510.2M357.3 500.8L356.4 502.9M712.9 500.8L710.1 510.2M890.5 500.8L891.8 510.2M353.5 510.2L350.1 519.6M710.1 510.2L707.2 519.6M891.8 510.2L892.2 513.3M893.1 519.6L892.2 513.3M347.0 529.0L347.0 529.0M350.1 519.6L347.0 529.0M707.2 519.6L704.2 529.0M893.1 519.6L894.5 529.0M347.0 529.0L344.1 538.4M704.2 529.0L701.2 538.4M704.2 529.0L704.2 529.0M894.5 529.0L896.1 538.4M344.1 538.4L341.4 547.8M701.2 538.4L698.0 547.8M896.1 538.4L897.6 547.8M341.4 547.8L338.9 557.2M698.0 547.8L694.8 557.2M897.6 547.8L899.3 557.2M337.6 562.6L336.6 566.6M338.9 557.2L337.6 562.6M694.8 557.2L691.5 566.6M694.8 557.2L694.8 557.2M899.3 557.2L901.1 566.6M336.6 566.6L334.5 576.0M691.5 566.6L688.1 576.0M901.1 566.6L901.6 569.3M902.9 576.0L901.6 569.3M334.5 576.0L330.1 585.4M688.1 576.0L694.8 584.5M695.5 585.4L694.8 584.5M901.6 579.2L898.9 585.4M902.9 576.0L901.6 579.2M328.2 589.4L325.5 594.8M330.1 585.4L328.2 589.4M695.5 585.4L703.1 594.8M898.9 585.4L894.5 594.8M325.5 594.8L320.5 604.2M703.1 594.8L704.2 596.1M710.9 604.2L704.2 596.1M892.2 599.5L889.7 604.2M894.5 594.8L892.2 599.5M318.8 607.3L315.2 613.6M320.5 604.2L318.8 607.3M710.9 604.2L713.6 607.3M719.0 613.6L713.6 607.3M889.7 604.2L884.4 613.6M309.4 623.0L309.4 623.0M315.2 613.6L309.4 623.0M719.0 613.6L723.0 618.1M727.3 623.0L723.0 618.1M882.8 616.3L878.5 623.0M884.4 613.6L882.8 616.3M309.4 623.0L303.1 632.4M727.3 623.0L732.4 628.6M735.9 632.4L732.4 628.6M873.4 630.4L872.0 632.4M878.5 623.0L873.4 630.4M300.0 636.8L296.3 641.8M303.1 632.4L300.0 636.8M735.9 632.4L741.8 638.7M751.2 641.3L741.8 638.7M752.9 641.8L751.2 641.3M872.0 632.4L864.6 641.8M290.6 649.1L288.9 651.2M296.3 641.8L290.6 649.1M752.9 641.8L760.6 644.1M770.0 646.9L760.6 644.1M779.4 649.9L770.0 646.9M783.6 651.2L779.4 649.9M864.0 642.5L856.2 651.2M864.6 641.8L864.0 642.5M281.2 660.1L280.8 660.6M288.9 651.2L281.2 660.1M783.6 651.2L788.8 652.9M798.2 656.1L788.8 652.9M807.6 659.4L798.2 656.1M811.1 660.6L807.6 659.4M854.6 652.9L846.7 660.6M856.2 651.2L854.6 652.9M271.8 670.0L271.8 670.0M280.8 660.6L271.8 670.0M811.1 660.6L817.0 662.8M826.4 666.3L817.0 662.8M835.8 670.0L826.4 666.3M845.2 662.0L835.8 670.0M846.7 660.6L845.2 662.0M262.4 679.4L262.4 679.4M271.8 670.0L262.4 679.4M253.0 688.8L253.0 688.8M262.4 679.4L253.0 688.8M243.6 698.2L243.6 698.2M253.0 688.8L243.6 698.2M234.2 707.6L234.2 707.6M243.6 698.2L234.2 707.6M224.8 717.0L224.8 717.0M234.2 707.6L224.8 717.0M215.4 726.4L215.4 726.4M224.8 717.0L215.4 726.4M206.0 735.8L206.0 735.8M215.4 726.4L206.0 735.8M196.6 745.2L196.6 745.2M206.0 735.8L196.6 745.2M187.2 754.6L187.2 754.6M196.6 745.2L187.2 754.6M187.2 754.6L177.8 764.0" stroke="#d6d3a0" stroke-width="1.05" stroke-opacity=".56" fill="none"/>
+<path d="M187.2 207.5L177.8 200.0M189.6 209.4L187.2 207.5M189.6 209.4L196.6 215.0M201.3 218.8L196.6 215.0M201.3 218.8L206.0 222.6M213.0 228.2L206.0 222.6M213.0 228.2L215.4 230.1M224.8 237.6L215.4 230.1M224.8 237.6L224.8 237.6M234.2 245.1L224.8 237.6M236.5 247.0L234.2 245.1M236.5 247.0L243.6 252.6M248.3 256.4L243.6 252.6M248.3 256.4L253.0 260.2M260.0 265.8L253.0 260.2M260.0 265.8L262.4 267.7M271.8 275.2L262.4 267.7M271.8 275.2L271.8 275.2M281.2 282.9L271.8 275.2M283.3 284.6L281.2 282.9M283.3 284.6L290.6 290.4M295.3 294.0L290.6 290.4M295.3 294.0L300.0 297.5M308.0 303.4L300.0 297.5M308.0 303.4L309.4 304.4M318.8 311.1L309.4 304.4M321.3 312.8L318.8 311.1M321.3 312.8L328.2 317.5M335.3 322.2L328.2 317.5M335.3 322.2L337.6 323.7M347.0 329.7L337.6 323.7M350.1 331.6L347.0 329.7M350.1 331.6L356.4 335.4M365.8 341.0L356.4 335.4M365.8 341.0L365.8 341.0M375.2 341.0L365.8 341.0M384.6 341.0L375.2 341.0M394.0 341.0L384.6 341.0M403.4 341.0L394.0 341.0M412.8 341.0L403.4 341.0M422.2 341.0L412.8 341.0M431.6 341.0L422.2 341.0M441.0 341.0L431.6 341.0M450.4 341.0L441.0 341.0M459.8 341.0L450.4 341.0M469.2 343.4L459.8 341.0M478.6 345.7L469.2 343.4M488.0 348.0L478.6 345.7M497.4 350.4L488.0 348.0M497.4 350.4L497.4 350.4M506.8 352.8L497.4 350.4M516.2 355.1L506.8 352.8M525.6 357.4L516.2 355.1M535.0 359.8L525.6 357.4M732.4 358.5L726.1 359.8M741.8 356.7L732.4 358.5M751.2 358.4L741.8 356.7M758.4 359.8L751.2 358.4M535.0 359.8L535.0 359.8M544.4 362.1L535.0 359.8M553.8 364.5L544.4 362.1M563.2 367.4L553.8 364.5M569.5 369.2L563.2 367.4M694.8 367.9L690.5 369.2M704.2 365.1L694.8 367.9M713.6 362.7L704.2 365.1M723.0 360.5L713.6 362.7M726.1 359.8L723.0 360.5M758.4 359.8L760.6 360.2M770.0 362.1L760.6 360.2M779.4 364.0L770.0 362.1M788.8 365.9L779.4 364.0M798.2 367.9L788.8 365.9M804.5 369.2L798.2 367.9M569.5 369.2L572.6 370.1M582.0 372.7L572.6 370.1M591.4 375.2L582.0 372.7M600.8 377.6L591.4 375.2M605.1 378.6L600.8 377.6M666.6 378.3L665.9 378.6M676.0 374.4L666.6 378.3M685.4 370.9L676.0 374.4M690.5 369.2L685.4 370.9M804.5 369.2L807.6 369.9M817.0 372.0L807.6 369.9M826.4 374.1L817.0 372.0M835.8 376.3L826.4 374.1M845.2 378.2L835.8 376.3M846.9 378.6L845.2 378.2M605.1 378.6L610.2 379.8M619.6 382.0L610.2 379.8M629.0 384.1L619.6 382.0M638.4 386.1L629.0 384.1M647.8 388.0L638.4 386.1M657.2 382.8L647.8 388.0M665.9 378.6L657.2 382.8M846.9 378.6L854.6 380.4M864.0 382.7L854.6 380.4M873.4 385.2L864.0 382.7M882.8 388.0L873.4 385.2M647.8 388.0L647.8 388.0M647.8 388.0L647.8 388.0M882.8 388.0L882.8 388.0M892.2 392.7L882.8 388.0M900.6 397.4L892.2 392.7M900.6 397.4L901.6 398.0M911.0 404.1L901.6 398.0M914.8 406.8L911.0 404.1M914.8 406.8L920.4 411.1M926.4 416.2L920.4 411.1M926.4 416.2L929.8 419.3M647.8 670.0L647.8 670.0M647.8 670.0L647.8 670.0M619.6 679.4L619.6 679.4M629.0 676.3L619.6 679.4M638.4 673.1L629.0 676.3M647.8 670.0L638.4 673.1M647.8 670.0L657.2 679.4M657.2 679.4L657.2 679.4M591.4 688.8L591.4 688.8M600.8 685.7L591.4 688.8M610.2 682.5L600.8 685.7M619.6 679.4L610.2 682.5M657.2 679.4L666.6 688.8M666.6 688.8L666.6 688.8M450.4 696.5L445.3 698.2M459.8 693.5L450.4 696.5M469.2 694.1L459.8 693.5M478.6 694.7L469.2 694.1M488.0 695.4L478.6 694.7M497.4 696.1L488.0 695.4M506.8 696.9L497.4 696.1M516.2 697.6L506.8 696.9M522.5 698.2L516.2 697.6M563.2 698.2L563.2 698.2M572.6 695.1L563.2 698.2M582.0 691.9L572.6 695.1M591.4 688.8L582.0 691.9M666.6 688.8L676.0 698.2M676.0 698.2L676.0 698.2M422.2 706.6L419.5 707.6M431.6 703.0L422.2 706.6M441.0 699.7L431.6 703.0M445.3 698.2L441.0 699.7M522.5 698.2L525.6 698.5M535.0 699.4L525.6 698.5M544.4 700.3L535.0 699.4M553.8 701.3L544.4 700.3M563.2 698.2L553.8 701.3M676.0 698.2L685.4 707.6M685.4 707.6L685.4 707.6M403.4 714.2L397.1 717.0M412.8 710.3L403.4 714.2M419.5 707.6L412.8 710.3M685.4 707.6L694.8 717.0M694.8 717.0L694.8 717.0M384.6 722.9L377.5 726.4M394.0 718.4L384.6 722.9M397.1 717.0L394.0 718.4M694.8 717.0L704.2 726.4M704.2 726.4L704.2 726.4M365.8 732.7L362.3 735.8M375.2 727.6L365.8 732.7M377.5 726.4L375.2 727.6M704.2 726.4L713.6 735.8M713.6 735.8L713.6 735.8M356.4 741.3L352.4 745.2M362.3 735.8L356.4 741.3M713.6 735.8L723.0 745.2M723.0 745.2L723.0 745.2M347.0 750.6L343.1 754.6M352.4 745.2L347.0 750.6M723.0 745.2L732.4 754.6M732.4 754.6L732.4 754.6M337.6 760.5L334.5 764.0M343.1 754.6L337.6 760.5M732.4 754.6L741.8 764.0M741.8 764.0L741.8 764.0M328.2 771.2L326.4 773.4M334.5 764.0L328.2 771.2M741.8 764.0L746.5 773.4M318.8 782.8L318.8 782.8M326.4 773.4L318.8 782.8M746.5 773.4L751.2 782.8M751.2 782.8L751.2 782.8M318.8 782.8L311.7 792.2M751.2 782.8L755.9 792.2M309.4 795.3L305.0 801.6M311.7 792.2L309.4 795.3M755.9 792.2L760.6 801.6M760.6 801.6L760.6 801.6M300.0 809.0L298.7 811.0M305.0 801.6L300.0 809.0M760.6 801.6L765.3 811.0M298.7 811.0L292.7 820.4M765.3 811.0L770.0 820.4M770.0 820.4L770.0 820.4M290.6 823.8L287.0 829.8M292.7 820.4L290.6 823.8M770.0 820.4L774.7 829.8M287.0 829.8L281.7 839.2M774.7 829.8L779.4 839.2M779.4 839.2L779.4 839.2M281.2 840.1L276.6 848.6M281.7 839.2L281.2 840.1M779.4 839.2L784.1 848.6M271.8 858.0L271.8 858.0M276.6 848.6L271.8 858.0M784.1 848.6L788.8 858.0M788.8 858.0L788.8 858.0" stroke="#d6d3a0" stroke-width="1.05" stroke-opacity=".56" fill="none"/>
+<path d="M187.2 113.2L177.8 106.0M189.9 115.4L187.2 113.2M189.9 115.4L196.6 120.8M201.3 124.8L196.6 120.8M201.3 124.8L206.0 128.9M212.0 134.2L206.0 128.9M212.0 134.2L215.4 137.3M222.0 143.6L215.4 137.3M222.0 143.6L224.8 146.3M231.5 153.0L224.8 146.3M231.5 153.0L234.2 155.8M240.5 162.4L234.2 155.8M240.5 162.4L243.6 165.8M248.9 171.8L243.6 165.8M248.9 171.8L253.0 176.5M257.0 181.2L253.0 176.5M257.0 181.2L262.4 187.9M264.6 190.6L262.4 187.9M264.6 190.6L271.8 200.0M271.8 200.0L271.8 200.0M281.2 209.2L271.8 200.0M281.4 209.4L281.2 209.2M553.8 200.0L550.2 209.4M556.3 209.4L553.8 200.0M281.4 209.4L290.6 218.1M291.4 218.8L290.6 218.1M550.2 209.4L545.3 218.8M556.3 209.4L559.0 218.8M291.4 218.8L300.0 226.6M301.8 228.2L300.0 226.6M544.4 220.1L538.1 228.2M545.3 218.8L544.4 220.1M559.0 218.8L562.1 228.2M301.8 228.2L309.4 234.8M312.7 237.6L309.4 234.8M535.0 231.3L526.9 237.6M538.1 228.2L535.0 231.3M562.1 228.2L563.2 231.3M565.5 237.6L563.2 231.3M312.7 237.6L318.8 242.7M324.0 247.0L318.8 242.7M516.2 243.4L506.8 247.0M525.6 238.5L516.2 243.4M526.9 237.6L525.6 238.5M565.5 237.6L569.5 247.0M324.0 247.0L328.2 250.4M335.9 256.4L328.2 250.4M469.2 255.2L459.8 256.4M478.6 253.7L469.2 255.2M488.0 251.9L478.6 253.7M497.4 249.8L488.0 251.9M506.8 247.0L497.4 249.8M506.8 247.0L506.8 247.0M569.5 247.0L572.6 253.7M573.9 256.4L572.6 253.7M335.9 256.4L337.6 257.7M347.0 264.8L337.6 257.7M348.3 265.8L347.0 264.8M431.6 263.8L423.6 265.8M441.0 261.5L431.6 263.8M450.4 259.0L441.0 261.5M459.8 256.4L450.4 259.0M459.8 256.4L459.8 256.4M573.9 256.4L579.1 265.8M348.3 265.8L356.4 271.7M361.3 275.2L356.4 271.7M384.6 274.6L381.5 275.2M394.0 272.6L384.6 274.6M403.4 270.5L394.0 272.6M412.8 268.4L403.4 270.5M422.2 266.1L412.8 268.4M423.6 265.8L422.2 266.1M579.1 265.8L582.0 270.5M585.1 275.2L582.0 270.5M361.3 275.2L365.8 278.3M375.2 276.5L365.8 278.3M381.5 275.2L375.2 276.5M585.1 275.2L591.4 283.6M592.3 284.6L591.4 283.6M592.3 284.6L600.8 294.0M600.8 294.0L600.8 294.0M610.2 298.1L600.8 294.0M619.6 302.0L610.2 298.1M623.1 303.4L619.6 302.0M623.1 303.4L629.0 305.8M638.4 309.3L629.0 305.8M647.8 312.8L638.4 309.3M647.8 312.8L647.8 312.8M657.2 313.1L647.8 312.8M666.6 313.4L657.2 313.1M676.0 313.7L666.6 313.4M685.4 313.9L676.0 313.7M694.8 314.1L685.4 313.9M704.2 314.3L694.8 314.1M713.6 314.5L704.2 314.3M723.0 314.6L713.6 314.5M732.4 314.8L723.0 314.6M741.8 314.9L732.4 314.8M751.2 316.2L741.8 314.9M760.6 317.5L751.2 316.2M770.0 318.9L760.6 317.5M779.4 320.2L770.0 318.9M788.8 321.6L779.4 320.2M792.4 322.2L788.8 321.6M792.4 322.2L798.2 323.1M807.6 324.6L798.2 323.1M817.0 326.1L807.6 324.6M826.4 327.7L817.0 326.1M835.8 329.3L826.4 327.7M845.2 329.4L835.8 329.3M854.6 329.6L845.2 329.4M864.0 329.7L854.6 329.6M873.4 329.9L864.0 329.7M882.8 330.2L873.4 329.9M892.2 330.4L882.8 330.2M901.6 330.6L892.2 330.4M911.0 330.9L901.6 330.6M920.4 331.2L911.0 330.9M929.8 331.6L920.4 331.2M929.8 331.6L929.8 331.6M459.8 811.0L459.8 811.0M459.8 811.0L459.8 811.0M450.4 817.7L446.4 820.4M459.8 811.0L450.4 817.7M459.8 811.0L469.2 815.7M478.6 820.4L469.2 815.7M478.6 820.4L478.6 820.4M431.6 829.4L430.9 829.8M441.0 823.8L431.6 829.4M446.4 820.4L441.0 823.8M478.6 820.4L488.0 825.1M497.4 829.8L488.0 825.1M497.4 829.8L497.4 829.8M412.8 839.2L412.8 839.2M422.2 834.5L412.8 839.2M430.9 829.8L422.2 834.5M497.4 829.8L506.8 834.5M516.2 839.2L506.8 834.5M516.2 839.2L516.2 839.2M394.0 847.6L391.4 848.6M403.4 843.5L394.0 847.6M412.8 839.2L403.4 843.5M516.2 839.2L525.6 843.9M535.0 848.6L525.6 843.9M535.0 848.6L535.0 848.6M365.8 858.0L365.8 858.0M375.2 854.8L365.8 858.0M384.6 851.3L375.2 854.8M391.4 848.6L384.6 851.3M535.0 848.6L544.4 853.3M553.8 858.0L544.4 853.3M553.8 858.0L553.8 858.0" stroke="#d6d3a0" stroke-width="1.05" stroke-opacity=".56" fill="none"/>
+<path d="M303.1 106.0L309.4 114.5M310.0 115.4L309.4 114.5M525.6 114.3L522.5 115.4M535.0 111.2L525.6 114.3M544.4 108.5L535.0 111.2M553.8 106.0L544.4 108.5M563.2 110.9L553.8 106.0M570.9 115.4L563.2 110.9M310.0 115.4L316.0 124.8M506.8 121.7L500.1 124.8M516.2 117.7L506.8 121.7M522.5 115.4L516.2 117.7M570.9 115.4L572.6 116.4M582.0 122.6L572.6 116.4M585.1 124.8L582.0 122.6M316.0 124.8L318.8 129.5M321.4 134.2L318.8 129.5M488.0 131.3L483.3 134.2M497.4 126.1L488.0 131.3M500.1 124.8L497.4 126.1M585.1 124.8L591.4 129.5M597.2 134.2L591.4 129.5M321.4 134.2L326.2 143.6M478.6 137.3L470.2 143.6M483.3 134.2L478.6 137.3M597.2 134.2L600.8 137.3M607.5 143.6L600.8 137.3M326.2 143.6L328.2 147.8M330.6 153.0L328.2 147.8M469.2 144.5L459.8 153.0M470.2 143.6L469.2 144.5M607.5 143.6L610.2 146.3M616.5 153.0L610.2 146.3M330.6 153.0L334.5 162.4M450.4 160.4L448.1 162.4M459.8 153.0L450.4 160.4M459.8 153.0L459.8 153.0M616.5 153.0L619.6 156.6M624.3 162.4L619.6 156.6M334.5 162.4L337.6 170.6M338.0 171.8L337.6 170.6M441.0 168.7L437.7 171.8M448.1 162.4L441.0 168.7M624.3 162.4L629.0 168.7M631.2 171.8L629.0 168.7M338.0 171.8L341.3 181.2M431.6 177.9L428.5 181.2M437.7 171.8L431.6 177.9M631.2 171.8L637.4 181.2M341.3 181.2L344.3 190.6M422.2 188.3L420.2 190.6M428.5 181.2L422.2 188.3M637.4 181.2L638.4 182.9M642.9 190.6L638.4 182.9M344.3 190.6L347.0 200.0M420.2 190.6L412.8 200.0M642.9 190.6L647.8 200.0M347.0 200.0L347.0 200.0M356.4 208.0L347.0 200.0M358.1 209.4L356.4 208.0M394.0 206.6L385.6 209.4M403.4 203.4L394.0 206.6M412.8 200.0L403.4 203.4M412.8 200.0L412.8 200.0M647.8 200.0L647.8 200.0M655.4 209.4L647.8 200.0M358.1 209.4L365.8 215.7M375.2 212.7L365.8 215.7M384.6 209.7L375.2 212.7M385.6 209.4L384.6 209.7M655.4 209.4L657.2 211.4M664.4 218.8L657.2 211.4M664.4 218.8L666.6 220.9M675.1 228.2L666.6 220.9M675.1 228.2L676.0 228.9M685.4 235.8L676.0 228.9M688.1 237.6L685.4 235.8M688.1 237.6L694.8 241.8M704.2 247.0L694.8 241.8M704.2 247.0L704.2 247.0M713.6 251.6L704.2 247.0M723.0 255.7L713.6 251.6M724.7 256.4L723.0 255.7M920.4 252.5L912.7 256.4M929.8 247.0L920.4 252.5M724.7 256.4L732.4 259.4M741.8 262.7L732.4 259.4M751.2 264.7L741.8 262.7M756.3 265.8L751.2 264.7M892.2 265.1L890.2 265.8M901.6 261.4L892.2 265.1M911.0 257.2L901.6 261.4M912.7 256.4L911.0 257.2M756.3 265.8L760.6 266.7M770.0 268.6L760.6 266.7M779.4 270.5L770.0 268.6M788.8 272.3L779.4 270.5M798.2 274.1L788.8 272.3M804.5 275.2L798.2 274.1M864.0 274.0L859.3 275.2M873.4 271.3L864.0 274.0M882.8 268.4L873.4 271.3M890.2 265.8L882.8 268.4M804.5 275.2L807.6 275.8M817.0 277.4L807.6 275.8M826.4 279.0L817.0 277.4M835.8 280.6L826.4 279.0M845.2 278.6L835.8 280.6M854.6 276.4L845.2 278.6M859.3 275.2L854.6 276.4" stroke="#d6d3a0" stroke-width="1.05" stroke-opacity=".56" fill="none"/>
+<path d="M710.5 106.0L713.6 113.2M714.5 115.4L713.6 113.2M906.3 106.0L903.9 115.4M714.5 115.4L718.3 124.8M903.9 115.4L901.6 124.8M718.3 124.8L721.9 134.2M901.6 124.8L899.3 134.2M901.6 124.8L901.6 124.8M721.9 134.2L723.0 137.3M725.2 143.6L723.0 137.3M899.3 134.2L896.9 143.6M725.2 143.6L728.4 153.0M896.9 143.6L894.5 153.0M728.4 153.0L731.4 162.4M894.5 153.0L892.2 162.4M731.4 162.4L732.4 165.8M734.2 171.8L732.4 165.8M892.2 162.4L889.8 171.8M892.2 162.4L892.2 162.4M734.2 171.8L736.9 181.2M889.8 171.8L887.5 181.2M736.9 181.2L739.4 190.6M887.5 181.2L885.1 190.6M739.4 190.6L741.8 200.0M885.1 190.6L882.8 200.0M741.8 200.0L741.8 200.0M751.2 203.1L741.8 200.0M760.6 206.1L751.2 203.1M770.0 209.0L760.6 206.1M771.5 209.4L770.0 209.0M873.4 206.5L868.8 209.4M882.8 200.0L873.4 206.5M882.8 200.0L882.8 200.0M771.5 209.4L779.4 211.8M788.8 214.5L779.4 211.8M798.2 217.1L788.8 214.5M804.5 218.8L798.2 217.1M854.6 217.6L852.4 218.8M864.0 212.3L854.6 217.6M868.8 209.4L864.0 212.3M804.5 218.8L807.6 219.6M817.0 222.1L807.6 219.6M826.4 224.5L817.0 222.1M835.8 226.9L826.4 224.5M845.2 222.4L835.8 226.9M852.4 218.8L845.2 222.4" stroke="#d6d3a0" stroke-width="1.05" stroke-opacity=".56" fill="none"/>
+<polygon points="185.32,318.44 305.64,318.44 315.03999999999996,393.64 309.4,482 315.03999999999996,564.72 316.91999999999996,626.76 288.72,651.1999999999999 189.07999999999998,643.68 177.8,592.92 177.8,399.28" fill="#57c9ce" fill-opacity=".055" stroke="#57c9ce" stroke-opacity=".50" stroke-dasharray="5 5" stroke-width="1.2"/>
+<polygon points="339.47999999999996,348.52 452.28,342.88 469.2,359.79999999999995 612.0799999999999,344.76 613.9599999999999,482 606.4399999999999,549.68 613.9599999999999,645.56 544.4,654.9599999999999 454.15999999999997,653.0799999999999 347,641.8 339.47999999999996,581.64 345.12,493.28" fill="#d1ae63" fill-opacity=".055" stroke="#d1ae63" stroke-opacity=".50" stroke-dasharray="5 5" stroke-width="1.2"/>
+<polygon points="645.92,350.4 747.4399999999999,342.88 880.92,339.12 890.3199999999999,393.64 884.68,485.76 890.3199999999999,591.04 880.92,645.56 794.4399999999999,654.9599999999999 649.68,649.3199999999999 645.92,570.3599999999999 645.92,480.12" fill="#e28a65" fill-opacity=".055" stroke="#e28a65" stroke-opacity=".50" stroke-dasharray="5 5" stroke-width="1.2"/>
+<polygon points="226.67999999999998,115.4 867.76,117.28 909.12,162.4 914.76,295.88 817,309.03999999999996 692.92,303.4 598.92,318.44 450.4,312.79999999999995 331.96,307.15999999999997 211.64,295.88 217.28,230.07999999999998 204.12,162.4" fill="#ad9ade" fill-opacity=".055" stroke="#ad9ade" stroke-opacity=".50" stroke-dasharray="5 5" stroke-width="1.2"/>
+<polygon points="213.51999999999998,692.56 301.88,688.8 352.64,690.68 459.79999999999995,700.0799999999999 585.76,690.68 696.68,685.04 803.8399999999999,692.56 897.8399999999999,692.56 903.4799999999999,818.52 869.64,848.5999999999999 262.4,848.5999999999999 207.88,814.76" fill="#8fc68f" fill-opacity=".055" stroke="#8fc68f" stroke-opacity=".50" stroke-dasharray="5 5" stroke-width="1.2"/>
+<rect x="177.8" y="106" width="752" height="752" fill="url(#grid)"/>
+</g>
+<polygon points="226.67999999999998,106 873.4,106 916.64,134.2 929.8,228.2 914.76,299.64 920.4,397.4 929.8,478.23999999999995 918.52,579.76 912.88,654.9599999999999 929.8,760.24 914.76,835.4399999999999 864,858 258.64,858 196.6,829.8 177.8,754.5999999999999 183.44,647.4399999999999 177.8,592.92 177.8,504.56 177.8,399.28 185.32,316.56 211.64,250.76 200.35999999999999,171.8" fill="none" stroke="#87a8a6" stroke-width="2.2" stroke-linejoin="round"/>
+<rect x="177.8" y="106" width="752" height="752" fill="none" stroke="#accad0" stroke-width="1.2" stroke-dasharray="7 5" opacity=".75"/>
+<text x="177.8" y="97" class="small muted mono" text-anchor="middle">-172</text>
+<text x="57" y="110" class="small muted mono" text-anchor="end">-220</text>
+<text x="365.79999999999995" y="97" class="small muted mono" text-anchor="middle">-72</text>
+<text x="57" y="298" class="small muted mono" text-anchor="end">-120</text>
+<text x="553.8" y="97" class="small muted mono" text-anchor="middle">28</text>
+<text x="57" y="486" class="small muted mono" text-anchor="end">-20</text>
+<text x="741.8" y="97" class="small muted mono" text-anchor="middle">128</text>
+<text x="57" y="674" class="small muted mono" text-anchor="end">80</text>
+<text x="929.8" y="97" class="small muted mono" text-anchor="middle">228</text>
+<text x="57" y="862" class="small muted mono" text-anchor="end">180</text>
+<text x="91.32" y="660.6" font-size="16" letter-spacing="3" text-anchor="middle" fill="#8ec6d7" transform="rotate(-90 91.32 660.6)">外 海</text>
+<polyline points="328.2,137.96 328.2,188.72 315.03999999999996,247 324.44,322.2 324.44,382.35999999999996 316.91999999999996,444.4 324.44,510.2 328.2,545.92 326.32,611.72 316.91999999999996,656.8399999999999 324.44,673.76 328.2,690.68 324.44,758.36 330.08,816.64" fill="none" stroke="#263e43" stroke-width="16.919999999999998" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline points="328.2,137.96 328.2,188.72 315.03999999999996,247 324.44,322.2 324.44,382.35999999999996 316.91999999999996,444.4 324.44,510.2 328.2,545.92 326.32,611.72 316.91999999999996,656.8399999999999 324.44,673.76 328.2,690.68 324.44,758.36 330.08,816.64" fill="none" stroke="#83968c" stroke-opacity=".76" stroke-width="15.04" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline points="328.2,137.96 328.2,188.72 315.03999999999996,247 324.44,322.2 324.44,382.35999999999996 316.91999999999996,444.4 324.44,510.2 328.2,545.92 326.32,611.72 316.91999999999996,656.8399999999999 324.44,673.76 328.2,690.68 324.44,758.36 330.08,816.64" fill="none" stroke="#dce2d1" stroke-opacity=".6" stroke-width="1" stroke-dasharray="8 8"/>
+<polyline points="469.2,158.64 469.2,271.44 469.2,324.08 467.32,378.59999999999997 467.32,448.15999999999997 467.32,500.79999999999995 472.96,527.12 469.2,585.4 467.32,632.4 474.84,673.76 467.32,730.16 472.96,779.04 467.32,816.64" fill="none" stroke="#263e43" stroke-width="13.16" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline points="469.2,158.64 469.2,271.44 469.2,324.08 467.32,378.59999999999997 467.32,448.15999999999997 467.32,500.79999999999995 472.96,527.12 469.2,585.4 467.32,632.4 474.84,673.76 467.32,730.16 472.96,779.04 467.32,816.64" fill="none" stroke="#83968c" stroke-opacity=".76" stroke-width="11.28" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline points="632.76,154.88 632.76,209.39999999999998 629,262.03999999999996 621.48,322.2 625.24,389.88 638.4,453.79999999999995 630.88,527.12 632.76,589.16 625.24,634.28 623.36,673.76 617.7199999999999,730.16 623.36,780.92 625.24,816.64" fill="none" stroke="#263e43" stroke-width="16.919999999999998" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline points="632.76,154.88 632.76,209.39999999999998 629,262.03999999999996 621.48,322.2 625.24,389.88 638.4,453.79999999999995 630.88,527.12 632.76,589.16 625.24,634.28 623.36,673.76 617.7199999999999,730.16 623.36,780.92 625.24,816.64" fill="none" stroke="#83968c" stroke-opacity=".76" stroke-width="15.04" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline points="632.76,154.88 632.76,209.39999999999998 629,262.03999999999996 621.48,322.2 625.24,389.88 638.4,453.79999999999995 630.88,527.12 632.76,589.16 625.24,634.28 623.36,673.76 617.7199999999999,730.16 623.36,780.92 625.24,816.64" fill="none" stroke="#dce2d1" stroke-opacity=".6" stroke-width="1" stroke-dasharray="8 8"/>
+<polyline points="880.92,164.28 897.8399999999999,207.51999999999998 897.8399999999999,265.79999999999995 886.56,310.91999999999996 897.8399999999999,346.64 895.9599999999999,403.03999999999996 897.8399999999999,480.12 888.4399999999999,530.88 894.0799999999999,587.28 899.7199999999999,670 899.7199999999999,737.68 895.9599999999999,803.4799999999999 877.16,818.52" fill="none" stroke="#263e43" stroke-width="13.16" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline points="880.92,164.28 897.8399999999999,207.51999999999998 897.8399999999999,265.79999999999995 886.56,310.91999999999996 897.8399999999999,346.64 895.9599999999999,403.03999999999996 897.8399999999999,480.12 888.4399999999999,530.88 894.0799999999999,587.28 899.7199999999999,670 899.7199999999999,737.68 895.9599999999999,803.4799999999999 877.16,818.52" fill="none" stroke="#83968c" stroke-opacity=".76" stroke-width="11.28" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline points="230.44,156.76 279.32,130.44 328.2,137.96 378.96,137.96 437.23999999999995,154.88 469.2,158.64 516.2,141.72 550.04,134.2 597.04,139.84 632.76,154.88 698.56,139.84 766.24,137.96 830.16,151.12 880.92,164.28" fill="none" stroke="#263e43" stroke-width="16.919999999999998" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline points="230.44,156.76 279.32,130.44 328.2,137.96 378.96,137.96 437.23999999999995,154.88 469.2,158.64 516.2,141.72 550.04,134.2 597.04,139.84 632.76,154.88 698.56,139.84 766.24,137.96 830.16,151.12 880.92,164.28" fill="none" stroke="#83968c" stroke-opacity=".76" stroke-width="15.04" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline points="230.44,156.76 279.32,130.44 328.2,137.96 378.96,137.96 437.23999999999995,154.88 469.2,158.64 516.2,141.72 550.04,134.2 597.04,139.84 632.76,154.88 698.56,139.84 766.24,137.96 830.16,151.12 880.92,164.28" fill="none" stroke="#dce2d1" stroke-opacity=".6" stroke-width="1" stroke-dasharray="8 8"/>
+<polyline points="230.44,194.36 303.76,186.83999999999997 328.2,188.72" fill="none" stroke="#263e43" stroke-width="13.16" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline points="230.44,194.36 303.76,186.83999999999997 328.2,188.72" fill="none" stroke="#83968c" stroke-opacity=".76" stroke-width="11.28" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline points="230.44,156.76 230.44,194.36" fill="none" stroke="#263e43" stroke-width="13.16" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline points="230.44,156.76 230.44,194.36" fill="none" stroke="#83968c" stroke-opacity=".76" stroke-width="11.28" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline points="190.95999999999998,322.2 254.88,320.32 324.44,322.2 403.4,314.67999999999995 469.2,324.08 542.52,314.67999999999995 577.3,316.56 621.48,322.2 704.1999999999999,309.03999999999996 785.04,316.56 845.1999999999999,307.15999999999997 886.56,310.91999999999996" fill="none" stroke="#263e43" stroke-width="16.919999999999998" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline points="190.95999999999998,322.2 254.88,320.32 324.44,322.2 403.4,314.67999999999995 469.2,324.08 542.52,314.67999999999995 577.3,316.56 621.48,322.2 704.1999999999999,309.03999999999996 785.04,316.56 845.1999999999999,307.15999999999997 886.56,310.91999999999996" fill="none" stroke="#83968c" stroke-opacity=".76" stroke-width="15.04" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline points="190.95999999999998,322.2 254.88,320.32 324.44,322.2 403.4,314.67999999999995 469.2,324.08 542.52,314.67999999999995 577.3,316.56 621.48,322.2 704.1999999999999,309.03999999999996 785.04,316.56 845.1999999999999,307.15999999999997 886.56,310.91999999999996" fill="none" stroke="#dce2d1" stroke-opacity=".6" stroke-width="1" stroke-dasharray="8 8"/>
+<polyline points="324.44,510.2 375.2,519.5999999999999 427.84,529 472.96,527.12 525.5999999999999,521.48 582,527.12 630.88,527.12 683.52,525.24 732.4,521.48 803.8399999999999,529 850.8399999999999,532.76 888.4399999999999,530.88" fill="none" stroke="#263e43" stroke-width="16.919999999999998" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline points="324.44,510.2 375.2,519.5999999999999 427.84,529 472.96,527.12 525.5999999999999,521.48 582,527.12 630.88,527.12 683.52,525.24 732.4,521.48 803.8399999999999,529 850.8399999999999,532.76 888.4399999999999,530.88" fill="none" stroke="#83968c" stroke-opacity=".76" stroke-width="15.04" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline points="324.44,510.2 375.2,519.5999999999999 427.84,529 472.96,527.12 525.5999999999999,521.48 582,527.12 630.88,527.12 683.52,525.24 732.4,521.48 803.8399999999999,529 850.8399999999999,532.76 888.4399999999999,530.88" fill="none" stroke="#dce2d1" stroke-opacity=".6" stroke-width="1" stroke-dasharray="8 8"/>
+<polyline points="190.95999999999998,545.92 243.6,545.92 294.36,545.92 328.2,545.92" fill="none" stroke="#263e43" stroke-width="13.16" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline points="190.95999999999998,545.92 243.6,545.92 294.36,545.92 328.2,545.92" fill="none" stroke="#83968c" stroke-opacity=".76" stroke-width="11.28" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline points="190.95999999999998,322.2 190.95999999999998,429.35999999999996 190.95999999999998,519.5999999999999 190.95999999999998,545.92 194.72,621.12" fill="none" stroke="#263e43" stroke-width="9.399999999999999" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline points="190.95999999999998,322.2 190.95999999999998,429.35999999999996 190.95999999999998,519.5999999999999 190.95999999999998,545.92 194.72,621.12" fill="none" stroke="#83968c" stroke-opacity=".76" stroke-width="7.52" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline points="151.48,429.35999999999996 190.95999999999998,429.35999999999996" fill="none" stroke="#72d4d0" stroke-width="3.76" stroke-linecap="round" stroke-dasharray="4 2"/>
+<polyline points="151.48,519.5999999999999 190.95999999999998,519.5999999999999" fill="none" stroke="#72d4d0" stroke-width="3.76" stroke-linecap="round" stroke-dasharray="4 2"/>
+<polyline points="217.28,670 260.52,660.6 324.44,673.76 397.76,666.24 474.84,673.76 553.8,662.48 623.36,673.76 687.28,666.24 754.9599999999999,671.88 833.92,662.48 884.68,673.76 899.7199999999999,670" fill="none" stroke="#263e43" stroke-width="16.919999999999998" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline points="217.28,670 260.52,660.6 324.44,673.76 397.76,666.24 474.84,673.76 553.8,662.48 623.36,673.76 687.28,666.24 754.9599999999999,671.88 833.92,662.48 884.68,673.76 899.7199999999999,670" fill="none" stroke="#83968c" stroke-opacity=".76" stroke-width="15.04" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline points="217.28,670 260.52,660.6 324.44,673.76 397.76,666.24 474.84,673.76 553.8,662.48 623.36,673.76 687.28,666.24 754.9599999999999,671.88 833.92,662.48 884.68,673.76 899.7199999999999,670" fill="none" stroke="#dce2d1" stroke-opacity=".6" stroke-width="1" stroke-dasharray="8 8"/>
+<polyline points="221.04,816.64 266.15999999999997,822.28 330.08,816.64 345.12,816.64 403.4,826.04 467.32,816.64 550.04,822.28 625.24,816.64 679.76,818.52 732.4,816.64 801.9599999999999,822.28 877.16,818.52" fill="none" stroke="#263e43" stroke-width="16.919999999999998" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline points="221.04,816.64 266.15999999999997,822.28 330.08,816.64 345.12,816.64 403.4,826.04 467.32,816.64 550.04,822.28 625.24,816.64 679.76,818.52 732.4,816.64 801.9599999999999,822.28 877.16,818.52" fill="none" stroke="#83968c" stroke-opacity=".76" stroke-width="15.04" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline points="221.04,816.64 266.15999999999997,822.28 330.08,816.64 345.12,816.64 403.4,826.04 467.32,816.64 550.04,822.28 625.24,816.64 679.76,818.52 732.4,816.64 801.9599999999999,822.28 877.16,818.52" fill="none" stroke="#dce2d1" stroke-opacity=".6" stroke-width="1" stroke-dasharray="8 8"/>
+<polyline points="217.28,670 211.64,733.92 213.51999999999998,788.4399999999999 221.04,816.64" fill="none" stroke="#263e43" stroke-width="13.16" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline points="217.28,670 211.64,733.92 213.51999999999998,788.4399999999999 221.04,816.64" fill="none" stroke="#83968c" stroke-opacity=".76" stroke-width="11.28" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline points="550.04,121.03999999999999 550.04,134.2" fill="none" stroke="#263e43" stroke-width="13.16" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline points="550.04,121.03999999999999 550.04,134.2" fill="none" stroke="#83968c" stroke-opacity=".76" stroke-width="11.28" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline points="550.04,822.28 550.04,841.0799999999999" fill="none" stroke="#263e43" stroke-width="13.16" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline points="550.04,822.28 550.04,841.0799999999999" fill="none" stroke="#83968c" stroke-opacity=".76" stroke-width="11.28" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline points="856.4799999999999,350.4 897.8399999999999,346.64" fill="none" stroke="#263e43" stroke-width="13.16" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline points="856.4799999999999,350.4 897.8399999999999,346.64" fill="none" stroke="#83968c" stroke-opacity=".76" stroke-width="11.28" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline points="577.3,269.56 577.3,316.56" fill="none" stroke="#263e43" stroke-width="11.28" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline points="577.3,269.56 577.3,316.56" fill="none" stroke="#83968c" stroke-opacity=".76" stroke-width="9.399999999999999" stroke-linecap="round" stroke-linejoin="round"/>
+<polygon points="345.12,282.72 371.44,267.67999999999995 433.47999999999996,273.32 457.91999999999996,292.12 454.15999999999997,309.03999999999996 345.12,309.03999999999996" fill="#648774" fill-opacity=".28" stroke="#a4cbae" stroke-opacity=".62" stroke-dasharray="3 3"/>
+<text x="401.20666666666665" y="291.9866666666667" font-size="10.5" text-anchor="middle" fill="#e2ebd0">隔离缓冲带</text>
+<polygon points="352.64,354.15999999999997 452.28,354.15999999999997 442.88,388 363.91999999999996,389.88 345.12,378.59999999999997" fill="#648774" fill-opacity=".28" stroke="#a4cbae" stroke-opacity=".62" stroke-dasharray="3 3"/>
+<text x="391.36799999999994" y="375.9599999999999" font-size="10.5" text-anchor="middle" fill="#e2ebd0">装卸前场</text>
+<polygon points="651.56,482 873.4,482 884.68,497.03999999999996 877.16,510.2 651.56,510.2" fill="#648774" fill-opacity=".28" stroke="#a4cbae" stroke-opacity=".62" stroke-dasharray="3 3"/>
+<text x="787.6719999999999" y="499.288" font-size="10.5" text-anchor="middle" fill="#e2ebd0">管线与排水带</text>
+<polygon points="480.47999999999996,686.92 583.88,686.92 604.56,703.8399999999999 585.76,711.36 508.67999999999995,711.36 480.47999999999996,703.8399999999999" fill="#648774" fill-opacity=".28" stroke="#a4cbae" stroke-opacity=".62" stroke-dasharray="3 3"/>
+<text x="540.64" y="703.7066666666666" font-size="10.5" text-anchor="middle" fill="#e2ebd0">社区广场</text>
+<rect x="213.51999999999998" y="339.12" width="80.83999999999999" height="48.879999999999995" fill="#57c9ce" fill-opacity=".06" stroke="#57c9ce" stroke-opacity=".40" stroke-dasharray="3 3"/>
+<polygon points="219.17879999999997,352.31759999999997 232.92159999999998,344.008 277.3836,344.008 287.89279999999997,352.31759999999997 287.89279999999997,379.2016 219.17879999999997,379.2016" fill="#57c9ce" fill-opacity=".66" stroke="#142b32" stroke-width="1.2"/>
+<rect x="239.38879999999997" y="374.80240000000003" width="29.10240000000003" height="8.309600000000003" fill="#57c9ce" fill-opacity=".66" stroke="#142b32" stroke-width="1.2"/>
+<text x="253.94" y="367.56" class="poi">W2</text>
+<text x="253.94" y="381.56" font-size="10.5" text-anchor="middle" paint-order="stroke" stroke="#142b32" stroke-width="2">+1m</text>
+<rect x="217.28" y="403.03999999999996" width="75.19999999999999" height="94" fill="#57c9ce" fill-opacity=".06" stroke="#57c9ce" stroke-opacity=".40" stroke-dasharray="3 3"/>
+<rect x="222.544" y="412.44" width="9.775999999999978" height="22.56" fill="#57c9ce" fill-opacity=".66" stroke="#142b32" stroke-width="1.2"/>
+<rect x="222.544" y="466.02" width="9.775999999999978" height="20.68" fill="#57c9ce" fill-opacity=".66" stroke="#142b32" stroke-width="1.2"/>
+<rect x="239.84" y="412.44" width="9.775999999999978" height="22.56" fill="#57c9ce" fill-opacity=".66" stroke="#142b32" stroke-width="1.2"/>
+<rect x="239.84" y="466.02" width="9.775999999999978" height="20.68" fill="#57c9ce" fill-opacity=".66" stroke="#142b32" stroke-width="1.2"/>
+<rect x="257.13599999999997" y="412.44" width="9.776000000000032" height="22.56" fill="#57c9ce" fill-opacity=".66" stroke="#142b32" stroke-width="1.2"/>
+<rect x="257.13599999999997" y="466.02" width="9.776000000000032" height="20.68" fill="#57c9ce" fill-opacity=".66" stroke="#142b32" stroke-width="1.2"/>
+<rect x="274.432" y="412.44" width="9.776000000000005" height="22.56" fill="#57c9ce" fill-opacity=".66" stroke="#142b32" stroke-width="1.2"/>
+<rect x="274.432" y="466.02" width="9.776000000000005" height="20.68" fill="#57c9ce" fill-opacity=".66" stroke="#142b32" stroke-width="1.2"/>
+<text x="254.88" y="454.03999999999996" class="poi">W3</text>
+<text x="254.88" y="468.03999999999996" font-size="10.5" text-anchor="middle" paint-order="stroke" stroke="#142b32" stroke-width="2">+0.8m</text>
+<rect x="213.51999999999998" y="506.44" width="82.72" height="31.959999999999997" fill="#57c9ce" fill-opacity=".06" stroke="#57c9ce" stroke-opacity=".40" stroke-dasharray="3 3"/>
+<rect x="220.13760000000002" y="509.63599999999997" width="68.65759999999996" height="25.248399999999997" fill="#57c9ce" fill-opacity=".66" stroke="#142b32" stroke-width="1.2"/>
+<line x1="220.13760000000002" y1="515.7084" x2="288.79519999999997" y2="515.7084" stroke="#243b40" stroke-opacity=".75" stroke-width="1.2"/>
+<line x1="220.13760000000002" y1="521.7808" x2="288.79519999999997" y2="521.7808" stroke="#243b40" stroke-opacity=".75" stroke-width="1.2"/>
+<line x1="220.13760000000002" y1="527.8532" x2="288.79519999999997" y2="527.8532" stroke="#243b40" stroke-opacity=".75" stroke-width="1.2"/>
+<text x="254.88" y="526.42" class="poi">W4</text>
+<rect x="221.04" y="553.44" width="75.19999999999999" height="54.519999999999996" fill="#57c9ce" fill-opacity=".06" stroke="#57c9ce" stroke-opacity=".40" stroke-dasharray="3 3"/>
+<polygon points="227.05599999999998,558.892 289.472,558.892 289.472,599.7819999999999 272.176,599.7819999999999 272.176,574.1576 243.6,574.1576 243.6,599.7819999999999 227.05599999999998,599.7819999999999" fill="#57c9ce" fill-opacity=".66" stroke="#142b32" stroke-width="1.2"/>
+<text x="258.64" y="584.7" class="poi">W5</text>
+<text x="258.64" y="598.7" font-size="10.5" text-anchor="middle" paint-order="stroke" stroke="#142b32" stroke-width="2">+1.2m</text>
+<rect x="354.52" y="401.15999999999997" width="99.64" height="95.88" fill="#d1ae63" fill-opacity=".06" stroke="#d1ae63" stroke-opacity=".40" stroke-dasharray="3 3"/>
+<rect x="362.4912" y="410.748" width="82.70120000000001" height="75.7452" fill="#d1ae63" fill-opacity=".66" stroke="#142b32" stroke-width="1.2"/>
+<line x1="362.4912" y1="428.96520000000004" x2="445.1924" y2="428.96520000000004" stroke="#243b40" stroke-opacity=".75" stroke-width="1.2"/>
+<line x1="362.4912" y1="447.18240000000003" x2="445.1924" y2="447.18240000000003" stroke="#243b40" stroke-opacity=".75" stroke-width="1.2"/>
+<line x1="362.4912" y1="465.3996" x2="445.1924" y2="465.3996" stroke="#243b40" stroke-opacity=".75" stroke-width="1.2"/>
+<text x="404.34" y="453.09999999999997" class="poi">C1</text>
+<text x="404.34" y="467.09999999999997" font-size="10.5" text-anchor="middle" paint-order="stroke" stroke="#142b32" stroke-width="2">+4.8m</text>
+<rect x="354.52" y="549.68" width="99.64" height="82.72" fill="#d1ae63" fill-opacity=".06" stroke="#d1ae63" stroke-opacity=".40" stroke-dasharray="3 3"/>
+<rect x="364.484" y="557.952" width="33.8776" height="64.52159999999999" fill="#d1ae63" fill-opacity=".66" stroke="#142b32" stroke-width="1.2"/>
+<rect x="407.3292" y="557.952" width="36.8668" height="47.150400000000005" fill="#d1ae63" fill-opacity=".66" stroke="#142b32" stroke-width="1.2"/>
+<text x="404.34" y="595.04" class="poi">C2</text>
+<text x="404.34" y="609.04" font-size="10.5" text-anchor="middle" paint-order="stroke" stroke="#142b32" stroke-width="2">+4.5m</text>
+<rect x="482.35999999999996" y="401.15999999999997" width="114.67999999999999" height="95.88" fill="#d1ae63" fill-opacity=".06" stroke="#d1ae63" stroke-opacity=".40" stroke-dasharray="3 3"/>
+<polygon points="491.53439999999995,410.748 585.5719999999999,410.748 585.5719999999999,447.18240000000003 532.8191999999999,447.18240000000003 532.8191999999999,486.49319999999994 491.53439999999995,486.49319999999994" fill="#d1ae63" fill-opacity=".66" stroke="#142b32" stroke-width="1.2"/>
+<text x="539.6999999999999" y="453.09999999999997" class="poi">C3</text>
+<text x="539.6999999999999" y="467.09999999999997" font-size="10.5" text-anchor="middle" paint-order="stroke" stroke="#142b32" stroke-width="2">+6.4m</text>
+<rect x="508.67999999999995" y="551.56" width="77.08" height="48.879999999999995" fill="#d1ae63" fill-opacity=".06" stroke="#d1ae63" stroke-opacity=".40" stroke-dasharray="3 3"/>
+<polygon points="514.8463999999999,556.448 578.8228,556.448 578.8228,593.108 561.0944,593.108 561.0944,570.1343999999999 531.804,570.1343999999999 531.804,593.108 514.8463999999999,593.108" fill="#d1ae63" fill-opacity=".66" stroke="#142b32" stroke-width="1.2"/>
+<text x="547.22" y="580" class="poi">C4</text>
+<text x="547.22" y="594" font-size="10.5" text-anchor="middle" paint-order="stroke" stroke="#142b32" stroke-width="2">+5.4m</text>
+<rect x="484.23999999999995" y="611.72" width="112.8" height="33.839999999999996" fill="#d1ae63" fill-opacity=".06" stroke="#d1ae63" stroke-opacity=".40" stroke-dasharray="3 3"/>
+<rect x="492.13599999999997" y="615.104" width="14.664" height="8.1216" fill="#d1ae63" fill-opacity=".66" stroke="#142b32" stroke-width="1.2"/>
+<rect x="492.13599999999997" y="634.3928" width="14.664" height="7.444799999999987" fill="#d1ae63" fill-opacity=".66" stroke="#142b32" stroke-width="1.2"/>
+<rect x="518.0799999999999" y="615.104" width="14.664" height="8.1216" fill="#d1ae63" fill-opacity=".66" stroke="#142b32" stroke-width="1.2"/>
+<rect x="518.0799999999999" y="634.3928" width="14.664" height="7.444799999999987" fill="#d1ae63" fill-opacity=".66" stroke="#142b32" stroke-width="1.2"/>
+<rect x="544.024" y="615.104" width="14.664" height="8.1216" fill="#d1ae63" fill-opacity=".66" stroke="#142b32" stroke-width="1.2"/>
+<rect x="544.024" y="634.3928" width="14.664" height="7.444799999999987" fill="#d1ae63" fill-opacity=".66" stroke="#142b32" stroke-width="1.2"/>
+<rect x="569.9680000000001" y="615.104" width="14.664000000000007" height="8.1216" fill="#d1ae63" fill-opacity=".66" stroke="#142b32" stroke-width="1.2"/>
+<rect x="569.9680000000001" y="634.3928" width="14.664000000000007" height="7.444799999999987" fill="#d1ae63" fill-opacity=".66" stroke="#142b32" stroke-width="1.2"/>
+<text x="540.64" y="632.64" class="poi">C5</text>
+<rect x="657.1999999999999" y="388" width="99.64" height="86.47999999999999" fill="#e28a65" fill-opacity=".06" stroke="#e28a65" stroke-opacity=".40" stroke-dasharray="3 3"/>
+<rect x="665.1712" y="396.64799999999997" width="82.70120000000004" height="68.31920000000001" fill="#e28a65" fill-opacity=".66" stroke="#142b32" stroke-width="1.2"/>
+<line x1="665.1712" y1="413.0792" x2="747.8724" y2="413.0792" stroke="#243b40" stroke-opacity=".75" stroke-width="1.2"/>
+<line x1="665.1712" y1="429.51039999999995" x2="747.8724" y2="429.51039999999995" stroke="#243b40" stroke-opacity=".75" stroke-width="1.2"/>
+<line x1="665.1712" y1="445.9416" x2="747.8724" y2="445.9416" stroke="#243b40" stroke-opacity=".75" stroke-width="1.2"/>
+<text x="707.02" y="435.24" class="poi">E1</text>
+<text x="707.02" y="449.24" font-size="10.5" text-anchor="middle" paint-order="stroke" stroke="#142b32" stroke-width="2">+5.2m</text>
+<rect x="779.4" y="388" width="97.75999999999999" height="86.47999999999999" fill="#e28a65" fill-opacity=".06" stroke="#e28a65" stroke-opacity=".40" stroke-dasharray="3 3"/>
+<circle cx="803.8399999999999" cy="411.3496" r="15.04" fill="#e28a65" fill-opacity=".66" stroke="#142b32" stroke-width="1.2"/>
+<circle cx="845.8768" cy="413.944" r="16.919999999999998" fill="#e28a65" fill-opacity=".66" stroke="#142b32" stroke-width="1.2"/>
+<circle cx="807.7503999999999" cy="451.99519999999995" r="13.16" fill="#e28a65" fill-opacity=".66" stroke="#142b32" stroke-width="1.2"/>
+<circle cx="850.7648" cy="451.13039999999995" r="11.28" fill="#e28a65" fill-opacity=".66" stroke="#142b32" stroke-width="1.2"/>
+<text x="828.28" y="435.24" class="poi">E2</text>
+<text x="828.28" y="449.24" font-size="10.5" text-anchor="middle" paint-order="stroke" stroke="#142b32" stroke-width="2">+2m</text>
+<rect x="657.1999999999999" y="549.68" width="86.47999999999999" height="69.56" fill="#e28a65" fill-opacity=".06" stroke="#e28a65" stroke-opacity=".40" stroke-dasharray="3 3"/>
+<rect x="665.848" y="556.636" width="29.4032" height="54.256800000000005" fill="#e28a65" fill-opacity=".66" stroke="#142b32" stroke-width="1.2"/>
+<rect x="703.0344" y="556.636" width="31.997600000000016" height="39.64920000000001" fill="#e28a65" fill-opacity=".66" stroke="#142b32" stroke-width="1.2"/>
+<text x="700.4399999999999" y="588.46" class="poi">E3</text>
+<text x="700.4399999999999" y="602.46" font-size="10.5" text-anchor="middle" paint-order="stroke" stroke="#142b32" stroke-width="2">+2.8m</text>
+<rect x="779.4" y="549.68" width="95.88" height="67.67999999999999" fill="#e28a65" fill-opacity=".06" stroke="#e28a65" stroke-opacity=".40" stroke-dasharray="3 3"/>
+<polygon points="787.0704000000001,556.448 865.6919999999999,556.448 865.6919999999999,582.1664 821.5871999999999,582.1664 821.5871999999999,609.9152 787.0704000000001,609.9152" fill="#e28a65" fill-opacity=".66" stroke="#142b32" stroke-width="1.2"/>
+<text x="827.3399999999999" y="587.52" class="poi">E4</text>
+<text x="827.3399999999999" y="601.52" font-size="10.5" text-anchor="middle" paint-order="stroke" stroke="#142b32" stroke-width="2">+3m</text>
+<rect x="222.92" y="226.32" width="71.44" height="60.16" fill="#ad9ade" fill-opacity=".06" stroke="#ad9ade" stroke-opacity=".40" stroke-dasharray="3 3"/>
+<polygon points="227.92079999999999,242.56319999999997 240.0656,232.33599999999996 279.35760000000005,232.33599999999996 288.64480000000003,242.56319999999997 288.64480000000003,275.6512 227.92079999999999,275.6512" fill="#ad9ade" fill-opacity=".66" stroke="#142b32" stroke-width="1.2"/>
+<rect x="245.78079999999997" y="270.2368" width="25.71840000000001" height="10.227199999999968" fill="#ad9ade" fill-opacity=".66" stroke="#142b32" stroke-width="1.2"/>
+<text x="258.64" y="260.4" class="poi">N1</text>
+<text x="258.64" y="274.4" font-size="10.5" text-anchor="middle" paint-order="stroke" stroke="#142b32" stroke-width="2">+10m</text>
+<rect x="360.15999999999997" y="175.56" width="90.24" height="82.72" fill="#ad9ade" fill-opacity=".06" stroke="#ad9ade" stroke-opacity=".40" stroke-dasharray="3 3"/>
+<polygon points="367.37919999999997,183.832 442.2784,183.832 442.2784,245.872 421.5232,245.872 421.5232,206.9936 387.23199999999997,206.9936 387.23199999999997,245.872 367.37919999999997,245.872" fill="#ad9ade" fill-opacity=".66" stroke="#142b32" stroke-width="1.2"/>
+<text x="405.28" y="220.92" class="poi">N2</text>
+<text x="405.28" y="234.92" font-size="10.5" text-anchor="middle" paint-order="stroke" stroke="#142b32" stroke-width="2">+16m</text>
+<rect x="514.3199999999999" y="175.56" width="99.64" height="86.47999999999999" fill="#ad9ade" fill-opacity=".06" stroke="#ad9ade" stroke-opacity=".40" stroke-dasharray="3 3"/>
+<polygon points="522.2912,184.20799999999997 603.996,184.20799999999997 603.996,217.07039999999995 558.1615999999999,217.07039999999995 558.1615999999999,252.5272 522.2912,252.5272" fill="#ad9ade" fill-opacity=".66" stroke="#142b32" stroke-width="1.2"/>
+<text x="564.1399999999999" y="191.56" class="poi">N3</text>
+<text x="564.1399999999999" y="204.56" font-size="10.5" text-anchor="middle" paint-order="stroke" stroke="#142b32" stroke-width="2">+12m</text>
+<rect x="653.4399999999999" y="171.8" width="109.03999999999999" height="75.19999999999999" fill="#ad9ade" fill-opacity=".06" stroke="#ad9ade" stroke-opacity=".40" stroke-dasharray="3 3"/>
+<rect x="664.3439999999999" y="179.32" width="37.0736" height="58.65599999999998" fill="#ad9ade" fill-opacity=".66" stroke="#142b32" stroke-width="1.2"/>
+<rect x="711.2312" y="179.32" width="40.34479999999996" height="42.86400000000002" fill="#ad9ade" fill-opacity=".66" stroke="#142b32" stroke-width="1.2"/>
+<text x="707.9599999999999" y="213.4" class="poi">N4</text>
+<text x="707.9599999999999" y="227.4" font-size="10.5" text-anchor="middle" paint-order="stroke" stroke="#142b32" stroke-width="2">+19m</text>
+<rect x="785.04" y="181.2" width="82.72" height="63.919999999999995" fill="#ad9ade" fill-opacity=".06" stroke="#ad9ade" stroke-opacity=".40" stroke-dasharray="3 3"/>
+<polygon points="826.4,185.6744 852.8703999999999,195.90159999999997 860.3151999999999,217.63439999999997 838.808,238.72799999999998 805.7199999999999,236.1712 791.6575999999999,216.35599999999997 798.2751999999999,195.26239999999996" fill="#ad9ade" fill-opacity=".66" stroke="#142b32" stroke-width="1.2"/>
+<circle cx="826.4" cy="213.16" r="14.062399999999998" fill="#162e36" fill-opacity=".75" stroke="#ad9ade"/>
+<text x="826.4" y="217.16" class="poi">N5</text>
+<text x="826.4" y="231.16" font-size="10.5" text-anchor="middle" paint-order="stroke" stroke="#142b32" stroke-width="2">+21m</text>
+<rect x="234.2" y="713.24" width="71.44" height="78.96" fill="#8fc68f" fill-opacity=".06" stroke="#8fc68f" stroke-opacity=".40" stroke-dasharray="3 3"/>
+<rect x="239.91519999999997" y="722.7152" width="17.14560000000001" height="28.42559999999998" fill="#8fc68f" fill-opacity=".66" stroke="#142b32" stroke-width="1.2"/>
+<rect x="241.34400000000002" y="762.9848000000001" width="12.859199999999952" height="18.95039999999997" fill="#8fc68f" fill-opacity=".66" stroke="#142b32" stroke-width="1.2"/>
+<rect x="262.0616" y="722.7152" width="17.14560000000001" height="28.42559999999998" fill="#8fc68f" fill-opacity=".66" stroke="#142b32" stroke-width="1.2"/>
+<rect x="261.3472" y="762.9848000000001" width="12.859200000000005" height="18.95039999999997" fill="#8fc68f" fill-opacity=".66" stroke="#142b32" stroke-width="1.2"/>
+<rect x="284.20799999999997" y="722.7152" width="17.14560000000001" height="28.42559999999998" fill="#8fc68f" fill-opacity=".66" stroke="#142b32" stroke-width="1.2"/>
+<rect x="281.3504" y="762.9848000000001" width="12.859200000000005" height="18.95039999999997" fill="#8fc68f" fill-opacity=".66" stroke="#142b32" stroke-width="1.2"/>
+<text x="269.91999999999996" y="756.72" class="poi">S1</text>
+<text x="269.91999999999996" y="770.72" font-size="10.5" text-anchor="middle" paint-order="stroke" stroke="#142b32" stroke-width="2">+7.8m</text>
+<rect x="352.64" y="703.8399999999999" width="92.11999999999999" height="48.879999999999995" fill="#8fc68f" fill-opacity=".06" stroke="#8fc68f" stroke-opacity=".40" stroke-dasharray="3 3"/>
+<rect x="360.00960000000003" y="709.7056" width="22.108799999999995" height="17.596799999999998" fill="#8fc68f" fill-opacity=".66" stroke="#142b32" stroke-width="1.2"/>
+<rect x="361.852" y="734.6343999999999" width="16.581599999999987" height="11.731200000000017" fill="#8fc68f" fill-opacity=".66" stroke="#142b32" stroke-width="1.2"/>
+<rect x="388.5668" y="709.7056" width="22.10880000000001" height="17.596799999999998" fill="#8fc68f" fill-opacity=".66" stroke="#142b32" stroke-width="1.2"/>
+<rect x="387.6456" y="734.6343999999999" width="16.581599999999987" height="11.731200000000017" fill="#8fc68f" fill-opacity=".66" stroke="#142b32" stroke-width="1.2"/>
+<rect x="417.124" y="709.7056" width="22.108799999999995" height="17.596799999999998" fill="#8fc68f" fill-opacity=".66" stroke="#142b32" stroke-width="1.2"/>
+<rect x="413.43919999999997" y="734.6343999999999" width="16.581599999999998" height="11.731200000000017" fill="#8fc68f" fill-opacity=".66" stroke="#142b32" stroke-width="1.2"/>
+<text x="398.7" y="732.28" class="poi">S2</text>
+<text x="398.7" y="746.28" font-size="10.5" text-anchor="middle" paint-order="stroke" stroke="#142b32" stroke-width="2">+9m</text>
+<rect x="362.03999999999996" y="771.52" width="73.32" height="30.08" fill="#8fc68f" fill-opacity=".06" stroke="#8fc68f" stroke-opacity=".40" stroke-dasharray="3 3"/>
+<polygon points="367.9056,774.528 428.02799999999996,774.528 428.02799999999996,785.9584 394.3008,785.9584 394.3008,798.2912 367.9056,798.2912" fill="#8fc68f" fill-opacity=".66" stroke="#142b32" stroke-width="1.2"/>
+<text x="398.69999999999993" y="790.56" class="poi">S3</text>
+<rect x="508.67999999999995" y="717" width="82.72" height="50.76" fill="#8fc68f" fill-opacity=".06" stroke="#8fc68f" stroke-opacity=".40" stroke-dasharray="3 3"/>
+<polygon points="515.2976,722.0759999999999 583.9552,722.0759999999999 583.9552,760.146 564.9295999999999,760.146 564.9295999999999,736.2887999999999 533.4959999999999,736.2887999999999 533.4959999999999,760.146 515.2976,760.146" fill="#8fc68f" fill-opacity=".66" stroke="#142b32" stroke-width="1.2"/>
+<text x="550.04" y="746.38" class="poi">S4</text>
+<text x="550.04" y="760.38" font-size="10.5" text-anchor="middle" paint-order="stroke" stroke="#142b32" stroke-width="2">+8.8m</text>
+<rect x="653.4399999999999" y="715.12" width="45.12" height="77.08" fill="#8fc68f" fill-opacity=".06" stroke="#8fc68f" stroke-opacity=".40" stroke-dasharray="3 3"/>
+<polygon points="657.0495999999999,722.828 694.048,722.828 694.048,752.1184 673.2927999999999,752.1184 673.2927999999999,783.7212 657.0495999999999,783.7212" fill="#8fc68f" fill-opacity=".66" stroke="#142b32" stroke-width="1.2"/>
+<text x="676" y="757.66" class="poi">S5</text>
+<text x="676" y="771.66" font-size="10.5" text-anchor="middle" paint-order="stroke" stroke="#142b32" stroke-width="2">+10m</text>
+<rect x="723" y="711.36" width="95.88" height="75.19999999999999" fill="#8fc68f" fill-opacity=".06" stroke="#8fc68f" stroke-opacity=".40" stroke-dasharray="3 3"/>
+<polygon points="729.7116,731.664 746.0112,718.88 798.7451999999998,718.88 811.2096,731.664 811.2096,773.024 729.7116,773.024" fill="#8fc68f" fill-opacity=".66" stroke="#142b32" stroke-width="1.2"/>
+<rect x="753.6816" y="766.256" width="34.516800000000025" height="12.78400000000002" fill="#8fc68f" fill-opacity=".66" stroke="#142b32" stroke-width="1.2"/>
+<text x="770.94" y="752.96" class="poi">S6</text>
+<text x="770.94" y="766.96" font-size="10.5" text-anchor="middle" paint-order="stroke" stroke="#142b32" stroke-width="2">+7.5m</text>
+<rect x="833.92" y="713.24" width="45.12" height="80.83999999999999" fill="#8fc68f" fill-opacity=".06" stroke="#8fc68f" stroke-opacity=".40" stroke-dasharray="3 3"/>
+<rect x="837.0784" y="721.324" width="5.865600000000009" height="19.401600000000013" fill="#8fc68f" fill-opacity=".66" stroke="#142b32" stroke-width="1.2"/>
+<rect x="837.0784" y="767.4028" width="5.865600000000009" height="17.784800000000015" fill="#8fc68f" fill-opacity=".66" stroke="#142b32" stroke-width="1.2"/>
+<rect x="847.4559999999999" y="721.324" width="5.865600000000009" height="19.401600000000013" fill="#8fc68f" fill-opacity=".66" stroke="#142b32" stroke-width="1.2"/>
+<rect x="847.4559999999999" y="767.4028" width="5.865600000000009" height="17.784800000000015" fill="#8fc68f" fill-opacity=".66" stroke="#142b32" stroke-width="1.2"/>
+<rect x="857.8336" y="721.324" width="5.865600000000009" height="19.401600000000013" fill="#8fc68f" fill-opacity=".66" stroke="#142b32" stroke-width="1.2"/>
+<rect x="857.8336" y="767.4028" width="5.865600000000009" height="17.784800000000015" fill="#8fc68f" fill-opacity=".66" stroke="#142b32" stroke-width="1.2"/>
+<rect x="868.2112" y="721.324" width="5.865600000000009" height="19.401600000000013" fill="#8fc68f" fill-opacity=".66" stroke="#142b32" stroke-width="1.2"/>
+<rect x="868.2112" y="767.4028" width="5.865600000000009" height="17.784800000000015" fill="#8fc68f" fill-opacity=".66" stroke="#142b32" stroke-width="1.2"/>
+<text x="856.48" y="757.66" class="poi">S7</text>
+<text x="856.48" y="771.66" font-size="10.5" text-anchor="middle" paint-order="stroke" stroke="#142b32" stroke-width="2">+6m</text>
+<rect x="112" y="374.84" width="39.48" height="167.32" fill="none" stroke="#62d4d0" stroke-dasharray="4 3" opacity=".6"/>
+<path d="M113.88 393.64Q131.74 367.32 149.6 393.64V529Q131.74 545.92 113.88 529Z" fill="#c2dadd" stroke="#61d1ce" stroke-width="2"/>
+<rect x="117.64" y="403.03999999999996" width="28.2" height="114.67999999999999" rx="10" fill="#315b66" stroke="#f1eee1" stroke-width="1.6"/>
+<rect x="121.4" y="412.44" width="20.68" height="28.2" rx="2" fill="#7ab7ba"/>
+<text x="131.74" y="458.5" class="poi" transform="rotate(-90 131.74 458.5)">W1 邮轮</text>
+<text x="131.74" y="559.16" font-size="11.5" text-anchor="middle" fill="#87d8d8">外海扩展</text>
+<rect x="523.72" y="196.24" width="63.919999999999995" height="41.36" fill="#856cba" fill-opacity=".17" stroke="#dfd0ff" stroke-width="1.5" stroke-dasharray="4 4"/>
+<path d="M573.3 261.56l8 0v8h5l-9 9-9-9h5z" fill="#d8bff6"/>
+<text x="589.3" y="273.56" class="marker" fill="#f1dcff">↓ B1</text>
+<text x="253" y="634.52" class="zone" fill="#57c9ce">西部港口</text>
+<text x="489.88" y="361.91999999999996" class="zone" fill="#d1ae63">中央物流</text>
+<text x="771.88" y="363.79999999999995" class="zone" fill="#e28a65">东部工业</text>
+<text x="499.28" y="119.4" class="zone" fill="#ad9ade">北部科研</text>
+<text x="284.96" y="702.1999999999999" class="zone" fill="#8fc68f">南部生活</text>
+<text x="204.12" y="305.28" font-size="11" class="marker" fill="#e4dbad" text-anchor="middle">+4</text>
+<text x="300" y="265.79999999999995" font-size="11" class="marker" fill="#e4dbad" text-anchor="middle">+10</text>
+<text x="512.44" y="295.88" font-size="11" class="marker" fill="#e4dbad" text-anchor="middle">+10</text>
+<text x="811.36" y="282.72" font-size="11" class="marker" fill="#e4dbad" text-anchor="middle">+16</text>
+<text x="824.52" y="164.28" font-size="11" class="marker" fill="#e4dbad" text-anchor="middle">+22</text>
+<text x="565.0799999999999" y="688.8" font-size="11" class="marker" fill="#e4dbad" text-anchor="middle">+8</text>
+<text x="414.68" y="837.3199999999999" font-size="11" class="marker" fill="#e4dbad" text-anchor="middle">+12</text>
+<circle cx="230.44" cy="194.36" r="7.7" fill="#152a32" stroke="#6fdaf0" stroke-width="2"/><circle cx="230.44" cy="194.36" r="2.8" fill="#6fdaf0"/>
+<text x="241.44" y="185.36" class="marker" text-anchor="start" fill="#6fdaf0">N-A</text>
+<circle cx="378.96" cy="137.96" r="7.7" fill="#152a32" stroke="#6fdaf0" stroke-width="2"/><circle cx="378.96" cy="137.96" r="2.8" fill="#6fdaf0"/>
+<text x="389.96" y="128.96" class="marker" text-anchor="start" fill="#6fdaf0">N-B</text>
+<circle cx="766.24" cy="137.96" r="7.7" fill="#152a32" stroke="#6fdaf0" stroke-width="2"/><circle cx="766.24" cy="137.96" r="2.8" fill="#6fdaf0"/>
+<text x="777.24" y="128.96" class="marker" text-anchor="start" fill="#6fdaf0">N-C</text>
+<circle cx="897.8399999999999" cy="265.79999999999995" r="7.7" fill="#152a32" stroke="#6fdaf0" stroke-width="2"/><circle cx="897.8399999999999" cy="265.79999999999995" r="2.8" fill="#6fdaf0"/>
+<text x="886.8399999999999" y="256.79999999999995" class="marker" text-anchor="end" fill="#6fdaf0">N-D</text>
+<circle cx="217.28" cy="670" r="7.7" fill="#152a32" stroke="#f9d17b" stroke-width="2"/><circle cx="217.28" cy="670" r="2.8" fill="#f9d17b"/>
+<text x="228.28" y="661" class="marker" text-anchor="start" fill="#f9d17b">S-A</text>
+<circle cx="345.12" cy="816.64" r="7.7" fill="#152a32" stroke="#f9d17b" stroke-width="2"/><circle cx="345.12" cy="816.64" r="2.8" fill="#f9d17b"/>
+<text x="356.12" y="807.64" class="marker" text-anchor="start" fill="#f9d17b">S-B</text>
+<circle cx="732.4" cy="816.64" r="7.7" fill="#152a32" stroke="#f9d17b" stroke-width="2"/><circle cx="732.4" cy="816.64" r="2.8" fill="#f9d17b"/>
+<text x="743.4" y="807.64" class="marker" text-anchor="start" fill="#f9d17b">S-C</text>
+<circle cx="884.68" cy="673.76" r="7.7" fill="#152a32" stroke="#f9d17b" stroke-width="2"/><circle cx="884.68" cy="673.76" r="2.8" fill="#f9d17b"/>
+<text x="873.68" y="664.76" class="marker" text-anchor="end" fill="#f9d17b">S-D</text>
+<path d="M550.04 112.03999999999999l9 9-9 9-9-9Z" fill="#17363b" stroke="#9af0ac" stroke-width="2.5"/>
+<text x="562.04" y="126.03999999999999" class="marker" text-anchor="start" fill="#9af0ac">北部撤离 N</text>
+<path d="M550.04 832.0799999999999l9 9-9 9-9-9Z" fill="#17363b" stroke="#9af0ac" stroke-width="2.5"/>
+<text x="562.04" y="832.0799999999999" class="marker" text-anchor="start" fill="#9af0ac">南部撤离 S</text>
+<path d="M856.4799999999999 341.4l9 9-9 9-9-9Z" fill="#17363b" stroke="#ffbd7c" stroke-width="2.5"/>
+<text x="844.4799999999999" y="341.4" class="marker" text-anchor="end" fill="#ffbd7c">持卡维修口</text>
+<path d="M530.112 219.2l9 9-9 9-9-9Z" fill="#17363b" stroke="#ffbd7c" stroke-width="2.5"/>
+<text x="542.112" y="219.2" class="marker" text-anchor="start" fill="#ffbd7c">B1 货梯</text>
+<path d="M910 139l-7 17 7-5 7 5Z" fill="#dce8e3"/>
+<text x="910" y="130" class="small" text-anchor="middle">N</text>
+<rect x="951" y="106" width="443" height="752" rx="7" fill="#162b33" stroke="#354f58"/>
+<text x="973" y="136" font-size="19" font-weight="700">功能地块  /  基础平台高程</text>
+<text x="973" y="159" class="small muted">不同轮廓为建筑体量示意，不是最终外墙。</text>
+<rect x="973" y="173" width="5" height="15" fill="#57c9ce"/>
+<text x="986" y="185" font-size="15" font-weight="700" fill="#57c9ce">西部港口</text>
+<text x="974" y="206" class="small mono" fill="#57c9ce">W1</text>
+<text x="1014" y="206" font-size="14">盐港客运邮轮</text>
+<text x="1370" y="206" class="small muted mono" text-anchor="end">+2.8 / +6.2m</text>
+<text x="974" y="224" class="small mono" fill="#57c9ce">W2</text>
+<text x="1014" y="224" font-size="14">客运候船厅</text>
+<text x="1370" y="224" class="small muted mono" text-anchor="end">+1m</text>
+<text x="974" y="242" class="small mono" fill="#57c9ce">W3</text>
+<text x="1014" y="242" font-size="14">开放集装箱堆场</text>
+<text x="1370" y="242" class="small muted mono" text-anchor="end">+0.8m</text>
+<text x="974" y="260" class="small mono" fill="#57c9ce">W4</text>
+<text x="1014" y="260" font-size="14">装卸维修工棚</text>
+<text x="1370" y="260" class="small muted mono" text-anchor="end">+0.8m</text>
+<text x="974" y="278" class="small mono" fill="#57c9ce">W5</text>
+<text x="1014" y="278" font-size="14">港务调度办公室</text>
+<text x="1370" y="278" class="small muted mono" text-anchor="end">+1.2m</text>
+<rect x="973" y="293" width="5" height="15" fill="#d1ae63"/>
+<text x="986" y="305" font-size="15" font-weight="700" fill="#d1ae63">中央物流</text>
+<text x="974" y="326" class="small mono" fill="#d1ae63">C1</text>
+<text x="1014" y="326" font-size="14">普货仓库</text>
+<text x="1370" y="326" class="small muted mono" text-anchor="end">+4.8m</text>
+<text x="974" y="344" class="small mono" fill="#d1ae63">C2</text>
+<text x="1014" y="344" font-size="14">冷链仓库</text>
+<text x="1370" y="344" class="small muted mono" text-anchor="end">+4.5m</text>
+<text x="974" y="362" class="small mono" fill="#d1ae63">C3</text>
+<text x="1014" y="362" font-size="14">物流分拣中心</text>
+<text x="1370" y="362" class="small muted mono" text-anchor="end">+6.4m</text>
+<text x="974" y="380" class="small mono" fill="#d1ae63">C4</text>
+<text x="1014" y="380" font-size="14">物流办公楼·值班室</text>
+<text x="1370" y="380" class="small muted mono" text-anchor="end">+5.4m</text>
+<text x="974" y="398" class="small mono" fill="#d1ae63">C5</text>
+<text x="1014" y="398" font-size="14">车辆转运场</text>
+<text x="1370" y="398" class="small muted mono" text-anchor="end">+5.2m</text>
+<rect x="973" y="413" width="5" height="15" fill="#e28a65"/>
+<text x="986" y="425" font-size="15" font-weight="700" fill="#e28a65">东部工业</text>
+<text x="974" y="446" class="small mono" fill="#e28a65">E1</text>
+<text x="1014" y="446" font-size="14">设备维修厂</text>
+<text x="1370" y="446" class="small muted mono" text-anchor="end">+5.2m</text>
+<text x="974" y="464" class="small mono" fill="#e28a65">E2</text>
+<text x="1014" y="464" font-size="14">水处理设施</text>
+<text x="1370" y="464" class="small muted mono" text-anchor="end">+2m</text>
+<text x="974" y="482" class="small mono" fill="#e28a65">E3</text>
+<text x="1014" y="482" font-size="14">备件配电仓</text>
+<text x="1370" y="482" class="small muted mono" text-anchor="end">+2.8m</text>
+<text x="974" y="500" class="small mono" fill="#e28a65">E4</text>
+<text x="1014" y="500" font-size="14">工业控制中心</text>
+<text x="1370" y="500" class="small muted mono" text-anchor="end">+3m</text>
+<rect x="973" y="515" width="5" height="15" fill="#ad9ade"/>
+<text x="986" y="527" font-size="15" font-weight="700" fill="#ad9ade">北部科研</text>
+<text x="974" y="548" class="small mono" fill="#ad9ade">N1</text>
+<text x="1014" y="548" font-size="14">北侧海关检查站</text>
+<text x="1370" y="548" class="small muted mono" text-anchor="end">+10m</text>
+<text x="974" y="566" class="small mono" fill="#ad9ade">N2</text>
+<text x="1014" y="566" font-size="14">隔离观察设施</text>
+<text x="1370" y="566" class="small muted mono" text-anchor="end">+16m</text>
+<text x="974" y="584" class="small mono" fill="#ad9ade">N3</text>
+<text x="1014" y="584" font-size="14">科研主楼</text>
+<text x="1370" y="584" class="small muted mono" text-anchor="end">+12m</text>
+<text x="974" y="602" class="small mono" fill="#ad9ade">N4</text>
+<text x="1014" y="602" font-size="14">科研档案中心</text>
+<text x="1370" y="602" class="small muted mono" text-anchor="end">+19m</text>
+<text x="974" y="620" class="small mono" fill="#ad9ade">N5</text>
+<text x="1014" y="620" font-size="14">北部观测站</text>
+<text x="1370" y="620" class="small muted mono" text-anchor="end">+21m</text>
+<rect x="973" y="635" width="5" height="15" fill="#8fc68f"/>
+<text x="986" y="647" font-size="15" font-weight="700" fill="#8fc68f">南部生活</text>
+<text x="974" y="668" class="small mono" fill="#8fc68f">S1</text>
+<text x="1014" y="668" font-size="14">港务家属区·联排住宅</text>
+<text x="1370" y="668" class="small muted mono" text-anchor="end">+7.8m</text>
+<text x="974" y="686" class="small mono" fill="#8fc68f">S2</text>
+<text x="1014" y="686" font-size="14">生活商街</text>
+<text x="1370" y="686" class="small muted mono" text-anchor="end">+9m</text>
+<text x="974" y="704" class="small mono" fill="#8fc68f">S3</text>
+<text x="1014" y="704" font-size="14">极光药局</text>
+<text x="1370" y="704" class="small muted mono" text-anchor="end">+10m</text>
+<text x="974" y="722" class="small mono" fill="#8fc68f">S4</text>
+<text x="1014" y="722" font-size="14">社区救护与活动中心</text>
+<text x="1370" y="722" class="small muted mono" text-anchor="end">+8.8m</text>
+<text x="974" y="740" class="small mono" fill="#8fc68f">S5</text>
+<text x="1014" y="740" font-size="14">海员旅馆</text>
+<text x="1370" y="740" class="small muted mono" text-anchor="end">+10m</text>
+<text x="974" y="758" class="small mono" fill="#8fc68f">S6</text>
+<text x="1014" y="758" font-size="14">交通站与餐饮广场</text>
+<text x="1370" y="758" class="small muted mono" text-anchor="end">+7.5m</text>
+<text x="974" y="776" class="small mono" fill="#8fc68f">S7</text>
+<text x="1014" y="776" font-size="14">公共停车场</text>
+<text x="1370" y="776" class="small muted mono" text-anchor="end">+6m</text>
+<path d="M65 880H1394" stroke="#3c5559"/>
+<text x="65" y="907" font-size="14" font-weight="700">海拔示意 · 等高线间隔 4m</text>
+<rect x="65" y="923" width="54" height="14" fill="#24434c" stroke="#758c85" stroke-width=".5"/>
+<text x="65" y="954" font-size="11" class="muted">+0m</text>
+<rect x="119" y="923" width="54" height="14" fill="#345352" stroke="#758c85" stroke-width=".5"/>
+<text x="119" y="954" font-size="11" class="muted">+4m</text>
+<rect x="173" y="923" width="54" height="14" fill="#40594e" stroke="#758c85" stroke-width=".5"/>
+<text x="173" y="954" font-size="11" class="muted">+8m</text>
+<rect x="227" y="923" width="54" height="14" fill="#4e6049" stroke="#758c85" stroke-width=".5"/>
+<text x="227" y="954" font-size="11" class="muted">+12m</text>
+<rect x="281" y="923" width="54" height="14" fill="#605f48" stroke="#758c85" stroke-width=".5"/>
+<text x="281" y="954" font-size="11" class="muted">+16m</text>
+<rect x="335" y="923" width="54" height="14" fill="#706346" stroke="#758c85" stroke-width=".5"/>
+<text x="335" y="954" font-size="11" class="muted">+20m</text>
+<circle cx="421" cy="930" r="6.5" stroke="#6fdaf0" fill="none" stroke-width="2"/>
+<text x="434" y="935" class="small">北组出生</text>
+<circle cx="517" cy="930" r="6.5" stroke="#f9d17b" fill="none" stroke-width="2"/>
+<text x="530" y="935" class="small">南组出生</text>
+<path d="M615 922l8 8-8 8-8-8Z" fill="none" stroke="#92efb9" stroke-width="2"/>
+<text x="628" y="935" class="small">常规撤离</text>
+<path d="M720 922l8 8-8 8-8-8Z" fill="none" stroke="#ffc184" stroke-width="2"/>
+<text x="734" y="935" class="small">条件撤离</text>
+<line x1="829" y1="930" x2="855" y2="930" stroke="#77e0db" stroke-width="3" stroke-dasharray="4 3"/>
+<text x="863" y="935" class="small">登船连桥</text>
+<line x1="960" y1="930" x2="990" y2="930" stroke="#accad0" stroke-dasharray="7 5"/>
+<text x="998" y="935" class="small">400m 陆地参考范围</text>
+<text x="65" y="978" font-size="13" font-weight="700" fill="#c1d9d2">西岸 → 物流台地 → 工业盆地（Z = −20m）</text>
+<path d="M65 1082H675" stroke="#57777f" stroke-dasharray="4 4"/>
+<path d="M65 1082L65 1080.4L72.625 1079.92L80.25 1079.44L87.875 1078.96L95.5 1078.48L103.125 1078L110.75 1077.52L118.375 1077.04L126 1076.56L133.625 1076.08L141.25 1075.6L148.875 1074.96L156.5 1074.32L164.125 1073.68L171.75 1073.04L179.375 1072.4L187 1071.76L194.625 1071.12L202.25 1070.48L209.875 1069.84L217.5 1069.2L225.125 1068.88L232.75 1068.56L240.375 1068.24L248 1067.92L255.625 1067.6L263.25 1067.28L270.875 1066.96L278.5 1066.64L286.125 1066.32L293.75 1066L301.375 1065.68L309 1065.36L316.625 1065.04L324.25 1064.72L331.875 1064.4L339.5 1064.08L347.125 1063.76L354.75 1063.44L362.375 1063.12L370 1062.8L377.625 1062.48L385.25 1062.16L392.875 1061.84L400.5 1061.52L408.125 1061.2L415.75 1060.88L423.375 1060.56L431 1060.24L438.625 1059.92L446.25 1059.6L453.875 1060.8799999999999L461.5 1062.16L469.125 1063.44L476.75 1064.72L484.375 1066L492 1067.28L499.625 1068.56L507.25 1069.84L514.875 1071.12L522.5 1072.4L530.125 1072.88L537.75 1073.36L545.375 1073.84L553 1074.32L560.625 1074.8L568.25 1075.28L575.875 1075.76L583.5 1076.24L591.125 1076.72L598.75 1077.2L606.375 1075.76L614 1074.32L621.625 1072.88L629.25 1071.44L636.875 1070L644.5 1068.56L652.125 1067.12L659.75 1065.68L667.375 1064.24L675 1062.8L675 1082Z" fill="#455c52" stroke="none"/>
+<polyline points="65,1080.4 72.625,1079.92 80.25,1079.44 87.875,1078.96 95.5,1078.48 103.125,1078 110.75,1077.52 118.375,1077.04 126,1076.56 133.625,1076.08 141.25,1075.6 148.875,1074.96 156.5,1074.32 164.125,1073.68 171.75,1073.04 179.375,1072.4 187,1071.76 194.625,1071.12 202.25,1070.48 209.875,1069.84 217.5,1069.2 225.125,1068.88 232.75,1068.56 240.375,1068.24 248,1067.92 255.625,1067.6 263.25,1067.28 270.875,1066.96 278.5,1066.64 286.125,1066.32 293.75,1066 301.375,1065.68 309,1065.36 316.625,1065.04 324.25,1064.72 331.875,1064.4 339.5,1064.08 347.125,1063.76 354.75,1063.44 362.375,1063.12 370,1062.8 377.625,1062.48 385.25,1062.16 392.875,1061.84 400.5,1061.52 408.125,1061.2 415.75,1060.88 423.375,1060.56 431,1060.24 438.625,1059.92 446.25,1059.6 453.875,1060.8799999999999 461.5,1062.16 469.125,1063.44 476.75,1064.72 484.375,1066 492,1067.28 499.625,1068.56 507.25,1069.84 514.875,1071.12 522.5,1072.4 530.125,1072.88 537.75,1073.36 545.375,1073.84 553,1074.32 560.625,1074.8 568.25,1075.28 575.875,1075.76 583.5,1076.24 591.125,1076.72 598.75,1077.2 606.375,1075.76 614,1074.32 621.625,1072.88 629.25,1071.44 636.875,1070 644.5,1068.56 652.125,1067.12 659.75,1065.68 667.375,1064.24 675,1062.8" fill="none" stroke="#bbd1a4" stroke-width="2"/>
+<text x="65" y="1074.4" font-size="10.5" text-anchor="start">+0.5m</text>
+<text x="217.5" y="1063.2" font-size="10.5" text-anchor="middle">+4.0m</text>
+<text x="370" y="1056.8" font-size="10.5" text-anchor="middle">+6.0m</text>
+<text x="522.5" y="1066.4" font-size="10.5" text-anchor="middle">+3.0m</text>
+<text x="675" y="1056.8" font-size="10.5" text-anchor="end">+6.0m</text>
+<text x="742" y="978" font-size="13" font-weight="700" fill="#c1d9d2">南部缓丘 → 中部 → 北部科研坡地（X = 128m）</text>
+<path d="M742 1082H1394" stroke="#57777f" stroke-dasharray="4 4"/>
+<path d="M742 1082L742 1053.2L750.15 1053.52L758.3 1053.84L766.45 1054.16L774.6 1054.48L782.75 1054.8L790.9 1055.12L799.05 1055.44L807.2 1055.76L815.35 1056.08L823.5 1056.4L831.65 1057.36L839.8 1058.32L847.95 1059.28L856.1 1060.24L864.25 1061.2L872.4 1062.16L880.55 1063.12L888.7 1064.08L896.85 1065.04L905 1066L913.15 1066.96L921.3 1067.92L929.45 1068.88L937.6 1069.84L945.75 1070.8L953.9 1071.76L962.05 1072.72L970.2 1073.68L978.35 1074.64L986.5 1075.6L994.65 1075.28L1002.8 1074.96L1010.95 1074.64L1019.1 1074.32L1027.25 1074L1035.4 1073.68L1043.55 1073.36L1051.7 1073.04L1059.85 1072.72L1068 1072.4L1076.15 1071.76L1084.3 1071.12L1092.45 1070.48L1100.6 1069.84L1108.75 1069.2L1116.9 1068.56L1125.05 1067.92L1133.2 1067.28L1141.35 1066.64L1149.5 1066L1157.65 1063.1200000000001L1165.8 1060.24L1173.95 1057.36L1182.1 1054.48L1190.25 1051.6L1198.4 1048.72L1206.55 1045.84L1214.7 1042.96L1222.85 1040.08L1231 1037.2L1239.15 1035.28L1247.3 1033.36L1255.45 1031.44L1263.6 1029.52L1271.75 1027.6L1279.9 1025.68L1288.05 1023.76L1296.2 1021.84L1304.35 1019.92L1312.5 1018L1320.65 1017.68L1328.8 1017.36L1336.95 1017.04L1345.1 1016.72L1353.25 1016.4L1361.4 1016.08L1369.55 1015.76L1377.7 1015.44L1385.85 1015.12L1394 1014.8L1394 1082Z" fill="#455c52" stroke="none"/>
+<polyline points="742,1053.2 750.15,1053.52 758.3,1053.84 766.45,1054.16 774.6,1054.48 782.75,1054.8 790.9,1055.12 799.05,1055.44 807.2,1055.76 815.35,1056.08 823.5,1056.4 831.65,1057.36 839.8,1058.32 847.95,1059.28 856.1,1060.24 864.25,1061.2 872.4,1062.16 880.55,1063.12 888.7,1064.08 896.85,1065.04 905,1066 913.15,1066.96 921.3,1067.92 929.45,1068.88 937.6,1069.84 945.75,1070.8 953.9,1071.76 962.05,1072.72 970.2,1073.68 978.35,1074.64 986.5,1075.6 994.65,1075.28 1002.8,1074.96 1010.95,1074.64 1019.1,1074.32 1027.25,1074 1035.4,1073.68 1043.55,1073.36 1051.7,1073.04 1059.85,1072.72 1068,1072.4 1076.15,1071.76 1084.3,1071.12 1092.45,1070.48 1100.6,1069.84 1108.75,1069.2 1116.9,1068.56 1125.05,1067.92 1133.2,1067.28 1141.35,1066.64 1149.5,1066 1157.65,1063.1200000000001 1165.8,1060.24 1173.95,1057.36 1182.1,1054.48 1190.25,1051.6 1198.4,1048.72 1206.55,1045.84 1214.7,1042.96 1222.85,1040.08 1231,1037.2 1239.15,1035.28 1247.3,1033.36 1255.45,1031.44 1263.6,1029.52 1271.75,1027.6 1279.9,1025.68 1288.05,1023.76 1296.2,1021.84 1304.35,1019.92 1312.5,1018 1320.65,1017.68 1328.8,1017.36 1336.95,1017.04 1345.1,1016.72 1353.25,1016.4 1361.4,1016.08 1369.55,1015.76 1377.7,1015.44 1385.85,1015.12 1394,1014.8" fill="none" stroke="#bbd1a4" stroke-width="2"/>
+<text x="742" y="1047.2" font-size="10.5" text-anchor="start">+9.0m</text>
+<text x="905" y="1060" font-size="10.5" text-anchor="middle">+5.0m</text>
+<text x="1068" y="1066.4" font-size="10.5" text-anchor="middle">+3.0m</text>
+<text x="1231" y="1031.2" font-size="10.5" text-anchor="middle">+14.0m</text>
+<text x="1394" y="1008.8" font-size="10.5" text-anchor="end">+21.0m</text>
+<text x="65" y="1110" class="small muted">虚线只表示陆地参考边界；船和连桥为真实外海可玩附属区域，水面本身不扩大可通行范围。</text>
+<text x="1394" y="1110" class="small muted" text-anchor="end">V2 · 设计预留，灰盒实走待 B/C</text>
 </svg>
