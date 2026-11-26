@@ -84,18 +84,6 @@ export function addDistrictDetails(root: THREE.Group, m: Materials, solid: Solid
     for(let y=.3;y<.7;y+=.09)b([x,y,z+.31],[.5,.025,.015],m.rubber,.003);
     cable(root,m.rubber,[[x,2,z],[x,2.4,z-.1],[x+1.5,2.4,z-.1],[x+1.5,.05,z]],.027);
   }
-  // 80m freight sample: paired loading entrances, storage aisles and a separate workshop.
-  shed(-78,3,32,40);
-
-  for(const x of [-89,-67]) for(const [i,z] of [-9,2,13].entries()) rack(x,z,i);
-  for(const z of [-10,10]) {
-    const light = new THREE.PointLight(0xffd1a0, 100, 25, 2);
-    light.position.set(-78,5.4,z);root.add(light);
-    b([-78,5.6,z],[1.5,.15,.35],trim);
-    const lens = new THREE.MeshStandardMaterial({color:0xffd3a0,emissive:0xffd3a0,emissiveIntensity:2});
-    b([-78,5.51,z],[1.3,.03,.28],lens);
-  }
-  bench(-84,-13); cabinet(-92,17); cabinet(-64,14);
   for(const [x,z] of [[-97,36],[-100,38],[-64,38],[-58,-25],[-104,-28]]) pallet(x,0,z);
   // Workshop lean-to opens toward the transfer road, with real structural support.
   solid([-48,1.7,7],[.2,3.4,14],m.concrete,.03);

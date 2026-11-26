@@ -35,7 +35,9 @@ try {
  await pose(labLift);
  await page.waitForFunction(()=>window.raidQA.state().result?.outcome==='extracted');
  report.checks.push('Relocated lab lift rejects before power, accepts actual physical panel and extracts');
- await fresh();await pose([-9,0,14.5],0,-.32);await page.keyboard.press('e');
+ await fresh();
+ const [x,y,z]=(await state()).interactions.find(item=>item.id==='duty-card').position;
+ await pose([x,y-1.12,z+1.5],0,-.34);await page.keyboard.press('e');
  await page.locator('.source-item.revealed').first().waitFor();await page.locator('.source-item.revealed').first().dblclick();
  await page.waitForTimeout(350);await page.locator('#bag-close').click();await page.waitForFunction(()=>window.raidQA.state().locked);
  await pose([189,0,-90]);await page.waitForFunction(()=>!!window.raidQA.state().countdown);

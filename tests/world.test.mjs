@@ -16,6 +16,7 @@ import { marketArea, marketInteractions, parkingPad, pharmacyPad } from '../src/
 import { innArea, innDoorX, innFloor, innInteractions, innPad, innStair, innUpperY } from '../src/world/innPlan.ts';
 import { archivePad, observationPad, researchAnnexArea, researchAnnexInteractions, ridgeCrest } from '../src/world/researchAnnexPlan.ts';
 import { tidalWalk } from '../src/world/terrainPlan.ts';
+import { controlStair, drainCrossings, officeStair, sortingStair, worksiteInteractions, worksitePlace } from '../src/world/worksitePlan.ts';
 
 const map = createFirstMap(42);
 const radius=.36, height=1.8;
@@ -123,16 +124,76 @@ test('lab ramp and factory ramp both have continuous traversable height and retu
  assert.equal(walk(wharf,[[-120,27]])[1],0);
 });
 
-test('the warehouse doorways lead to its duty office and ordinary supplies',()=>{
+test('the warehouse doorways lead to its loading aisle and ordinary supplies',()=>{
  const mainAisle=walk([-4,0,32],[[-4,18]]);
- const duty=walk(mainAisle,[[-10,18],[-10,15],[-9,14]]);
- visible(duty,'duty-card');
  const bench=walk(mainAisle,[[-4,8],[-6,7.5]]);
  assert.equal(bench[1],0);
  visible([-21,0,29.3],'yard-ammo');
  visible(at('wharf',[-42.8,-.8,22.1]),'yard-medkit');
  visible(at('wharf',[-37,-.8,-7.8]),'yard-salvage');
  visible(at('plant',[35,0,22.1]),'factory-ammo');
+});
+
+test('the logistics buildings separate sorting, office records and outdoor vehicle transfer',()=>{
+  const intake=walk([-78,0,-22],[[-78,-11.4],[-84,-11.4]]);
+  visible(intake,'transit-tools');
+  const scanner=walk(intake,[[-78,-11.4],[-78,-6.6],[-70.9,-6.6]]);
+  visible(scanner,'sort-scanner');
+  const dispatch=walk(scanner,[[-78,-6.6],[-78,12.9],[-87.2,12.9]]);
+  visible(dispatch,'sort-dispatch');
+  assert.equal(walk(dispatch,[[-78,12.9],[-78,25.5]])[1],0);
+  const sorted=walk([-78,0,-22],[[-78,-12],[-65,-12],[-65,16.8],[-84.95,16.8]]);
+  assert.equal(sorted[1],sortingStair.rise);
+  assert.equal(worksitePlace(sorted)?.floor,'夹层');
+  visible(sorted,'freight-loft-1');
+  assert.equal(walk(sorted,[[-65,16.8],[-65,-12],[-78,-12],[-78,-22]])[1],0);
+
+  const reception=walk([12.3,0,-5],[[12.3,-11.3],[8.25,-11.3],[8.25,-12.3],[5.8,-12.3]]);
+  visible(reception,'office-reception');
+  const archive=walk([12.3,0,-27],[[12.3,-20.9],[5.3,-20.9]]);
+  visible(archive,'office-archive');
+  assert.equal(walk([12.3,0,-14],[[12.3,-18.9],[16.63,-18.9],[16.63,-22]])[1],0);
+  assert.equal(walk([12.3,0,-5],[[12.3,-27]])[1],0);
+  const duty=walk([12.3,0,-5],[[12.3,-8.6],[18.7,-8.6],[18.7,-20.72],[8.35,-20.72]]);
+  assert.equal(duty[1],officeStair.rise);
+  assert.equal(worksitePlace(duty)?.floor,'2F');
+  visible(duty,'duty-card');
+  const staff=walk(duty,[[8.35,-14.05],[5.85,-14.05]]);
+  visible(staff,'office-staff');
+  assert.equal(walk(duty,[[18.7,-20.72],[18.7,-8.6],[12.3,-8.6],[12.3,-5]])[1],0);
+  assert.deepEqual(map.interactions.filter(item=>item.item==='service-card').map(item=>item.id),['duty-card']);
+
+  const transfer=walk([-59,0,-11.55],[[-23,-11.55]]);
+  assert.equal(transfer[1],0);
+  visible(walk(transfer,[[-31.4,-11.55],[-31.4,-17.10]]),'vehicle-dispatch');
+  for(const id of ['vehicle-coil','vehicle-seals']){
+    const target=map.interactions.find(item=>item.id===id);
+    assert.equal(target.kind,'loose');
+    const support=map.blockedDistance(target.position,[0,-1,0],.3);
+    assert.ok(support!==null && support<.15,id);
+  }
+});
+
+test('the industrial workspaces and two drainage bridges connect the plant to the control balcony',()=>{
+  visible(walk([90,0,-17.75],[[90,-25.20],[81,-25.20]]),'repair-press');
+  visible(walk([149,0,-10],[[130.5,-10],[130.5,-7.15]]),'filter-inspection');
+  for(const {minZ,maxZ} of drainCrossings){
+    const z=(minZ+maxZ)/2;
+    assert.equal(map.blockedDistance([161,2,z],[0,-1,0],3),2);
+    assert.equal(walk([150,0,z],[[173.4,z],[150,z]])[1],0);
+  }
+  const lobby=walk([150,0,-26],[[188.9,-26]]);
+  visible(walk(lobby,[[188.9,-32]]),'control-test');
+  visible(walk(lobby,[[197.5,-26],[197.5,-31.2]]),'control-panel');
+  visible(walk(lobby,[[207.65,-26],[207.65,-31.35],[208.1,-31.35]]),'control-service');
+  assert.equal(walk(lobby,[[213,-26]])[1],0);
+  const observation=walk(lobby,[[197.5,-26],[197.5,-18.1],[201,-18.1],[201,-32.2],[187.3,-32.2],[187.3,-29.3]]);
+  assert.equal(observation[1],controlStair.rise);
+  assert.deepEqual(worksitePlace(observation),{id:'control',name:'工业控制中心',floor:'2F'});
+  visible(observation,'control-observation');
+  assert.equal(walk(observation,[[187.3,-32.2],[201,-32.2],[201,-18.1],[197.5,-18.1],[197.5,-26],[182.5,-26]])[1],0);
+  assert.equal(walk([182,0,-90],[[189,-90]])[1],0);
+  for(const item of worksiteInteractions)assert.equal(map.interactions.filter(t=>t.id===item.id).length,1);
 });
 
 test('sample, power and freight lift are reachable through the actual underground openings',()=>{
@@ -155,7 +216,7 @@ test('factory maintenance aisle gives access to the upper resource bench',()=>{
  const upper=walk([45,0,19],[[45,1],[36.9,1],[36.9,-7.7]],'plant');
  visible(upper,'factory-salvage');
  assert.equal(upper[1],3.2);
- const service=walk([189,0,10],[[189,-90]]);
+ const service=walk([189,0,10],[[175,10],[175,-90],[189,-90]]);
  assert.equal(service[1],0);
 });
 

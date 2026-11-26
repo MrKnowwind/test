@@ -10,8 +10,8 @@ try {
   const pose = (feet, pitch) => page.evaluate(([feet, pitch]) => raidQA.pose(feet, 0, pitch), [feet, pitch]);
   async function openCase(id) {
     const target = (await state()).interactions.find((t) => t.id === id);
-    const [x, , z] = target.position;
-    await pose([x, 0, z + (id === 'duty-card' ? 1 : 1.5)], -0.35);
+    const [x, y, z] = target.position;
+    await pose([x, id === 'duty-card' ? y - 1.12 : 0, z + 1.5], -0.35);
     await page.waitForFunction(
       (label) => document.querySelector('#prompt').textContent.includes(label),
       target.label,

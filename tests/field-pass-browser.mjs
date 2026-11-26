@@ -12,6 +12,7 @@ import { archivePad, observationPad, ridgeCrest } from '../src/world/researchAnn
 import { tidalWalk } from '../src/world/terrainPlan.ts';
 import { isStreetBuilding, streetPlans } from '../src/world/portBlocks.ts';
 import { fixturePosition } from '../src/world/shopRooms.ts';
+import { controlStair, officeStair, sortingStair } from '../src/world/worksitePlan.ts';
 
 const root = path.resolve(process.argv[2] ?? 'dist');
 const output = path.resolve(process.argv[3] ?? 'test-results/field-pass');
@@ -60,7 +61,7 @@ await page.addInitScript(fixedRoutes => {
     }
     painting = true;
   };
-}, ['research','south','market','inn','annex','terrain','street'].some(name=>cases.has(name)));
+}, ['research','south','market','inn','annex','terrain','street','worksites'].some(name=>cases.has(name)));
 const tick = (n=2, paint=false) => page.evaluate(([n,paint]) => window.advanceRaid(n,paint),[n,paint]);
 const state = () => page.evaluate(() => {
   const {feet,stance,climb,eye,countdown,result,flags,weapon,locked,backpack,items,spawn,fov,speed,grounded,health} = window.raidQA.state();
@@ -218,7 +219,8 @@ async function exits() {
 }
 async function service() {
   await start();
-  await pose([-9,0,14.5],0,-.32);await tick();await press('e');await tick(300);
+  const [x,y,z] = await page.evaluate(() => raidQA.state().interactions.find(t=>t.id==='duty-card').position);
+  await pose([x,y-1.12,z+1.50],0,-.34);await tick();await press('e');await tick(300);
   const card=page.locator('.source-item.revealed').filter({has:page.locator('[alt="维修卡"]')});
   const item=page.getByRole('button',{name:'维修卡',exact:true});
   if(await item.count())await item.click({modifiers:['Shift'],force:true});
@@ -232,8 +234,8 @@ async function service() {
   await closeBag();
   const drop = await page.evaluate(() => raidQA.state().interactions.find(t=>t.id.startsWith('drop-') && t.item==='service-card'));
   assert.ok(drop, 'the discarded card must exist on the ground');
-  const feet=(await state()).feet, [x,y,z]=drop.position;
-  await pose(feet,Math.atan2(feet[0]-x,feet[2]-z),Math.atan2(y-feet[1]-1.65,Math.hypot(x-feet[0],z-feet[2])));
+  const feet=(await state()).feet, [dropX,dropY,dropZ]=drop.position;
+  await pose(feet,Math.atan2(feet[0]-dropX,feet[2]-dropZ),Math.atan2(dropY-feet[1]-1.65,Math.hypot(dropX-feet[0],dropZ-feet[2])));
   await tick();await press('e');
   const recovered = await state();
   assert.equal(recovered.items['service-card'],1,JSON.stringify({feet,drop,recovered,prompt:await page.locator('#prompt').textContent()}));
@@ -269,7 +271,7 @@ async function routes() {
   report.routes = [];
   const paths = [
     {seed:2, spawn:'N-A', name:'西北台地至南部公路', points:districtRoutes[0].waypoints},
-    {seed:0, start:[149,0,83], name:'东侧至仓储卡位和维修口', points:[[149,95],[-4,95],[-4,18],[-10,18],[-10,15],[-9,14],[-10,15],[-10,18],[-4,18],[-4,95],[175,95],[175,-90],[189,-90]]},
+    {seed:0, start:[149,0,83], name:'东侧至物流办公楼卡位和维修口', points:[[149,95],[-4,95],[-4,-6.12],[12.3,-6.12],[12.3,-8.45],[18.7,-8.45],[18.7,-20.90],[8.35,-20.90],[18.7,-20.90],[18.7,-8.45],[12.3,-8.45],[12.3,-6.12],[-4,-6.12],[-4,95],[175,95],[175,-90],[189,-90]]},
     {seed:5, start:[-138,-.8,24], name:'西侧码头经仓储至厂区平台', points:[[-129,24],[-129,27],[-120,27],[-4,27],[-4,15],[-4,27],[-4,95],[149,95],[149,-16],[140.5,-16],[140.5,-34]]},
     {seed:32, start:[40.5,researchPad.height,-130], name:'研究坡道至样本柜、配电柜和货梯', points:[[40.5,-159],[27.2,-159],[27.2,-167.4],[27.2,-159],[16,-159],[16,-167.6],[16,-159],[15.4,-155]]},
   ];
@@ -635,8 +637,56 @@ async function street() {
   }
   report.street=visited;
 }
+async function worksites() {
+  await start(8);
+  await practice();
+  const searched=[];
+  async function collect(id) {
+    await searchCase(id);
+    searched.push(id);
+  }
+  await pose([-78,0,-23],Math.PI);
+  await walkRoute([[-78,-13],[-65,-13],[-65,16.8],[-84.95,16.8]]);
+  await height(sortingStair.rise);
+  assert.equal(await page.locator('#floor').textContent(), '物流分拣中心 · 夹层');
+  await collect('freight-loft-1');
+  await pose((await state()).feet,-1.11,-.18);
+  await capture('01-sorting-conveyors');
+  await walkRoute([[-65,16.8],[-65,-13],[-78,-13],[-78,-24],[-41,-24],[-41,-11.55],[-31.4,-11.55],[-31.4,-17.05]]);
+  await collect('vehicle-dispatch');
+  await pose((await state()).feet,2.36,-.07);
+  await capture('02-vehicle-court');
+  await walkRoute([[-31.4,-11.55],[-4,-11.55],[-4,-6.12],[12.3,-6.12],[12.3,-8.40],[18.7,-8.40],[18.7,-20.83],[8.35,-20.83]]);
+  await height(officeStair.rise);
+  assert.equal(await page.locator('#floor').textContent(), '物流办公楼 · 2F');
+  await aim('duty-card');
+  await capture('03-office-duty-desk');
+  await collect('duty-card');
+  await walkRoute([[18.7,-20.83],[18.7,-8.40],[12.3,-8.40],[12.3,-5.50]]);
+  await height(0);
+
+  await pose([149,0,-38],-Math.PI/2);
+  await walkRoute([[173.3,-38],[149,-38],[149,-26],[171,-26]]);
+  await height(0);
+  await pose((await state()).feet, Math.PI/2,-.20);
+  await capture('04-drainage-crossings');
+  await walkRoute([[188.9,-26],[188.9,-32]]);
+  await collect('control-test');
+  await walkRoute([[188.9,-26],[207.65,-26],[207.65,-31.35],[208.1,-31.35]]);
+  await collect('control-service');
+  await walkRoute([[207.65,-31.35],[207.65,-26],[197.5,-26],[197.5,-18.1],[201,-18.1],[201,-32.2],[187.3,-32.2],[187.3,-29.3]]);
+  await height(controlStair.rise);
+  assert.equal(await page.locator('#floor').textContent(), '工业控制中心 · 2F');
+  await collect('control-observation');
+  await pose((await state()).feet, 1.39,-.10);
+  await capture('05-control-observation');
+  await walkRoute([[187.3,-32.2],[201,-32.2],[201,-18.1],[197.5,-18.1],[197.5,-26],[182.5,-26]]);
+  await height(0);
+  const bundle=await page.locator('script[type=module]').getAttribute('src');
+  report.worksites={bundle,searched,drainCrossings:2,stairRuns:3};
+}
 try {
-  for(const [name,fn] of Object.entries({districts,bags,movement,exits,service,routes,controls,feel,research,south,market,inn,annex,terrain,street})){
+  for(const [name,fn] of Object.entries({districts,bags,movement,exits,service,routes,controls,feel,research,south,market,inn,annex,terrain,street,worksites})){
     if(cases.has(name)){await fn();console.log(name+' passed');}
   }
   assert.deepEqual(errors,[]);

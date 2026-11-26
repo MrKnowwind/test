@@ -23,6 +23,7 @@ import { streetArea } from '../world/portBlocks.ts';
 import { southernArea } from '../world/southPlan.ts';
 import { marketArea } from '../world/marketPlan.ts';
 import { innArea } from '../world/innPlan.ts';
+import { worksitePlace } from '../world/worksitePlan.ts';
 import { itemIcon } from '../ui/itemArt.ts';
 import { createGameView, itemName } from '../ui/gameView.ts';
 import { createOutpostView } from '../ui/outpostView.ts';
@@ -645,9 +646,10 @@ async function startGame() {
     map.updateExitLights(exit => raid.exitStatus(exit).kind);
     const shipLabel=isShip(player.feet)?'海湾号 · '+harborFloor(player.feet):player.feet[0]<-172?'登船连桥':undefined;
     const researchFloor = researchBuildingFloor(player.feet);
+    const site = worksitePlace(player.feet);
     const areaLabel = researchFloor ? '科研主楼 · ' + researchFloor :
       isResearchCampus(player.feet) ? '科研园' : shipLabel ?? researchAnnexArea(player.feet) ?? innArea(player.feet) ?? marketArea(player.feet) ??
-        southernArea(player.feet) ?? streetArea(player.feet) ?? region?.label;
+        southernArea(player.feet) ?? (site ? site.name + (site.floor ? ' · ' + site.floor : '') : undefined) ?? streetArea(player.feet) ?? region?.label;
     view.updateHud(frame, raid.spawn.label ?? raid.spawn.id, underground, areaLabel,run.treatment.pose, ammoTime > 0);
     const now=performance.now();
     if(phase === 'raid' && now>=run.nextSurvey){

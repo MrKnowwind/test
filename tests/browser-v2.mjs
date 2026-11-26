@@ -82,7 +82,8 @@ try {
   await page.keyboard.press('m');
   report.checks.push('normal movement, empty slots 1/2, knife 4, sidearm 3, ADS, fire, reload and map');
 
-  await searchAt('duty-card', [-9, 0, 15]);
+  const [cardX,cardY,cardZ]=(await state()).interactions.find(item=>item.id==='duty-card').position;
+  await searchAt('duty-card', [cardX, cardY-1.12, cardZ+1.5]);
   await page.locator('#take-loot').click();
   assert.equal((await state()).items['service-card'], 1);
   await closeBag();

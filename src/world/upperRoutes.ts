@@ -6,7 +6,7 @@ import type { Solid } from './worldQueries.ts';
 
 type Builder = (at:Vec3,size:Vec3,material:THREE.Material,bevel?:number)=>THREE.Mesh;
 export const freightHalls=[
-  [-4,8,24,26,0],[-78,3,32,40,1],[90,-32,32,36,2],
+  [-4,8,24,26,0],[90,-32,32,36,2],
   [7,-113,30,24,4],[-45,63,22,16,6],
 ] as const;
 

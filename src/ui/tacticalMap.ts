@@ -9,13 +9,14 @@ import { landOutline } from '../world/landPlan.ts';
 import { southBuildings } from '../world/southPlan.ts';
 import { marketBuildings } from '../world/marketPlan.ts';
 import { innBuilding, innFloor, innStair } from '../world/innPlan.ts';
+import { controlStair, drainChannel, drainCrossings, officeStair, sortingStair, vehicleCourt, worksiteBuildings, worksitePlace } from '../world/worksitePlan.ts';
 import type { ExitZone, FirstMap, Vec3 } from '../contracts/demo.ts';
 
 import { streetFootprints } from '../world/portBlocks.ts';
 import { freightHalls } from '../world/upperRoutes.ts';
 import { roads, footpaths } from '../world/roads.ts';
 
-const publicBuildings=[...civicBuildings,...districtBuildings,researchBuilding,...researchAnnexBuildings,...southBuildings,...marketBuildings,innBuilding];
+const publicBuildings=[...civicBuildings,...districtBuildings,researchBuilding,...researchAnnexBuildings,...southBuildings,...marketBuildings,innBuilding,...worksiteBuildings];
 function fillLand(context: CanvasRenderingContext2D, project: (x: number, z: number) => number[], color: string) {
   context.beginPath();
   landOutline.forEach(([x, z], i) => {
@@ -31,6 +32,8 @@ function fillLand(context: CanvasRenderingContext2D, project: (x: number, z: num
 function upperBuildingAt(position: Vec3) {
   if (innFloor(position)==='2F') return 'inn';
   if (researchBuildingFloor(position)==='2F') return 'research';
+  const site=worksitePlace(position);
+  if (site?.floor==='2F'||site?.floor==='夹层') return site.id;
   return undefined;
 }
 
@@ -56,7 +59,7 @@ export function createTacticalMap() {
       if (now - lastRadar < 90) return;
       lastRadar = now;
       const underground = isLabLevel(feet);
-      const floor = underground ? 'B1' : innFloor(feet) ?? researchBuildingFloor(feet) ?? harborFloor(feet);
+      const floor = underground ? 'B1' : innFloor(feet) ?? researchBuildingFloor(feet) ?? worksitePlace(feet)?.floor ?? harborFloor(feet);
       const upperBuilding=upperBuildingAt(feet);
       if (miniFloor.textContent !== floor) miniFloor.textContent = floor;
       const half = mini.width / 2, scale = half / (underground ? 25 : 45);
@@ -77,6 +80,9 @@ export function createTacticalMap() {
         for(const t of terrainSections)rect(t.minX,t.minZ,t.maxX,t.maxZ,t.northY===t.southY?'#405b5a':'#344b4a');
         for (const road of roads) rect(road.x1, road.z1, road.x2, road.z2, '#4b5d5e');
         for (const path of footpaths) rect(path.x1, path.z1, path.x2, path.z2, '#394b4d');
+        rect(vehicleCourt.minX,vehicleCourt.minZ,vehicleCourt.maxX,vehicleCourt.maxZ,'#647078');
+        rect(drainChannel.minX,drainChannel.minZ,drainChannel.maxX,drainChannel.maxZ,'#24555b');
+        for(const d of drainCrossings)rect(d.minX,d.minZ,d.maxX,d.maxZ,'#88aab0');
         for(const r of streetFootprints)rect(r.minX,r.minZ,r.maxX,r.maxZ,r.building?'#2c3e43':'#47615b');
         for (const [x, z, w, d] of freightHalls)
           rect(x - w / 2, z - d / 2, x + w / 2, z + d / 2, '#2c3e43', '#708386');
@@ -169,6 +175,11 @@ export function createTacticalMap() {
       }
       for(const [x,z,w,d] of freightHalls)stairMark(x+w/2-1.5,z-d/2+1.2);
       for(const r of [...harborBuildings,...gangways,...publicBuildings]){const [x,z]=project(r.minX,r.minZ),[a,b]=project(r.maxX,r.maxZ);ctx.fillStyle='#6ca7aa';ctx.fillRect(x,z,a-x,b-z);ctx.strokeStyle='#39777e';ctx.strokeRect(x,z,a-x,b-z);}
+      for(const [r,color] of [[vehicleCourt,'#a6ada6'],[drainChannel,'#519298'],...drainCrossings.map(reg=>[reg,'#c8dce0'] as const)] as const) {
+        const [x,z]=project(r.minX,r.minZ),[a,b]=project(r.maxX,r.maxZ);
+        ctx.fillStyle=color;ctx.fillRect(x,z,a-x,b-z);
+      }
+      for(const stair of [sortingStair,officeStair,controlStair])stairMark(stair.x,stair.footZ);
       const [bridgeX,bridgeZ]=project(annexWalk.minX,annexWalk.minZ),[bridgeRight,bridgeBottom]=project(annexWalk.maxX,annexWalk.maxZ);
       ctx.fillStyle='#607e90';ctx.fillRect(bridgeX,bridgeZ,bridgeRight-bridgeX,bridgeBottom-bridgeZ);
       stairMark(innStair.x,innStair.bottomZ);
@@ -207,6 +218,8 @@ export function createTacticalMap() {
         if(isShip(target.position)&&isShip(feet)&&harborFloor(target.position)!==harborFloor(feet))continue;
         const innLevel=innFloor(target.position);
         if(innLevel && innLevel !== (innFloor(feet) ?? '1F'))continue;
+        const site=worksitePlace(target.position), activeSite=worksitePlace(feet);
+        if(site?.floor && site.floor !== (activeSite?.id===site.id?activeSite.floor:'1F')) continue;
         const [sx, sz] = project(target.position[0], target.position[2]);
         ctx.fillStyle=ctx.strokeStyle='#347c78';
         ctx.beginPath(); ctx.arc(sx, sz, 2.8, 0, Math.PI * 2); if(consumed.has(target.id))ctx.stroke();else ctx.fill();

@@ -173,8 +173,8 @@ try {
   await closeBag();
 
   const target = (await state()).interactions.find(t => t.id === 'duty-card');
-  const [x, , z] = target.position;
-  await pose([x, 0, z + 1], 0, -.48);
+  const [x, y, z] = target.position;
+  await pose([x, y-1.12, z + 1.5], 0, -.34);
   assert.match(await page.locator('#prompt').textContent(), /值班室文件盒/);
   await press('KeyE'); await openBag();
   await tick(260, true);

@@ -36,11 +36,12 @@ import { researchAnnexInteractions } from './researchAnnexPlan.ts';
 import { buildResearchAnnex } from './researchAnnex.ts';
 import { landBounds } from './landPlan.ts';
 import { landBank, landSurface } from './landSurface.ts';
+import { buildWorksites } from './worksites.ts';
+import { worksiteInteractions } from './worksitePlan.ts';
 
 const v = (p: Vec3) => new THREE.Vector3(...p);
 
 const localInteractions: readonly MapInteraction[] = [
-  { id: 'duty-card', label: '值班室文件盒', position: [-9, 1.12, 13.0], kind: 'loot', item: 'service-card', quantity: 1 },
   { id: 'yard-ammo', label: '储备物资箱', position: [-21, 1.13, 28.2], kind: 'loot', item: 'pistol-ammo', quantity: 6 },
   { id: 'yard-medkit', label: '应急储物箱', position: [-42.8, .32, 21], kind: 'loot', item: 'medkit', quantity: 1 },
   { id: 'yard-salvage', label: '装卸维修箱', position: [-37, .25, -9], kind: 'loot', item: 'salvage', quantity: 2 },
@@ -60,11 +61,10 @@ export const mapInteractions: readonly MapInteraction[] = [
   ...southInteractions,
   ...marketInteractions,
   ...innInteractions,
+  ...worksiteInteractions,
   ...siteInteractions,
   ...localInteractions.map(target => ({ ...target, position: districtPoint(districtForInteraction(target.id), target.position) })),
-  { id: 'plant-workshop', label: '厂区维修箱', kind: 'loot', item: 'salvage', quantity: 2, position: [83.6,1.12,-47.7] },
   { id: 'research-office', label: '研究后勤箱', kind: 'loot', item: 'medkit', quantity: 1, position: [1,1.12,-122.7] },
-  { id: 'transit-tools', label: '转运仓工具箱', kind: 'loot', item: 'salvage', quantity: 2, position: [-84,1.12,-12.7] },
   { id: 'workshop-supplies', label: '工棚应急箱', kind: 'loot', item: 'medkit', quantity: 1, position: [-42,1.12,2.3] },
   { id: 'evac-daypack', label: '基础小包', kind: 'loose', item: 'daypack', quantity: 1, position: [-24, .18, 140.75] },
 ];
@@ -457,15 +457,8 @@ function* environmentSteps() {
   crate(-37,dock.y,-9,1.4,.7,1.0);
   solid([-43,.48+dock.y,20.8],[1.8,.96,.9],painted,.025);
   district('warehouse');
-  // Duty office is approached from the south, behind warehouse west-front corner.
-  const ox=-10,oz=14.4;
-  solid([ox-2.4,1.5,oz],[.22,3,4.2],offwhite,.02);
-  solid([ox+2.4,1.5,oz],[.22,3,4.2],offwhite,.02);
-  solid([ox,1.5,oz-2.1],[4.8,3,.22],offwhite,.02);
-  for(const dx of [-1.7,1.7]) solid([ox+dx,1.5,oz+2.1],[1.4,3,.22],offwhite,.02);
-  box(staticRoot,m.zinc,5.1,.16,4.7,ox,3.13,oz,.016);
-  solid([-9,.48,12.75],[1.75,.96,.8],m.steel,.02);
-  lamp([-10,2.75,14.6],0xffbd84,28);
+  solid([-10.55,.55,14.4],[3.6,1.1,1.15],painted,.07);
+  for (const x of [-11.65, -10.55, -9.45]) box(staticRoot, m.zinc, .48, .10, .84, x, 1.12, 14.4);
   lamp([-4,5.8,8],0xffd5a3,120);
   lamp([-4,5.8,19],0xffc28b,90);
   lamp([-4,5.8,-2],0xffc28b,90);
@@ -702,7 +695,8 @@ function* environmentSteps() {
   }
   const modules = addDistrictDetails(allStatic, m, solid);
   buildDistrictSites(staticRoot, m, solid);
-  for(const [x,z,w,d] of freightHalls.slice(2)) {
+  for(const [x,z,w,d,index] of freightHalls) {
+    if (index < 4) continue;
     modules.shed(x,z,w,d);
     modules.rack(x-w*.3,z,Math.round(x));
     modules.bench(x-w*.2,z-d*.5+2);
@@ -831,6 +825,7 @@ function* environmentSteps() {
     block=blocks.next();
   }
   const rooms=block.value;
+  buildWorksites(staticRoot,m,solids,solid);
   for (const [x,z,w,d,index] of freightHalls) upper.warehouse(x,z,w,d,index,rooms.cases);
   buildStreetCourts(staticRoot,m,solid);
   buildCivicDistrict(allStatic,m,solids);

@@ -7,6 +7,7 @@ import { communityApproach, residentialApproach, transitNorth, transitSouth } fr
 import { parkingNorth, parkingSouth, pharmacyNorth, pharmacySouth } from './marketPlan.ts';
 import { innNorth, innSouth } from './innPlan.ts';
 import { annexApproaches, ridgeTrail } from './researchAnnexPlan.ts';
+import { controlMain, drainCrossings, logisticsOffice, vehicleCourt } from './worksitePlan.ts';
 
 type Rect = { x1: number; x2: number; z1: number; z2: number };
 function rectangle(x: number, z: number, w: number, d: number): Rect {
@@ -39,7 +40,14 @@ export const footpaths = [...walkLines.flatMap(points => points.slice(1).map(([x
 })),...houses.map(h=>rectangle(-123.85,h.z,4.3,3.2)),
   ...[residentialApproach, communityApproach, transitNorth, transitSouth,
     pharmacyNorth, pharmacySouth, parkingNorth, parkingSouth, innNorth, innSouth,
-    ...annexApproaches, {...ridgeTrail, minX:214.35,maxX:217.65}, tidalWalk].map(fromFootprint)];
+    ...annexApproaches, {...ridgeTrail, minX:214.35,maxX:217.65}, tidalWalk].map(fromFootprint),
+    ...drainCrossings.flatMap((crossing,index) => [
+      fromFootprint({ ...crossing, minX:149, maxX:crossing.minX }),
+      fromFootprint({ ...crossing, minX:crossing.maxX, maxX:index === 0 ? 175 : controlMain.minX }),
+    ]),
+    rectangle(12.3,logisticsOffice.maxZ+.8,3.2,1.6),
+    rectangle(vehicleCourt.maxX+2.65,-11.55,5.3,3.7),
+  ];
 
 function overlaps(a: Rect, b: Rect) {
   return a.x1 < b.x2 && a.x2 > b.x1 && a.z1 < b.z2 && a.z2 > b.z1;

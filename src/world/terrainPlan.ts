@@ -4,6 +4,7 @@ import { residentialPad, southGrades } from './southPlan.ts';
 import { marketGrades } from './marketPlan.ts';
 import { innGrades } from './innPlan.ts';
 import { annexGrades, archivePad, ridgeCrest, ridgeTrail } from './researchAnnexPlan.ts';
+import { drainChannel } from './worksitePlan.ts';
 
 // World Y=0 is the original city datum, 2.1 m above the sea.
 export const northTerrace={minX:-160,maxX:-103,minZ:-218,maxZ:-111,crestZ:-166,height:8};
@@ -35,6 +36,7 @@ export const newTerrainSections: readonly Grade[] = [
   { ...tidalWalk, maxZ: 74, northY: 0, southY: tidalWalk.height, finish: 'tidal' },
   { ...tidalWalk, minZ: 74, maxZ: 83, northY: tidalWalk.height, southY: tidalWalk.height, finish: 'tidal' },
   { ...tidalWalk, minZ: 83, northY: tidalWalk.height, southY: 0, finish: 'tidal' },
+  { ...drainChannel, northY: drainChannel.height, southY: drainChannel.height, finish: 'tidal' },
 ];
 
 export const terrainSections: readonly Grade[] = [
