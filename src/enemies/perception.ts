@@ -1,14 +1,15 @@
 import type { EnemyState, Vec3, WorldQueries } from '../contracts/demo.ts';
 import { segmentBlocked } from '../combat/geometry.ts';
-import { lab, ramp } from '../world/worldQueries.ts';
+import { isLabLevel, lab, ramp, researchPad } from '../world/researchPlan.ts';
 
 export const distance = (a: Vec3, b: Vec3) => Math.hypot(a[0] - b[0], a[1] - b[1], a[2] - b[2]);
 const ear = (p: Vec3): Vec3 => [p[0], p[1] + 1.1, p[2]];
 const entrance: Vec3 = [(ramp.minX + ramp.maxX) / 2, lab.y, ramp.minZ];
-const landing: Vec3 = [entrance[0], 0, ramp.maxZ];
+const landing: Vec3 = [entrance[0], researchPad.height, ramp.maxZ];
 export function soundPath(world: WorldQueries, from: Vec3, to: Vec3) {
-  if (from[1] < -2.5 !== to[1] < -2.5) {
-    const below = from[1] < -2.5 ? from : to,
+  const fromLab = isLabLevel(from);
+  if (fromLab !== isLabLevel(to)) {
+    const below = fromLab ? from : to,
       above = below === from ? to : from;
     // Cross-floor sound must travel through the real ramp. A listener on the ramp
     // can receive a direct sound when the sloped passage is clear.
@@ -50,7 +51,7 @@ const nodes: Vec3[] = [
   [27, lab.y, -166],
   [16, lab.y, -166],
   entrance,
-  [entrance[0], lab.y / 2, (ramp.maxZ + ramp.minZ) / 2],
+  [entrance[0], (lab.y + researchPad.height) / 2, (ramp.maxZ + ramp.minZ) / 2],
   landing,
 ];
 export function detour(world: WorldQueries, from: Vec3, to: Vec3, radius: number, height: number): Vec3[] {

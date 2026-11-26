@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import type { EnemySpawn, ExitZone, FirstMap, Vec3 } from '../contracts/demo.ts';
 import { createEnvironment, mapInteractions } from './environment.ts';
-import { createWorldQueries, lab } from './worldQueries.ts';
+import { createWorldQueries } from './worldQueries.ts';
 import { loosePoints } from './loosePoints.ts';
 import { createShopDoors } from './shopDoors.ts';
 import { roll } from '../raid/loot.ts';
@@ -10,13 +10,14 @@ import { coldChainPad, northTerrace } from './terrainPlan.ts';
 
 import { districtPoint, servicePosition } from './layout.ts';
 import { regularExits, spawnPoints } from './raidPlan.ts';
+import { labLift, labLocalY } from './researchPlan.ts';
 
-const botPosts: readonly Vec3[] = [[20, lab.y, -31.2], [9.7, lab.y, -35.6], [-4, lab.y, -32]];
+const botPosts: readonly Vec3[] = [[20, labLocalY, -31.2], [9.7, labLocalY, -35.6], [-4, labLocalY, -32]];
 function placeEnemies(seed: number): EnemySpawn[] {
   const infected: readonly Vec3[] = [
     [-35, -.8, 0], [-52, -.8, -14], [-42, -.8, -28],
     [-21, 0, -13], [3, 0, 11], [-78, 0, -8], [33, 0, 24], [53, 0, -5],
-    [12, 0, -33], [28, 0, -36], [5.5, lab.y, -29], [22.5, lab.y, -34],
+    [5, 0, -32], [27, 0, -34], [5.5, labLocalY, -29], [22.5, labLocalY, -34],
   ];
   const mixed = Math.imul((seed >>> 0) ^ 0x74e13ca9, 0x45d9f3b);
   const post = ((mixed ^ mixed >>> 16) >>> 0) % botPosts.length;
@@ -47,7 +48,7 @@ export function createFirstMap(seed: number, environment = createEnvironment()):
       ...regularExits,
       { id: 'service-passage', label: '维修通道', position: servicePosition, radius: 2,
         requirements: [{ kind: 'item', id: 'service-card' }] },
-      { id: 'lab-lift', remote: { flag: 'lab-power', seconds: 12 }, label: '实验室货梯', position: districtPoint('research', [-4.6, lab.y, -25]), radius: 1.85,
+      { id: 'lab-lift', remote: { flag: 'lab-power', seconds: 12 }, label: '实验室货梯', position: labLift, radius: 1.85,
         requirements: [{ kind: 'flag', id: 'lab-power' }] },
     ];
   const rings = exits.map(exit => {
@@ -70,7 +71,7 @@ export function createFirstMap(seed: number, environment = createEnvironment()):
     regions: [
       { id: 'north-terrace', label: '北部高地 · 海关与气象站', center: [-134,northTerrace.height,-186], radius: 53 },
       { id: 'residential-row', label: '港务家属区', center: [-135,0,134.5], radius: 27 },
-      { id: 'lab', label: '地下实验室 · 高风险', center: districtPoint('research', [9, lab.y, -31]), radius: 21 },
+      { id: 'lab', label: '地下实验室 · 高风险', center: districtPoint('research', [9, labLocalY, -31]), radius: 21 },
       { id: 'plant', label: '03 处理厂区', center: districtPoint('plant', [41, 0, -5]), radius: 45 },
       { id: 'research', label: '04 生化研究设施', center: districtPoint('research', [20.5, 0, -23]), radius: 50 },
       { id: 'wharf', label: '01 货运码头', center: districtPoint('wharf', [-45, -.8, -5]), radius: 50 },

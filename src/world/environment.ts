@@ -24,6 +24,8 @@ import { buildCivicDistrict,buildNorthTerrace } from './civicDistrict.ts';
 import { districtOffsets, districtPoint, districtForInteraction, type District } from './layout.ts';
 import { buildDistrictSites, districtInteractions } from './districtSites.ts';
 import { regularExits } from './raidPlan.ts';
+import { labCeilingUnder, labLocalY, researchApproach, researchInteractions, researchPad, researchSteps } from './researchPlan.ts';
+import { buildResearchBuilding } from './researchBuilding.ts';
 
 const v = (p: Vec3) => new THREE.Vector3(...p);
 
@@ -43,6 +45,7 @@ export const mapInteractions: readonly MapInteraction[] = [
   ...harborInteractions,
   ...civicInteractions,
   ...districtInteractions,
+  ...researchInteractions,
   ...siteInteractions,
   ...localInteractions.map(target => ({ ...target, position: districtPoint(districtForInteraction(target.id), target.position) })),
   { id: 'plant-workshop', label: '厂区维修箱', kind: 'loot', item: 'salvage', quantity: 2, position: [83.6,1.12,-47.7] },
@@ -67,16 +70,17 @@ function* environmentSteps() {
   const allStatic = new THREE.Group();
   scene.add(allStatic);
   let staticRoot = allStatic;
-  let offset: readonly [number, number] = [0, 0];
+  let offset: Vec3 = [0, 0, 0];
   function district(id?: District) {
-    offset = id ? districtOffsets[id] : [0, 0];
+    offset = id ? districtPoint(id, [0, 0, 0]) : [0, 0, 0];
     staticRoot = new THREE.Group();
-    staticRoot.position.set(offset[0], 0, offset[1]);
+    staticRoot.position.set(...offset);
     allStatic.add(staticRoot);
   }
 
   function obstacle(x: number, y: number, z: number, w: number, h: number, d: number) {
-    solids.push({ min: [x + offset[0] - w / 2, y - h / 2, z + offset[1] - d / 2], max: [x + offset[0] + w / 2, y + h / 2, z + offset[1] + d / 2] });
+    solids.push({ min: [x + offset[0] - w / 2, y + offset[1] - h / 2, z + offset[2] - d / 2],
+      max: [x + offset[0] + w / 2, y + offset[1] + h / 2, z + offset[2] + d / 2] });
   }
 
   function solid(at: Vec3, size: Vec3, material: THREE.Material, bevel = .025) {
@@ -149,7 +153,7 @@ function* environmentSteps() {
     for (const x of [-.2, -.1, 0, .1, .2]) box(group, m.steel, .022, .23, .07, x, 0, -.19, .003);
     if (power === 0) return;
     const light = new THREE.PointLight(color, power, 17, 2);
-    light.position.set(at[0] + offset[0], at[1], at[2] + offset[1]);
+    light.position.set(at[0] + offset[0], at[1] + offset[1], at[2] + offset[2]);
     light.position.y -= .2;
     scene.add(light);
   }
@@ -200,10 +204,10 @@ function* environmentSteps() {
     obstacle(x-1.08,base+1.02+height/2,z,3.67,height,1.93);
   }
 
-  // Subtract the lower quay and descent apertures from the continuous ground slab.
-  let ground = [{ minX: -172, maxX: 228, minZ: -220, maxZ: 180 }];
-  for (const cut of [dock, dockRamp, ramp, northTerrace, coldChainPad, northGatePad]) {
-    ground = ground.flatMap(r => {
+  // Open the terrain around the quay, terraced foundations and the B1 entrance.
+  type Footprint = {minX: number; maxX: number; minZ: number; maxZ: number};
+  function cutOut(areas: readonly Footprint[], cut: Footprint) {
+    return areas.flatMap(r => {
       const x1 = Math.max(r.minX, cut.minX), x2 = Math.min(r.maxX, cut.maxX);
       const z1 = Math.max(r.minZ, cut.minZ), z2 = Math.min(r.maxZ, cut.maxZ);
       if (x1 >= x2 || z1 >= z2) return [r];
@@ -214,16 +218,20 @@ function* environmentSteps() {
       ].filter(p => p.maxX > p.minX && p.maxZ > p.minZ);
     });
   }
+  const ground = [dock, dockRamp, northTerrace, coldChainPad, northGatePad, researchPad, researchApproach, researchSteps]
+    .reduce(cutOut, [{ minX: -172, maxX: 228, minZ: -220, maxZ: 180 }] as readonly Footprint[]);
   for (const r of ground) slab(r.minX, r.maxX, r.minZ, r.maxZ, 0, groundMaterial);
   buildNorthTerrace(allStatic,m,solids);
   const fill = enamel(0x89988c);
   for (const section of newTerrainSections) {
     const { minX, maxX, minZ, maxZ, northY, southY } = section;
+    // The north stair treads cover this foundation. Lower its rendered top below the nosing.
+    const finishOffset = minX === researchSteps.minX && minZ === researchSteps.minZ ? .10 : 0;
     const geometry = new THREE.BoxGeometry(maxX - minX, 1, maxZ - minZ);
     geometry.translate((minX + maxX) / 2, 0, (minZ + maxZ) / 2);
     const positions = geometry.getAttribute('position');
     for (let i = 0; i < positions.count; i++) {
-      positions.setY(i, positions.getY(i) > 0 ? gradeHeight(section, positions.getZ(i)) : -.36);
+      positions.setY(i, positions.getY(i) > 0 ? gradeHeight(section, positions.getZ(i)) - finishOffset : -.36);
     }
     geometry.computeVertexNormals();
     tileByPosition(geometry, 3);
@@ -237,6 +245,17 @@ function* environmentSteps() {
         slope: { axis: 2, start: minZ, height: northY, gradient: (southY - northY) / (maxZ - minZ) } });
     }
   }
+  const foundation = cutOut(cutOut([researchPad], lab), ramp);
+  for (const r of foundation) {
+    const h = researchPad.height + .36;
+    const x = (r.minX + r.maxX) / 2, z = (r.minZ + r.maxZ) / 2;
+    const w = r.maxX - r.minX, d = r.maxZ - r.minZ;
+    // Register the top as a flat walk surface so the capsule can meet it from either incline.
+    box(allStatic, m.concrete, w, h, d, x, (researchPad.height - .36) / 2, z).castShadow = true;
+    solids.push({ min: [r.minX, -.36, r.minZ], max: [r.maxX, researchPad.height, r.maxZ], floor: true, walkSurface: true });
+  }
+  slab(lab.minX, lab.maxX, lab.minZ, lab.maxZ, researchPad.height, m.concrete);
+  buildResearchBuilding(allStatic, m, solids, solid);
   slab(dock.minX, dock.maxX, dock.minZ, dock.maxZ, dock.y, m.concrete);
   for (const z of [dock.minZ,dock.maxZ]) {
     solid([(dock.minX+dock.maxX)/2,dock.y/2,z],[dock.maxX-dock.minX,-dock.y,.08],m.concrete,0);
@@ -269,7 +288,7 @@ function* environmentSteps() {
     staticRoot.add(asset.root);
     if(open){
       // Floor, side panels, rear wall and ceiling instead of a closed volume.
-      solids.push({min:[x+offset[0]-1.13,y,z+offset[1]-2.95],max:[x+offset[0]+1.13,y+.09,z+offset[1]+2.95],floor:true,walkSurface:true,surface:'metal'});
+      solids.push({min:[x+offset[0]-1.13,y,z+offset[2]-2.95],max:[x+offset[0]+1.13,y+.09,z+offset[2]+2.95],floor:true,walkSurface:true,surface:'metal'});
       for(const s of [-1,1])obstacle(x+s*1.14,y+1.29,z,.17,2.58,6.06);
       obstacle(x,y+1.29,z-2.96,2.44,2.58,.14);obstacle(x,y+2.53,z,2.44,.12,6.06);
       solid([x,y+.40,z-2.05],[1.65,.80,1.0],open.style==='cold'?offwhite:painted,.045);
@@ -506,7 +525,7 @@ function* environmentSteps() {
     rail([x,rampHeightLocal(-3),-3],[x,rampHeightLocal(-20),-20],m.zinc,false);
   }
   for(const z of [-5,-10,-15,-19]) {
-    const y = slopeHeight(rampSlope,40.5,z - 130);
+    const y = rampHeightLocal(z);
     box(staticRoot,yellow,4.75,.017,.12,20.5,y+.015,z);
     lamp([18.14,y+1.45,z],0x87cee1,2);
   }
@@ -520,13 +539,13 @@ function* environmentSteps() {
   ceilingGeometry.translate(9, -.6, -31);
   tileByPosition(ceilingGeometry, 2.5);
   mesh(staticRoot, ceilingGeometry, m.concrete);
-  solids.push({ min: [lab.minX, -.675, lab.minZ], max: [lab.maxX, -.525, lab.maxZ], floor: true });
+  solids.push({ min: [lab.minX, labCeilingUnder, lab.minZ], max: [lab.maxX, labCeilingUnder + .15, lab.maxZ], floor: true });
   // Two parallel lab corridors link isolation cells, sample chamber and the freight lift.
   for(const x of [1.5,14.8]) {
     solid([x,-2.9,-37.2],[.24,4.9,9.5],offwhite,.014);
     solid([x,-2.9,-22.5],[.24,4.9,4.8],offwhite,.014);
     box(staticRoot,painted,.13,.65,4.3,x,-.96,-29.45,.01);
-    for(const z of [-40.5,-32.7,-26.5,-20.8]) post(x,lab.y,z,4.8);
+    for(const z of [-40.5,-32.7,-26.5,-20.8]) post(x,labLocalY,z,4.8);
     // Doorway reveals and kick plates make the isolation partitions read as built walls.
     for (const z of [-32.38, -25.0]) {
       box(staticRoot, m.zinc, .38, 4.3, .13, x, -3.14, z, .013);
@@ -584,18 +603,18 @@ function* environmentSteps() {
     color: 0x668b83, roughness: .16, metalness: .15, transparent: true, opacity: .28, depthWrite: false,
   });
   for (const x of [10.6, 12.7]) {
-    cylinder(staticRoot, m.steel, .63, .21, x, lab.y + .105, -40.75, 32);
-    cylinder(staticRoot, m.zinc, .58, .11, x, lab.y + .28, -40.75, 32);
-    cylinder(staticRoot, chamberGlass, .53, 2.58, x, lab.y + 1.62, -40.75, 32);
-    cylinder(staticRoot, m.zinc, .6, .17, x, lab.y + 2.98, -40.75, 32);
-    cylinder(staticRoot, painted, .58, .16, x, lab.y + 3.13, -40.75, 32);
-    pipe([[x,lab.y+3.25,-40.75],[x,lab.y+3.7,-40.75],[x,lab.y+3.7,-41.8]], .055, m.zinc);
-    for (const dx of [-.49, .49]) box(staticRoot, m.steel, .045, 2.6, .055, x + dx, lab.y + 1.62, -40.57, .007);
-    for (let i = 0; i < 3; i++) box(staticRoot, emissive(0x759f83,.32), .042, .025, .012, x + .38, lab.y + .36 + i * .065, -40.22, .003);
-    obstacle(x,lab.y+1.6,-40.75,1.24,3.2,1.24);
+    cylinder(staticRoot, m.steel, .63, .21, x, labLocalY + .105, -40.75, 32);
+    cylinder(staticRoot, m.zinc, .58, .11, x, labLocalY + .28, -40.75, 32);
+    cylinder(staticRoot, chamberGlass, .53, 2.58, x, labLocalY + 1.62, -40.75, 32);
+    cylinder(staticRoot, m.zinc, .6, .17, x, labLocalY + 2.98, -40.75, 32);
+    cylinder(staticRoot, painted, .58, .16, x, labLocalY + 3.13, -40.75, 32);
+    pipe([[x,labLocalY+3.25,-40.75],[x,labLocalY+3.7,-40.75],[x,labLocalY+3.7,-41.8]], .055, m.zinc);
+    for (const dx of [-.49, .49]) box(staticRoot, m.steel, .045, 2.6, .055, x + dx, labLocalY + 1.62, -40.57, .007);
+    for (let i = 0; i < 3; i++) box(staticRoot, emissive(0x759f83,.32), .042, .025, .012, x + .38, labLocalY + .36 + i * .065, -40.22, .003);
+    obstacle(x,labLocalY+1.6,-40.75,1.24,3.2,1.24);
   }
-  for(let y=lab.y+.2;y<-1.2;y+=.16) box(staticRoot,m.zinc,.07,.1,3.8,-7.82,y,-25);
-  for(const z of [-27,-23]) post(-7.7,lab.y,z,4.65);
+  for(let y=labLocalY+.2;y<-1.2;y+=.16) box(staticRoot,m.zinc,.07,.1,3.8,-7.82,y,-25);
+  for(const z of [-27,-23]) post(-7.7,labLocalY,z,4.65);
 
   district();
   yield .51;
@@ -630,7 +649,8 @@ function* environmentSteps() {
       box(staticRoot, yellow, .61, .14, .06, x + dx, y + .76, z + direction * 4.21);
   }
   truck(-8.2,138,0,'medical'); truck(140,77,0,'cells');
-  for(const [x,z] of [[-19,31],[7,29],[128,-20],[27,-126]]) drum(x,0,z);
+  for(const [x,z] of [[-19,31],[7,29],[128,-20]]) drum(x,0,z);
+  drum(27,researchPad.height,-130);
   district('wharf'); truck(-48.2,22,dock.y,'freight'); district();
   // Local barricades explain finite roads without encircling the world in a wall.
   for (const z of [-211,173]) for(const x of [-115,60,175]) {
@@ -668,25 +688,27 @@ function* environmentSteps() {
   // Bonded floor inlays and alternating bulkheads frame the B1 circulation aisles.
   const violet = enamel(0x9380ca);
   const guide = emissive(0x65eadd,.42);
-  for (const x of [18.5,29.5,40.5]) {
+  district('research');
+  for (const x of [-1.5,9.5,20.5]) {
     for (const side of [-1,1]) {
-      box(staticRoot,painted,.23,.012,19.8,x+side*1.7,lab.y+.009,-161);
-      for (const z of [-168,-163,-158,-153]) box(staticRoot,guide,.09,.014,1.5,x+side*1.7,lab.y+.025,z);
+      box(staticRoot,painted,.23,.012,19.8,x+side*1.7,labLocalY+.009,-31);
+      for (const z of [-38,-33,-28,-23]) box(staticRoot,guide,.09,.014,1.5,x+side*1.7,labLocalY+.025,z);
     }
   }
-  for(const z of [-169,-164,-159,-154]) {
-    for(const x of [12.5,45.5]) {
+  for(const z of [-39,-34,-29,-24]) {
+    for(const x of [-7.5,25.5]) {
       solid([x,-3.05,z],[.54,4.7,.72],violet,.12);
       box(staticRoot,guide,.565,2.1,.18,x,-2.8,z);
     }
-    box(staticRoot,m.steel,33.5,.34,.72,29,-.86,z,.07);
-    box(staticRoot,guide,26,.04,.19,29,-1.05,z);
+    box(staticRoot,m.steel,33.5,.34,.72,9,-.86,z,.07);
+    box(staticRoot,guide,26,.04,.19,9,-1.05,z);
   }
-  for(const x of [18.5,23.7,43.5]) {
-    solid([x,-4.4,-171.5],[1.1,2,.6],painted,.03);
-    for(const y of [-4.9,-4.4,-3.9]) box(staticRoot,m.zinc,.65,.03,.04,x,y,-171.17,.005);
+  for(const x of [-1.5,3.7,23.5]) {
+    solid([x,-4.4,-41.5],[1.1,2,.6],painted,.03);
+    for(const y of [-4.9,-4.4,-3.9]) box(staticRoot,m.zinc,.65,.03,.04,x,y,-41.17,.005);
   }
-  pipe([[13,-1.3,-166],[19,-1.3,-166],[26,-1.3,-166],[31,-1.3,-166]],.17,offwhite);
+  pipe([[-7,-1.3,-36],[-1,-1.3,-36],[6,-1.3,-36],[11,-1.3,-36]],.17,offwhite);
+  district();
   for (const site of supplySites) {
     const { x, z } = site;
     const taxonomy = {
@@ -794,7 +816,7 @@ function* environmentSteps() {
   for(const progress of batchStatic(allStatic)) yield .85 + progress * .15;
   return { scene, solids, rooms };
 
-  function rampHeightLocal(z:number) { return slopeHeight(rampSlope,40.5,z - 130); }
+  function rampHeightLocal(z:number) { return slopeHeight(rampSlope,40.5,z - 130) - researchPad.height; }
 
   function addPickup(target: MapInteraction) {
     if(target.kind!=='loot') return;

@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { chromium } from 'playwright';
 import {districtRoutes} from './fixtures/district-routes.mjs';
+import {lab, labLift} from '../src/world/researchPlan.ts';
 const dir='test-results/next-pass-flow';await mkdir(dir,{recursive:true});
 const browser=await chromium.launch({channel:'chrome'}),report={errors:[],checks:[],routes:[]};
 try {
@@ -26,12 +27,12 @@ try {
  }
  report.checks.push('North and south spawns reach their opposite extracts using W/Shift; pose only turns the camera');
  await fresh();report.bundle=await page.locator('script[type=module]').getAttribute('src');
- await pose([15.4,-5.4,-155]);
+ await pose(labLift);
  await page.waitForFunction(()=>document.querySelector('#prompt').textContent.includes('配电'));
  assert.equal((await state()).countdown,undefined);
- await pose([16,-5.4,-166.7],0,-.16);await page.keyboard.press('e');
+ await pose([16,lab.y,-166.7],0,-.16);await page.keyboard.press('e');
  await page.waitForFunction(()=>window.raidQA.state().flags.includes('lab-power'));
- await pose([15.4,-5.4,-155]);
+ await pose(labLift);
  await page.waitForFunction(()=>window.raidQA.state().result?.outcome==='extracted');
  report.checks.push('Relocated lab lift rejects before power, accepts actual physical panel and extracts');
  await fresh();await pose([-9,0,14.5],0,-.32);await page.keyboard.press('e');

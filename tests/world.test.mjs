@@ -10,6 +10,7 @@ import { findInteraction } from '../src/player/controller.ts';
 import { createRaid } from '../src/raid/raid.ts';
 import { itemSpecs, packs } from '../src/raid/catalog.ts';
 import { districtRoutes } from './fixtures/district-routes.mjs';
+import { isLabLevel, labLift, researchPad, researchBuildingFloor, researchUpperY } from '../src/world/researchPlan.ts';
 
 const map = createFirstMap(42);
 const radius=.36, height=1.8;
@@ -108,7 +109,7 @@ test('eight safe spawns can all walk to their one open, opposite-side extraction
 test('lab ramp and factory ramp both have continuous traversable height and return routes',()=>{
  const underground=walk([20.5,0,-2],[[20.5,-22]],'research');
  assert.equal(underground[1],lab.y);
- assert.equal(walk(underground,[[40.5,-132]])[1],0);
+ assert.equal(walk(underground,[[40.5,-132]])[1],researchPad.height);
  const platform=walk([45,0,19],[[45,1]],'plant');
  assert.equal(platform[1],3.2);
  assert.equal(walk(platform,[[140,-16]])[1],0);
@@ -155,9 +156,9 @@ test('factory maintenance aisle gives access to the upper resource bench',()=>{
 
 test('floor, ceiling and ramp rays distinguish underground and surface',()=>{
  const near=(actual,expected)=>assert.ok(Math.abs(actual-expected)<.01,actual+' != '+expected);
- near(map.blockedDistance(at('research',[11,1.6,-29]),[0,-1,0],10),1.6);
+ near(map.blockedDistance(at('research',[6,1.6,-29]),[0,-1,0],10),1.6);
  near(map.blockedDistance(at('research',[11,-3.8,-29]),[0,1,0],10),3.125);
- near(map.blockedDistance(at('research',[20.5,1,-10]),[0,-1,0],10),1-rampHeight(-140));
+ near(map.blockedDistance(at('research',[20.5,1,-10]),[0,-1,0],10),1+researchPad.height-rampHeight(-140));
  assert.notEqual(map.blockedDistance(at('research',[20.5,-3.8,-28]),[-1,0,0],30),null);
  const wall=map.moveGrounded(at('research',[16,0,-8]),4,0,radius,height);
  assert.ok(wall[0]<36.5);
@@ -183,7 +184,7 @@ test('the district plan spans 400m with two surface approaches to each major dis
   [[-24,0,143],[[-24,95],[-115,95],[-115,27],[-129,27]]],
   [[-24,0,143],[[-24,95],[-4,95],[-4,32],[-4,18]]],
   [[-24,0,143],[[-24,155],[175,155],[175,-10],[149,-10],[149,-60]]],
-  [[-24,0,143],[[-24,95],[60,95],[60,-120],[40.5,-120],[40.5,-132]]],
+  [[-24,0,143],[[-24,95],[60,95],[60,-70],[40.5,-70],[40.5,-132]]],
  ];
  for (const [start, route] of routes) walk(start, route);
 });
@@ -232,14 +233,14 @@ test('districts retain alternate approaches from the opposite side of the road n
  walk([-4,0,-12],[[-4,2],[-1,2],[-1,18]]);
  walk([149,0,-70],[[149,-10]]);
  walk([116,0,-56],[[116,-10]]);
- walk([-4,0,-90],[[-4,-95],[40.5,-95],[40.5,-132]]);
+ walk([-65,0,-196],[[36,-196],[36,-174],[40.5,-174],[40.5,-152]]);
 });
 
 test('lab threshold has no rendered panel in the traversable opening at eye height', async()=>{
   const {Raycaster,Vector3}=await import('three');
   map.scene.updateMatrixWorld(true);
   for(const x of [38.55,40.5,40.9,42.5]) {
-    const origin=[x,-3.75,-152.5],direction=[0,0,1];
+    const origin=[x,lab.y+1.65,-152.5],direction=[0,0,1];
     assert.equal(map.blockedDistance(origin,direction,3),null);
     const ray=new Raycaster(new Vector3(...origin),new Vector3(...direction),0,3);
     assert.equal(ray.intersectObject(map.scene,true).length,0,'rendered obstruction at '+x);
@@ -331,8 +332,9 @@ test('the playable body crosses port, B1 and new district ramp seams in both dir
   const {PerspectiveCamera}=await import('three');
   const {createPlayer}=await import('../src/player/controller.ts');
   for(const [start,end] of [
-    [[-135,-.8,27],[-120,0,27]], [[140.5,0,-16],[140.5,3.2,-34]], [[40.5,0,-130],[40.5,-5.4,-155]],
+    [[-135,-.8,27],[-120,0,27]], [[140.5,0,-16],[140.5,3.2,-34]], [[40.5,researchPad.height,-130],[40.5,lab.y,-155]],
     [[26,0,-196],[26,1.8,-212]], [[38,0,0],[38,3.6,35]], [[38,0,70],[38,3.6,35]],
+    [[40.5,0,-70],[40.5,researchPad.height,-130]], [[36,0,-196],[36,researchPad.height,-174]],
   ]){
     const player=createPlayer(new PerspectiveCamera(),map,{id:'seam',position:start,yaw:0});
     for(const to of [end,start]){
@@ -344,4 +346,28 @@ test('the playable body crosses port, B1 and new district ramp seams in both dir
       assert.ok(Math.abs(player.feet[1]-to[1])<.02);
     }
   }
+});
+
+test('the main research building has an accessible second floor and a separate B1 projection', () => {
+ const entry=walk([24,researchPad.height,-147],[[24,-155],[24,-157.8]]);
+ assert.equal(researchBuildingFloor(entry),'1F');
+ visible(walk(entry,[[18.4,-158.1]]),'research-intake');
+ visible(walk(entry,[[30.7,-156.1]]),'research-bench');
+ const top=walk(entry,[[29.8,-157.8],[29.8,-169.5],[22.4,-169.5],[22.4,-166.5]]);
+ assert.equal(researchBuildingFloor(top),'2F');
+ assert.equal(top[1],researchUpperY);
+ visible(top,'research-upper');
+ assert.equal(walk(top,[[29.8,-169.5],[29.8,-157.8],[24,-157.8],[24,-147]])[1],researchPad.height);
+ for (const y of [lab.y,researchPad.height,researchUpperY]) {
+   const feet=[labLift[0],y,labLift[2]];
+   assert.equal(isLabLevel(feet),y===lab.y);
+   assert.ok(Math.abs(map.groundHeight(feet,radius)-y)<.01);
+ }
+ const raid=createRaid('raised-lift',42,map);
+ raid.interact('lab-power-panel');
+ raid.update(12,[labLift[0],researchPad.height,labLift[2]],100);
+ assert.equal(raid.result,undefined);
+ raid.interact('lab-power-panel');
+ raid.update(12,labLift,100);
+ assert.equal(raid.result.exitId,'lab-lift');
 });

@@ -1,4 +1,5 @@
 import type { Vec3 } from '../contracts/demo.ts';
+import { researchPad } from './researchPlan.ts';
 
 export const districtOffsets = {
   wharf: [-95, 0], warehouse: [0, 0], plant: [95, -35], research: [20, -130],
@@ -6,7 +7,7 @@ export const districtOffsets = {
 export type District = keyof typeof districtOffsets;
 export function districtPoint(district: District, point: Vec3): Vec3 {
   const [x, z] = districtOffsets[district];
-  return [point[0] + x, point[1], point[2] + z];
+  return [point[0] + x, point[1] + (district === 'research' ? researchPad.height : 0), point[2] + z];
 }
 export function districtRect(district: District, rect: { minX: number; maxX: number; minZ: number; maxZ: number }) {
   const [x, z] = districtOffsets[district];

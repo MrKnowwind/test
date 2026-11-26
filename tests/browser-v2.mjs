@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { chromium } from 'playwright';
+import { lab, labLift } from '../src/world/researchPlan.ts';
 
 const base = process.argv[2] ?? 'http://127.0.0.1:5173/';
 const destination = 'test-results/v2';
@@ -136,20 +137,20 @@ try {
   await wait(() => window.raidQA.state().feet[1] < -5.2 && window.raidQA.state().feet[2] < -22, undefined, 14000);
   await page.keyboard.up('w');
   assert.ok((await state()).feet[2] < -19);
-  await pose([20.5, -5.4, -24], .7, 0);
+  await pose([40.5, lab.y, -154], .7, 0);
   await shot('04-lab');
   report.checks.push('actual continuous walk down the lab ramp with matching floor height');
   // Isolate the conditional-exit check from enemies pursuing during the previous screenshot setups.
   await page.reload();
   await page.locator('#primary:not([disabled])').waitFor();
   await enter();
-  await pose([15.4, -5.4, -155]);
+  await pose(labLift);
   await wait(() => document.querySelector('#prompt').textContent.includes('配电'));
   assert.equal((await state()).countdown, undefined);
-  await pose([16, -5.4, -166.7], 0, -.16);
+  await pose([16, lab.y, -166.7], 0, -.16);
   await page.keyboard.press('e');
   await wait(() => window.raidQA.state().flags.includes('lab-power'));
-  await pose([15.4, -5.4, -155]);
+  await pose(labLift);
   await wait(() => !!window.raidQA.state().countdown);
   await wait(() => window.raidQA.state().result?.outcome === 'extracted');
   await shot('11-lab-extracted');

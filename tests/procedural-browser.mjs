@@ -75,7 +75,7 @@ try {
   await page.waitForTimeout(100);
   await shot('07-enemy-side');
   const labEnemy = (await state()).enemies.find(e=>e.id==='infected-11');
-  await pose([labEnemy.position[0], -5.4, labEnemy.position[2]+2],0,.015);
+  await pose([labEnemy.position[0], labEnemy.position[1], labEnemy.position[2]+2],0,.015);
   await page.waitForTimeout(100);
   await shot('10-lab-enemy');
   assert.deepEqual(report.images, [], 'No content images may be requested');

@@ -4,6 +4,7 @@ import { createCombat } from '../src/combat/createCombat.ts';
 import { soundPath } from '../src/enemies/perception.ts';
 import { createBackpack } from '../src/raid/backpack.ts';
 import { createTreatment } from '../src/combat/treatment.ts';
+import { lab, researchPad } from '../src/world/researchPlan.ts';
 const world = { moveGrounded: ([x, y, z], dx, dz) => [x + dx, y, z + dz], blockedDistance: () => null };
 const player = {
   playerFeet: [0, 0, 0],
@@ -29,7 +30,7 @@ test('quiet approach behind a guard stays hidden; an actual shot draws only the 
   );
   const walls = { ...world, blockedDistance: () => 0.35 };
   assert.equal(soundPath(walls, [0, 0, 0], [0, 0, 4]), 8);
-  assert.ok(soundPath(world, [26, 0, -166], [26, -5.4, -166]) > 28);
+  assert.ok(soundPath(world, [26, researchPad.height, -166], [26, lab.y, -166]) > 28);
 });
 test('a security bot facing away waits for evidence; a nearby shot starts a full visible lock', () => {
   const combat = createCombat(world, [{ ...posts[0], kind: 'security-bot' }]);

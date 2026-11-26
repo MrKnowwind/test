@@ -1,4 +1,5 @@
 import type { MapInteraction, Vec3 } from '../contracts/demo.ts';
+import { researchApproach, researchPad, researchSteps } from './researchPlan.ts';
 
 // World Y=0 is the original city datum, 2.1 m above the sea.
 export const northTerrace={minX:-160,maxX:-103,minZ:-218,maxZ:-111,crestZ:-166,height:8};
@@ -16,11 +17,14 @@ export const newTerrainSections: readonly Grade[] = [
   { ...coldChainPad, minZ: 48, northY: coldChainPad.height, southY: 0 },
   { ...northGatePad, maxZ: -209, northY: northGatePad.height, southY: northGatePad.height },
   { ...northGatePad, minZ: -209, northY: northGatePad.height, southY: 0 },
+  { ...researchApproach, northY: researchPad.height, southY: 0 },
+  { ...researchSteps, northY: 0, southY: researchPad.height },
 ];
 
 export const terrainSections: readonly Grade[] = [
   { ...northTerrace, maxZ: northTerrace.crestZ, northY: northTerrace.height, southY: northTerrace.height },
   { ...northTerrace, minZ: northTerrace.crestZ, northY: northTerrace.height, southY: 0 },
+  { ...researchPad, northY: researchPad.height, southY: researchPad.height },
   ...newTerrainSections,
 ];
 

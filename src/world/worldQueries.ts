@@ -3,6 +3,8 @@ import { districtRect } from './layout.ts';
 import type { Ledge, Vec3, WorldQueries } from '../contracts/demo.ts';
 import { offshoreWalkAreas,shipEnvelope } from './harborPlan.ts';
 import { terrainHeight } from './terrainPlan.ts';
+import { isLabLevel, lab, ramp, researchPad } from './researchPlan.ts';
+export { lab, ramp } from './researchPlan.ts';
 
 export interface Slope {
   axis: 0 | 2;
@@ -23,14 +25,13 @@ export interface Solid {
 export const mapBounds = { minX: -172, maxX: 228, minZ: -220, maxZ: 180 };
 // Render extent includes the vessel; movement does not gain a rectangular ocean floor.
 export const mapViewBounds={...mapBounds,minX:shipEnvelope.minX};
-export const lab = { ...districtRect('research', { minX: -8, maxX: 26, minZ: -42, maxZ: -20 }), y: -5.4 };
-export const ramp = { ...districtRect('research', { minX: 18, maxX: 23, minZ: -20, maxZ: -3 }), thickness: .32 };
 export const factory = { ...districtRect('plant', { minX: 30, maxX: 51, minZ: -16, maxZ: 4 }), y: 3.2 };
 export const factoryRamp = { ...districtRect('plant', { minX: 43, maxX: 48, minZ: 4, maxZ: 18 }) };
 export const dock = { ...districtRect('wharf', { minX: -62, maxX: -32, minZ: -40, maxZ: 29 }), y: -.8 };
 export const dockRamp = { ...districtRect('wharf', { minX: -32, maxX: -27, minZ: -40, maxZ: 29 }) };
 
-export const rampSlope: Slope = { axis: 2, start: ramp.maxZ, height: 0, gradient: -lab.y / (ramp.maxZ - ramp.minZ) };
+export const rampSlope: Slope = { axis: 2, start: ramp.maxZ, height: researchPad.height,
+  gradient: (researchPad.height - lab.y) / (ramp.maxZ - ramp.minZ) };
 export const factorySlope: Slope = { axis: 2, start: factoryRamp.maxZ, height: 0, gradient: -factory.y / (factoryRamp.maxZ - factoryRamp.minZ) };
 export const dockSlope: Slope = { axis: 0, start: dockRamp.maxX, height: 0, gradient: -dock.y / (dockRamp.maxX - dockRamp.minX) };
 export function slopeHeight(slope: Slope, x: number, z: number) {
@@ -46,12 +47,12 @@ function playableFootprint(x:number,z:number,radius:number){return [-radius,radi
 
 function floorAt(x: number, y: number, z: number) {
   if (!inside(mapBounds, x, z)) return null;
+  if (inside(ramp, x, z)) return rampHeight(z);
+  if (isLabLevel([x, y, z])) return lab.y;
   const terrain=terrainHeight(x,z);
   if(terrain!==null)return terrain;
-  if (inside(ramp, x, z)) return rampHeight(z);
   if (inside(factoryRamp, x, z)) return slopeHeight(factorySlope, x, z);
   if (inside(dockRamp, x, z)) return slopeHeight(dockSlope, x, z);
-  if (y < -2.5) return inside(lab, x, z) ? lab.y : null;
   if (inside(factory, x, z) && y > 1.5) return factory.y;
   if (inside(dock, x, z)) return dock.y;
   return 0;
