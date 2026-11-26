@@ -72,8 +72,9 @@ function supportHeight(solid:Solid,x:number,z:number){
 
 function blocksBody(solid: Solid, x: number, y: number, z: number, radius: number, height: number) {
   if (solid.max[1] <= y + .001 || solid.min[1] >= y + height) return false;
-  // A capsule on a stair touches the adjoining landing edge before its feet reach the top.
-  if(solid.walkSurface && !solid.slope && y>=solid.max[1]-.29 &&
+  // The capsule rim can touch a floor before its centre reaches the support sample.
+  // Keep low ramp edges stepable. Taller sides still block sideways entry.
+  if(solid.walkSurface && y>=solid.max[1]-(solid.slope ? .12 : .29) &&
       (x<solid.min[0] || x>solid.max[0] || z<solid.min[2] || z>solid.max[2]))return false;
   const dx = Math.max(solid.min[0] - x, 0, x - solid.max[0]);
   const dz = Math.max(solid.min[2] - z, 0, z - solid.max[2]);

@@ -134,6 +134,17 @@ test('the warehouse doorways lead to its loading aisle and ordinary supplies',()
  visible(at('plant',[35,0,22.1]),'factory-ammo');
 });
 
+test('the full player capsule crosses a low ramp edge beside the southern road center',()=>{
+  for (const z of [154.42,154.74,154.994,155.14]) {
+    const east=map.moveBody([-71.6,0,z],11,0,0,radius,height);
+    assert.ok(Math.abs(east[0]+60.6)<.001 && Math.abs(east[1])<.001,z);
+    const west=map.moveBody(east,-11,0,0,radius,height);
+    assert.ok(Math.abs(west[0]+71.6)<.001 && Math.abs(west[1])<.001,z);
+  }
+  const highSide=map.moveBody([-71.4,0,151],3,0,0,radius,height);
+  assert.ok(highSide[0]<-70,'higher ramp sides must stay solid');
+});
+
 test('the logistics buildings separate sorting, office records and outdoor vehicle transfer',()=>{
   const intake=walk([-78,0,-22],[[-78,-11.4],[-84,-11.4]]);
   visible(intake,'transit-tools');

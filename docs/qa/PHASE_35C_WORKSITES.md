@@ -19,3 +19,9 @@
 - `PLAYWRIGHT_CHROMIUM_EXECUTABLE=/path/to/chromium node tests/field-pass-browser.mjs dist test-results/worksites-release service,worksites`。在实际浏览器搜索并携带维修卡，验证中途丢下取消撤离、拾回后撤离。关闭飞行步行连接分拣中心、转运场和办公楼，另走排水双桥、控制中心仪表间及观察室。截图和报告写入 `test-results/worksites-release/`。
 - `PLAYWRIGHT_CHROMIUM_EXECUTABLE=/path/to/chromium node tests/district-rebuild-browser.mjs dist`。浏览器走完八组对侧常规撤离，并复验同侧锁定及 C2、E3 入口。报告写入 `test-results/district-rebuild/`。
 - [3.5C 建筑差异化](../design/MAP_REBUILD.md#35c-建筑差异化验收)继续作为放行依据。
+
+### 南部道路坡缘复验
+
+四个北组出生点和 S-A 实走通过。S-B 的实际角色在药局南坡侧沿卡住。碰撞改为允许角色外围先越过可迈步的低边缘，再由中心取到坡面支撑。较高的坡侧继续阻挡。新增角色胶囊检查覆盖偏离道路中线的双向通行。
+
+南组三条续测入口为 `PLAYWRIGHT_CHROMIUM_EXECUTABLE=/path/to/chromium node tests/district-rebuild-browser.mjs dist S-B,S-C,S-D test-results/district-rebuild-grade-edge`。只传生产包路径时仍执行完整的地图浏览器回放。

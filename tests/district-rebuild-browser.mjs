@@ -5,7 +5,10 @@ import { chromium } from 'playwright';
 import { districtRoutes } from './fixtures/district-routes.mjs';
 
 const root = path.resolve(process.argv[2] ?? 'dist');
-const destination = path.resolve('test-results/district-rebuild');
+const requested = (process.argv[3] ?? '').split(',').filter(Boolean);
+const routes = requested.length ? districtRoutes.filter(route => requested.includes(route.id)) : districtRoutes;
+assert.equal(routes.length, requested.length || districtRoutes.length, 'Use valid, unique spawn IDs');
+const destination = path.resolve(process.argv[4] ?? 'test-results/district-rebuild');
 await mkdir(destination, { recursive: true });
 const browser = await chromium.launch({
   executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE || undefined,
@@ -106,7 +109,7 @@ try {
     await tick(1, 1000 / 60, true);
     await page.screenshot({ path: path.join(destination, name + '.jpg'), quality: 86, timeout: 60000 });
   }
-  for (const route of districtRoutes) {
+  for (const route of routes) {
     await fresh(route.seed, true);
     assert.equal((await state()).spawn.id, route.id);
     for (const [x, z] of route.waypoints) await walkTo(x, z);
@@ -124,52 +127,54 @@ try {
     console.log(route.id + ' → ' + exitId);
   }
 
-  for (const route of [districtRoutes[0], districtRoutes[4]]) {
-    await fresh(route.seed);
-    const { spawn, exits } = await state();
-    const closed = exits.find(exit => exit.openForSpawnSide && exit.openForSpawnSide !== spawn.side);
-    await page.evaluate(feet => raidQA.pose(feet, 0), closed.position);
-    await tick(55, 100);
-    assert.match(await page.locator('#prompt').textContent(), /本局未开放/);
-    assert.equal((await state()).countdown, undefined);
-    assert.equal((await state()).result, undefined);
-    await page.keyboard.press('m');
-    await tick();
-    const labels = await page.evaluate(() => window.exitMapLabels);
-    assert.ok(labels.includes(closed.label + ' · 本局未开放'), labels.join(', '));
-    assert.ok(labels.some(text => text.endsWith(' · 可撤离')), labels.join(', '));
-    await capture('map-' + spawn.side);
-    report.closedExits.push(closed.id);
+  if (requested.length === 0) {
+    for (const route of [districtRoutes[0], districtRoutes[4]]) {
+      await fresh(route.seed);
+      const { spawn, exits } = await state();
+      const closed = exits.find(exit => exit.openForSpawnSide && exit.openForSpawnSide !== spawn.side);
+      await page.evaluate(feet => raidQA.pose(feet, 0), closed.position);
+      await tick(55, 100);
+      assert.match(await page.locator('#prompt').textContent(), /本局未开放/);
+      assert.equal((await state()).countdown, undefined);
+      assert.equal((await state()).result, undefined);
+      await page.keyboard.press('m');
+      await tick();
+      const labels = await page.evaluate(() => window.exitMapLabels);
+      assert.ok(labels.includes(closed.label + ' · 本局未开放'), labels.join(', '));
+      assert.ok(labels.some(text => text.endsWith(' · 可撤离')), labels.join(', '));
+      await capture('map-' + spawn.side);
+      report.closedExits.push(closed.id);
+    }
+
+    await fresh(districtRoutes[0].seed, true);
+    await page.evaluate(() => raidQA.pose([38, 0, -3], Math.PI));
+    await capture('cold-chain-approach');
+    await walkTo(38, 31.6);
+    assert.ok(Math.abs((await state()).feet[1] - 3.6) < .04);
+    await walkTo(32, 31.6);
+    await walkTo(32, 30.7);
+    await page.evaluate(() => {
+      const { feet, eye } = raidQA.state();
+      const target = raidQA.state().interactions.find(item => item.id === 'cold-chain-medical').position;
+      const [dx, dy, dz] = target.map((value, axis) => value - eye[axis]);
+      raidQA.pose(feet, Math.atan2(-dx, -dz), Math.atan2(dy, Math.hypot(dx, dz)));
+    });
+    await capture('cold-chain-medical');
+    assert.match(await page.locator('#prompt').textContent(), /低温药品柜/);
+    await page.keyboard.press('e');
+    await tick(25, 100);
+    await page.locator('.source-item.revealed').first().waitFor({ timeout: 10000 });
+    assert.ok((await page.evaluate(() => raidQA.state().searched)).includes('cold-chain-medical'));
+    report.search = 'cold-chain-medical';
+
+    await fresh(districtRoutes[0].seed, true);
+    await page.evaluate(() => raidQA.pose([120, 0, -57.5], 0));
+    await capture('switchgear-exterior');
+    await walkTo(120, -76);
+    await page.evaluate(() => raidQA.pose(raidQA.state().feet, -Math.PI / 2));
+    await capture('switchgear-interior');
+    await walkTo(120, -93.5);
   }
-
-  await fresh(districtRoutes[0].seed, true);
-  await page.evaluate(() => raidQA.pose([38, 0, -3], Math.PI));
-  await capture('cold-chain-approach');
-  await walkTo(38, 31.6);
-  assert.ok(Math.abs((await state()).feet[1] - 3.6) < .04);
-  await walkTo(32, 31.6);
-  await walkTo(32, 30.7);
-  await page.evaluate(() => {
-    const { feet, eye } = raidQA.state();
-    const target = raidQA.state().interactions.find(item => item.id === 'cold-chain-medical').position;
-    const [dx, dy, dz] = target.map((value, axis) => value - eye[axis]);
-    raidQA.pose(feet, Math.atan2(-dx, -dz), Math.atan2(dy, Math.hypot(dx, dz)));
-  });
-  await capture('cold-chain-medical');
-  assert.match(await page.locator('#prompt').textContent(), /低温药品柜/);
-  await page.keyboard.press('e');
-  await tick(25, 100);
-  await page.locator('.source-item.revealed').first().waitFor({ timeout: 10000 });
-  assert.ok((await page.evaluate(() => raidQA.state().searched)).includes('cold-chain-medical'));
-  report.search = 'cold-chain-medical';
-
-  await fresh(districtRoutes[0].seed, true);
-  await page.evaluate(() => raidQA.pose([120, 0, -57.5], 0));
-  await capture('switchgear-exterior');
-  await walkTo(120, -76);
-  await page.evaluate(() => raidQA.pose(raidQA.state().feet, -Math.PI / 2));
-  await capture('switchgear-interior');
-  await walkTo(120, -93.5);
   assert.deepEqual(report.errors, []);
 } catch (error) {
   report.failure = String(error);
