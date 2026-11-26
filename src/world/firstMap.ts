@@ -13,6 +13,7 @@ import { regularExits, spawnPoints } from './raidPlan.ts';
 import { labLift, labLocalY } from './researchPlan.ts';
 import { communityPad, residentialPad, transitPad } from './southPlan.ts';
 import { parkingPad, pharmacyPad } from './marketPlan.ts';
+import { innPad } from './innPlan.ts';
 
 const botPosts: readonly Vec3[] = [[20, labLocalY, -31.2], [9.7, labLocalY, -35.6], [-4, labLocalY, -32]];
 function placeEnemies(seed: number): EnemySpawn[] {
@@ -29,6 +30,7 @@ function placeEnemies(seed: number): EnemySpawn[] {
     { id: 'lab-security', position: districtPoint('research', botPosts[post]), yaw: Math.PI, kind: 'security-bot' },
     { id: 'community-infected', position: [43.5,communityPad.height,122.8], yaw: Math.PI, kind: 'infected' },
     { id: 'transit-infected', position: [144.6,transitPad.height,120.8], yaw: Math.PI, kind: 'infected' },
+    { id: 'inn-infected', position: [91.8,innPad.height,127.2], yaw: -Math.PI/2, kind: 'infected' },
     ...supplySites.filter(site => site.risk === '高').flatMap(site => [-1, 1].map((side): EnemySpawn => ({
       id: `${site.id}-guard-${side}`, position: [site.x + side * 6, 0, site.z + 9], yaw: Math.PI, kind: 'infected',
     }))),
@@ -80,6 +82,7 @@ export function createFirstMap(seed: number, environment = createEnvironment()):
       { id: 'south-market', label: '生活商街', center: [-67,0,113], radius: 13 },
       { id: 'south-pharmacy', label: '极光药局', center: [-66,pharmacyPad.height,138], radius: 13 },
       { id: 'south-parking', label: '公共停车场', center: [197,parkingPad.height,129], radius: 16 },
+      { id: 'south-inn', label: '海员旅馆', center: [95.5,innPad.height,125], radius: 14 },
       { id: 'lab', label: '地下实验室 · 高风险', center: districtPoint('research', [9, labLocalY, -31]), radius: 21 },
       { id: 'plant', label: '03 处理厂区', center: districtPoint('plant', [41, 0, -5]), radius: 45 },
       { id: 'research', label: '04 生化研究设施', center: districtPoint('research', [20.5, 0, -23]), radius: 50 },

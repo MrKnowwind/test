@@ -79,7 +79,6 @@ export function addArcology(root: THREE.Group,m: Materials,solid: Solid) {
     [-37,135,8,6,3.7,cyan,'S-02','MED TRANSIT'],
     [12,113,15,10,6,cyan,'T-04','CARGO CONTROL'],
     [-89,112,10,9,5.1,cyan,'Q-07','BONDED STORAGE'],
-    [95,114,17,10,5.4,coral,'E-02','POWER SERVICE'],
     [139,70,9,7,4.7,iris,'E-08','EAST TERMINAL'],
     [-102,12,8,12,5.2,cyan,'C-03','QUAY CONTROL'],
     [18,53,12,9,4.5,cyan,'H-12','DISTRIBUTION'],

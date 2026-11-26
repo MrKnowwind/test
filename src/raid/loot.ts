@@ -66,6 +66,8 @@ type Profile = {
   extra?: ItemId[];
 };
 export function caseProfile(id: string, item: ItemId): Profile {
+  if(id==='inn-reception')return {kind:'files',tag:'shipping'};
+  if(id==='inn-luggage'||id==='inn-crew')return {kind:'locker',tag:'shipping',bags:['daypack','sling'],chance:.18};
   if(id==='pharmacy-cold')return {kind:'cold',tag:'medical',extra:['shield-cell']};
   if(id==='market-hardware')return {kind:'tool',tag:'mechanical'};
   if(id==='cold-chain-medical')return {kind:'cold',tag:'medical'};

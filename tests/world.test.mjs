@@ -13,6 +13,7 @@ import { districtRoutes } from './fixtures/district-routes.mjs';
 import { isLabLevel, labLift, researchPad, researchBuildingFloor, researchUpperY } from '../src/world/researchPlan.ts';
 import { communityPad, residentialPad, southInteractions, transitPad } from '../src/world/southPlan.ts';
 import { marketArea, marketInteractions, parkingPad, pharmacyPad } from '../src/world/marketPlan.ts';
+import { innArea, innDoorX, innFloor, innInteractions, innPad, innStair, innUpperY } from '../src/world/innPlan.ts';
 
 const map = createFirstMap(42);
 const radius=.36, height=1.8;
@@ -446,4 +447,51 @@ test('the main research building has an accessible second floor and a separate B
  raid.interact('lab-power-panel');
  raid.update(12,labLift,100);
  assert.equal(raid.result.exitId,'lab-lift');
+});
+
+test('seafarers inn connects its approach ramps, stair and three distinct guest rooms',async()=>{
+ const lobby=walk([innDoorX,0,155],[[innDoorX,129.5]]);
+ assert.equal(lobby[1],innPad.height);
+ assert.equal(innArea(lobby),'海员旅馆 · 1F');
+ visible(walk(lobby,[[93.4,130.23]]),'inn-reception');
+ visible(walk(lobby,[[innDoorX,122.1],[89.65,122.1]]),'inn-linen');
+ visible(walk(lobby,[[innDoorX,116.7],[90.05,116.7]]),'inn-luggage');
+ assert.ok(Math.abs(walk(lobby,[[innDoorX,95]])[1])<.001);
+ const upper=walk(lobby,[[innStair.x,129.5],[innStair.x,115.7],[99.1,115.7]]);
+ assert.equal(upper[1],innUpperY);
+ assert.equal(innFloor(upper),'2F');
+ for(const [z,id] of [[117.1,'inn-crew'],[124.4,'inn-twin'],[132.4,'inn-corner']]){
+   visible(walk(upper,[[99.1,z],[90.75,z]]),id);
+ }
+ const downstairs=walk(upper,[[innStair.x,115.7],[innStair.x,129.5],[innDoorX,129.5]]);
+ assert.equal(downstairs[1],innPad.height);
+ assert.ok(Math.abs(walk(downstairs,[[innDoorX,155]])[1])<.001);
+
+ const raid=createRaid('inn-layout',42,map);
+ for(const {id,position} of innInteractions){
+   assert.ok(raid.containers.has(id),id);
+   const hit=map.blockedDistance(position,[0,-1,0],.10);
+   assert.ok(hit!==null&&hit<.10,id);
+ }
+ const ceiling=map.blockedDistance([88.6,innPad.height+1.65,117.1],[0,1,0],3);
+ assert.ok(ceiling!==null&&ceiling<2.1);
+ const guard=map.enemies.find(enemy=>enemy.id==='inn-infected');
+ assert.ok(map.bodyClear(guard.position,radius,height));
+ assert.equal(map.groundHeight(guard.position,radius),innPad.height);
+
+ const {PerspectiveCamera}=await import('three');
+ const {createPlayer}=await import('../src/player/controller.ts');
+ const start=[innDoorX,0,155];
+ const player=createPlayer(new PerspectiveCamera(),map,{id:'inn-test',position:start,yaw:0});
+ for(const [x,y,z] of [[innDoorX,innPad.height,130],[innStair.x,innPad.height,130],
+   [innStair.x,innUpperY,115.7],[innStair.x,innPad.height,130],[innDoorX,innPad.height,130],
+   [innDoorX,0,95],[innDoorX,innPad.height,130],start]){
+   const [px,,pz]=player.feet;
+   player.pose(player.feet,Math.atan2(px-x,pz-z));
+   const frames=Math.ceil(Math.hypot(px-x,pz-z)*11)+15;
+   for(let i=0;i<frames&&Math.hypot(player.feet[0]-x,player.feet[2]-z)>.14;i++)
+     player.move(1/60,{forward:1,strafe:0,lookX:0,lookY:0,running:true},false);
+   assert.ok(Math.hypot(player.feet[0]-x,player.feet[2]-z)<.15&&Math.abs(player.feet[1]-y)<.03,
+     JSON.stringify({goal:[x,y,z],feet:player.feet}));
+ }
 });

@@ -30,6 +30,8 @@ import { southInteractions } from './southPlan.ts';
 import { buildSouthDistrict } from './southDistrict.ts';
 import { marketInteractions } from './marketPlan.ts';
 import { buildMarketDistrict } from './marketDistrict.ts';
+import { innInteractions } from './innPlan.ts';
+import { buildInn } from './inn.ts';
 
 const v = (p: Vec3) => new THREE.Vector3(...p);
 
@@ -52,6 +54,7 @@ export const mapInteractions: readonly MapInteraction[] = [
   ...researchInteractions,
   ...southInteractions,
   ...marketInteractions,
+  ...innInteractions,
   ...siteInteractions,
   ...localInteractions.map(target => ({ ...target, position: districtPoint(districtForInteraction(target.id), target.position) })),
   { id: 'plant-workshop', label: '厂区维修箱', kind: 'loot', item: 'salvage', quantity: 2, position: [83.6,1.12,-47.7] },
@@ -815,6 +818,7 @@ function* environmentSteps() {
   buildCivicDistrict(allStatic,m,solids);
   buildSouthDistrict(staticRoot,m,solids,solid);
   buildMarketDistrict(staticRoot,m,solid);
+  buildInn(staticRoot,m,solids,solid);
   addPortHorizon(allStatic, m);
   for(const interaction of mapInteractions) addPickup(interaction);
 

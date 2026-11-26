@@ -7,6 +7,7 @@ import { districtRoutes } from './fixtures/district-routes.mjs';
 import { lab, labLift, researchPad, researchUpperY } from '../src/world/researchPlan.ts';
 import { communityPad, residentialPad, transitPad } from '../src/world/southPlan.ts';
 import { parkingPad, pharmacyPad } from '../src/world/marketPlan.ts';
+import { innDoorX, innPad, innStair, innUpperY } from '../src/world/innPlan.ts';
 
 const root = path.resolve(process.argv[2] ?? 'dist');
 const output = path.resolve(process.argv[3] ?? 'test-results/field-pass');
@@ -55,7 +56,7 @@ await page.addInitScript(fixedRoutes => {
     }
     painting = true;
   };
-}, ['research','south','market'].some(name=>cases.has(name)));
+}, ['research','south','market','inn'].some(name=>cases.has(name)));
 const tick = (n=2, paint=false) => page.evaluate(([n,paint]) => window.advanceRaid(n,paint),[n,paint]);
 const state = () => page.evaluate(() => {
   const {feet,stance,climb,eye,countdown,result,flags,weapon,locked,backpack,items,spawn,fov,speed,grounded,health} = window.raidQA.state();
@@ -493,8 +494,47 @@ async function market() {
   report.market={spawn:'S-B',shops:3,pharmacy:pharmacyPad.height,parking:parkingPad.height,
     checked:['both pharmacy entrances','three shop interiors','parking ramps, booth and charger','seven containers searched']};
 }
+
+async function inn() {
+  await start(5);
+  assert.equal((await state()).spawn.id,'S-C');
+  await practice();
+  await walkRoute([[123,155],[innDoorX,155],[innDoorX,139.5]]);
+  await capture('01-inn-south-approach');
+  await walkRoute([[innDoorX,129.5]]);
+  await height(innPad.height);
+  assert.equal(await page.locator('#floor').textContent(),'海员旅馆 · 1F');
+  await walkRoute([[93.4,130.23]]);
+  await aim('inn-reception');
+  await capture('02-inn-reception');
+  await searchCase('inn-reception');
+  await walkRoute([[innDoorX,129.5],[innDoorX,122.1],[89.65,122.1]]);
+  await searchCase('inn-linen');
+  await walkRoute([[innDoorX,122.1],[innDoorX,129.5],[innStair.x,129.5],[innStair.x,115.7],[99.1,115.7]]);
+  await height(innUpperY);
+  assert.equal(await page.locator('#floor').textContent(),'海员旅馆 · 2F');
+  await page.waitForTimeout(120);
+  await capture('03-inn-upper-landing');
+  assert.equal(await page.locator('#minimap-floor').textContent(),'2F');
+  for(const [z,id] of [[117.1,'inn-crew'],[124.4,'inn-twin'],[132.4,'inn-corner']]){
+    await walkRoute([[99.1,z],[90.75,z]]);
+    await aim(id);
+    await capture(id);
+    await searchCase(id);
+    await walkRoute([[99.1,z]]);
+  }
+  await walkRoute([[99.1,115.7],[innStair.x,115.7],[innStair.x,129.5],[innDoorX,129.5],[innDoorX,95]]);
+  await height(0);
+  await walkRoute([[innDoorX,121]]);
+  await height(innPad.height);
+  await walkRoute([[innDoorX,155]]);
+  await height(0);
+  report.inn={spawn:'S-C',street:innPad.height,upper:innUpperY,
+    searched:['inn-reception','inn-linen','inn-crew','inn-twin','inn-corner'],
+    checked:['south approach','north approach','stairs both ways','minimap level','three guest rooms']};
+}
 try {
-  for(const [name,fn] of Object.entries({districts,bags,movement,exits,service,routes,controls,feel,research,south,market})){
+  for(const [name,fn] of Object.entries({districts,bags,movement,exits,service,routes,controls,feel,research,south,market,inn})){
     if(cases.has(name)){await fn();console.log(name+' passed');}
   }
   assert.deepEqual(errors,[]);
