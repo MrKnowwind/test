@@ -38,6 +38,7 @@
 
         </div>
         <div class="vitals">
+          <div id="shield-hud" hidden><div class="stat"><span id="shield-name">能量护甲</span><strong id="shield-charge"></strong></div><div class="shield-track"><div id="shield-bar"></div></div></div>
           <div class="stat"><span>生命</span><strong id="health">100</strong></div>
           <div class="health-track"><div id="health-bar"></div></div>
         </div>
@@ -61,7 +62,7 @@
             </nav>
             <div class="outpost-account"><span class="wallet"><b id="credits">0</b> 券</span><button type="button" id="settings-open">设置</button></div>
           </div>
-          <p id="summary" hidden></p>
+          <div id="summary" hidden></div>
           <div id="outpost">
             <section id="home-pane" class="outpost-pane" aria-label="大厅">
               <div class="lobby-brief"><p class="eyebrow">SALTLINE / 港务行动处</p><h2>准备出击</h2><p>从盐港搜集物资，选择合适的撤离路线，并将战利品带回据点。</p><button data-outpost="prepare" type="button">检查装备 <span aria-hidden="true">→</span></button></div>
@@ -71,9 +72,11 @@
             <section id="prepare-pane" class="outpost-pane" aria-label="仓库" hidden>
               <div class="prepare-side"><header class="section-heading">人物与装备 <button id="reset-loadout" type="button">基础配发</button></header>
                 <div class="equipment-preview"><canvas class="outpost-operator" aria-label="出击队员，拖动旋转" tabindex="0"></canvas><div id="equipment-slots" aria-label="装备槽"></div></div>
+                <div id="weapon-slots" aria-label="武器槽"></div>
                 <details class="prepare-config"><summary>精确配置装备与数量</summary><div id="prepare-slots"></div></details><div id="prepare-grid" aria-label="随身空间与背包"></div>
               </div>
               <div class="stash-side"><header class="section-heading"><span>仓库 <small id="stash-count"></small></span><button id="stash-sort" type="button">自动整理</button></header>
+                <div class="capacity-line"><span id="stash-capacity"></span><button id="stash-expand" type="button">扩建</button></div>
                 <div class="stash-filter"><input id="stash-search" type="search" placeholder="搜索物品" aria-label="搜索仓库"><select id="stash-category" aria-label="物品分类"><option value="">全部分类</option></select></div>
                 <div id="stash-scroll"><div id="stash-grid" aria-label="仓库格子"></div></div>
                 <div id="stash-detail" aria-live="polite"></div>
@@ -81,11 +84,11 @@
               </div>
             </section>
             <section id="merchant-pane" class="outpost-pane" aria-label="商人" hidden>
-              <div class="merchant-side"><span class="eyebrow">港务补给站</span><h2>后勤商人</h2><canvas id="merchant-portrait" width="300" height="210" aria-label="港务补给机器人"></canvas><button type="button" data-outpost="buy" aria-pressed="true">购买补给</button><button type="button" data-outpost="sell" aria-pressed="false">出售物资</button><label>商品分类 <select id="merchant-category"><option value="">全部分类</option></select></label></div>
-              <div class="merchant-stock"><section id="buy-pane" aria-label="购买"><header class="section-heading">补给商品</header><div id="buy-stock" class="trade-grid"></div></section><section id="sell-pane" aria-label="出售" hidden><header class="section-heading">回收报价 <time id="market-refresh"></time></header><div id="market-stock" class="trade-grid"></div></section></div>
+              <div class="merchant-side"><span class="eyebrow">港务补给站</span><h2>后勤商人</h2><canvas id="merchant-portrait" width="300" height="210" aria-label="港务补给机器人"></canvas><button type="button" data-outpost="buy" aria-pressed="true">购买补给</button><button type="button" data-outpost="sell" aria-pressed="false">出售物资</button><button type="button" data-outpost="exchange" aria-pressed="false">物资兑换 / 维护</button><label>商品分类 <select id="merchant-category"><option value="">全部分类</option></select></label></div>
+              <div class="merchant-stock"><section id="buy-pane" aria-label="购买"><header class="section-heading">补给商品</header><div id="buy-stock" class="trade-grid"></div></section><section id="sell-pane" aria-label="出售" hidden><header class="section-heading">回收报价 <time id="market-refresh"></time></header><div id="market-stock" class="trade-grid"></div></section><section id="exchange-pane" hidden><header class="section-heading">物资兑换</header><div id="exchange-stock" class="trade-grid"></div><header class="section-heading">护甲维护</header><div id="repair-stock" class="trade-grid"></div></section></div>
             </section>
             <section id="tasks-pane" class="outpost-pane briefing-pane" aria-label="任务" hidden><h2>行动简报</h2><div class="brief-card"><h3>公路撤离</h3><p>抵达南侧公路出口并停留至撤离完成。</p></div><div class="brief-card"><h3>维修通道</h3><p>搜寻仓储值班室，取得维修卡后前往维修通道。</p></div><div class="brief-card"><h3>实验室货梯</h3><p>探索地下设施，呼叫货梯并在离站时进入梯内。</p></div><p class="muted">行动目标会在局内随探索进度更新。</p></section>
-            <section id="base-pane" class="outpost-pane briefing-pane" aria-label="基地" hidden><h2>港务据点</h2><div class="brief-card"><h3>储物室</h3><p>管理提取的物资与出击装备。</p><button type="button" data-outpost="prepare">打开仓库</button></div><div class="brief-card"><h3>补给处</h3><p>购买补给及回收物资。</p><button type="button" data-outpost="buy">前往商人</button></div></section>
+            <section id="base-pane" class="outpost-pane briefing-pane" aria-label="基地" hidden><h2>港务据点</h2><div class="brief-card"><h3>储物室</h3><p id="base-capacity"></p><button type="button" id="base-expand">扩建仓库</button> <button type="button" data-outpost="prepare">打开仓库</button></div><div class="brief-card"><h3>补给处</h3><p>购买、回收、兑换与维护。</p><button type="button" data-outpost="exchange">前往商人</button></div><div class="brief-card history-card"><h3>最近出击记录</h3><div id="raid-history"></div></div></section>
           </div>
           <section id="creative-panel" aria-label="开发者创造模式" hidden>
             <button type="button" id="creative-toggle" aria-pressed="false" aria-controls="creative-options">开启开发者创造模式</button>

@@ -6,7 +6,7 @@ import {
   type Cargo,
   type createBackpack,
 } from '../raid/backpack.ts';
-import { itemSpecs, isPack, packs, pockets, type Section, type ItemId } from '../raid/catalog.ts';
+import { itemSpecs, isPack, packs, pockets, equipSlot, isShield, shieldCharge, shields, isHead, headDevices, gearLayout, type EquipSlot, type Section, type ItemId } from '../raid/catalog.ts';
 import type { SearchContainer, SearchEntry } from '../raid/containerSearch.ts';
 import type { MapInteraction } from '../contracts/demo.ts';
 type Bag = ReturnType<typeof createBackpack>;
@@ -20,8 +20,9 @@ type Action = {
   equip(from: string, id?: number): boolean;
   fold(from: string): boolean;
   unpack(): boolean;
-  stow(slot: 'knife' | 'pistol', p?: Placement): boolean;
+  stow(slot: EquipSlot, p?: Placement): boolean;
   holster(id: number): boolean;
+  equipFrom(id:string,entry:number,slot:EquipSlot):boolean;
 };
 type Selection = { from: 'bag' | 'source' | 'slot'; id: number; entry: Cargo; rotated: boolean };
 export function createBackpackView(actions: Action) {
@@ -177,7 +178,7 @@ export function createBackpackView(actions: Action) {
   function quickMove(s:Selection){
     if(s.from==='source'){transfer();return;}
     if(s.from==='slot'){
-      complete(actions.stow(s.entry.item as 'pistol'|'knife'),'已收入随身空间','随身空间不足');return;
+      complete(actions.stow(equipSlot(s.entry.item)!),'已收入随身空间','随身空间不足');return;
     }
     if(target && source)complete(actions.put(target.id,s.id),'已存入 '+target.label,'容器空间不足或已超出互动距离');
     else complete(bag.quickMove(s.id),'已移至另一分隔','另一分隔没有合适的空间');
@@ -210,6 +211,7 @@ export function createBackpackView(actions: Action) {
       spec.w + '×' + spec.h + ' 格', entry.quantity > 1 ? '×' + entry.quantity : '',
       entry.durability !== undefined ? '剩余 ' + entry.durability + '/3' : '',
       entry.loaded !== undefined ? '弹匣 ' + entry.loaded : '',
+      isShield(entry.item)?'护盾 '+shieldCharge(entry.item,entry.charge)+'/'+shields[entry.item]:isHead(entry.item)&&headDevices[entry.item]?'前方照明':'',
       '基准 ' + (entry.durability !== undefined ? 30 * entry.durability : spec.price) + ' 券',
       isPack(entry.item) ? '容量 ' + packs[entry.item].reduce((n, section) => n + section.w * section.h, 0) + ' 格' : '',
     ].filter(Boolean).join('　');
@@ -223,14 +225,14 @@ export function createBackpackView(actions: Action) {
     const bar = q('.bag-actions');
     stackControls(bar,s);
     if (s.from === 'slot') {
-      action('收进格子', () => actions.stow(s.entry.item as 'pistol' | 'knife'));
+      action('收进格子', () => actions.stow(equipSlot(s.entry.item)!));
     } else {
       if (isPack(s.entry.item))
         button(bar, '装备', () => requestEquip(s.entry.item, s.from === 'bag' ? 'carried' : target!.id, s.id));
-      if (s.from === 'source') button(bar, '拾取', () => transfer());
+      if (s.from === 'source') {button(bar, '拾取', () => transfer());const slot=equipSlot(s.entry.item);if(slot&&target)action('装备',()=>actions.equipFrom(target!.id,s.id,slot));}
       else {
-        if (itemSpecs[s.entry.item].tag === 'weapon') action('装备', () => actions.holster(s.id));
-        if (['medkit','healing-injector'].includes(s.entry.item)) action('使用', () => actions.use(s.id));
+        if (equipSlot(s.entry.item)) action('装备', () => actions.holster(s.id));
+        if (['medkit','healing-injector','shield-cell'].includes(s.entry.item)) action('使用', () => actions.use(s.id));
         if (target && source) button(bar, '存入', () => quickMove(s));
       }
     }
@@ -244,7 +246,7 @@ export function createBackpackView(actions: Action) {
       s.from === 'source' && target
         ? actions.take(target.id, s.id, p)
         : s.from === 'slot'
-          ? actions.stow(s.entry.item as 'pistol' | 'knife', p)
+          ? actions.stow(equipSlot(s.entry.item)!, p)
           : p
             ? bag.move(s.id, p.x, p.y, p.rotated, p.section)
             : false;
@@ -299,7 +301,7 @@ export function createBackpackView(actions: Action) {
         choose();
         if (from === 'source') transfer();
         else if (isPack(e.item)) requestEquip(e.item, 'carried', e.id);
-        else if (['medkit','healing-injector'].includes(e.item) && actions.use(e.id)) {
+        else if (['medkit','healing-injector','shield-cell'].includes(e.item) && actions.use(e.id)) {
           clearSelection();
           refresh();
         }
@@ -464,29 +466,26 @@ export function createBackpackView(actions: Action) {
       ' 格';
     const kit = q('#loadout');
     kit.replaceChildren();
-    for (const label of ['1 主武器 I · 空', '2 主武器 II · 空']) {
-      const p = document.createElement('small');
-      p.textContent = label;
-      kit.append(p);
-    }
-    for (const key of ['pistol', 'knife'] as const) {
+    for (const [key,label] of gearLayout) {
+      if(key==='pack')continue;
+      if(key==='primary1'||key==='primary2'){const empty=document.createElement('div');empty.className='bag-gear empty-primary';empty.textContent=label+' · 未配备';kit.append(empty);continue;}
       const e = bag.slots[key];
       const choose = () => { if (e) select({ from: 'slot', entry: e, id: -1, rotated: false }, b); };
-      const b = button(kit, e ? itemSpecs[key].name : (key === 'pistol' ? '手枪 · 空' : '近战 · 空'), choose);
+      const b = button(kit, label+' · '+(e?itemSpecs[e.item].name+(isShield(e.item)?' '+shieldCharge(e.item,e.charge)+'/'+shields[e.item]:''):'空'), choose);b.dataset.gearSlot=key;b.classList.add('bag-gear');
       if(e){
-        b.prepend(itemIcon(key));
+        b.prepend(itemIcon(e.item));
         b.onclick=ev=>{choose();if(ev.shiftKey)quickMove(selected!);};
       }
       b.draggable = !!e;
       b.ondragstart = (ev) => {
-        if(selected?.from!=='slot'||selected.entry.item!==key)choose();
+        if(selected?.from!=='slot'||equipSlot(selected.entry.item)!==key)choose();
         dragging = true;
         ev.dataTransfer?.setData('text/plain', key);
       };
       b.ondragover = (ev) => ev.preventDefault();
       b.ondrop = (ev) => {
         ev.preventDefault();
-        if (selected?.from === 'bag' && selected.entry.item === key && actions.holster(selected.id)) {
+        if (selected && equipSlot(selected.entry.item)===key && (selected.from==='bag'?actions.holster(selected.id):selected.from==='source'&&target?actions.equipFrom(target.id,selected.id,key):false)) {
           clearSelection();
           refresh();
         }

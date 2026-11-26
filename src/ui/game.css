@@ -58,6 +58,20 @@ button:disabled { opacity: .5; cursor: default; }
 .weapon strong, .stat strong { font-size: 28px; line-height: 1.2; font-variant-numeric: tabular-nums; }
 .stat { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
 .health-track { height: 3px; background: #d6e4db33; margin-top: 5px; }
+.shield-track {position:relative;height:9px;background:#415467;margin:4px 0 9px;overflow:hidden;}
+.shield-track::after {content:'';position:absolute;inset:0;background:repeating-linear-gradient(90deg,transparent 0,transparent calc(100% / var(--shield-segments,1) - 2px),#142331 calc(100% / var(--shield-segments,1) - 2px),#142331 calc(100% / var(--shield-segments,1)));pointer-events:none;}
+#shield-bar {height:100%;transition:width .12s linear;}
+#overlay[data-mode=result] .panel {width:min(780px,94vw);max-height:94vh;overflow:auto;}
+.settlement-stats {margin:8px 0;color:#385269;}
+.settlement-amounts {display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:12px 0;}
+.settlement-amounts>div {background:#cbdedc;padding:10px 12px;border-left:3px solid #52948e;display:grid;}
+.settlement-amounts strong {font-size:20px;color:#203652;}
+.settlement-inventories {display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;}
+.settlement-inventories h3 {font-size:14px;margin:8px 0;}
+.settlement-items {display:grid;gap:4px;max-height:34vh;overflow:auto;}
+.settlement-items>div {display:flex;gap:6px;align-items:center;background:#d3e2de;border-left:3px solid var(--item-color);padding:3px 6px;}
+.settlement-items .item-icon {width:40px;height:40px;}
+.bag-gear.empty-primary {border:1px dashed #648486;padding:8px 5px;color:#96b4b1;font-size:11px;background:#15272f;}
 #health-bar { background: #bcdb9d; height: 100%; }
 #pack, #weapon-action { color: var(--muted); font-size: 12px; }
 #pack { margin-top: 8px; max-width: 240px; }

@@ -43,7 +43,7 @@ export function createMedicineWheel() {
             options.map((e) => ({
               label: itemSpecs[e.item].name,
               icon: itemIcon(e.item),
-              detail: e.durability ? e.durability + '/3' : '40 HP',
+              detail: e.item==='shield-cell'?'25 护盾':e.durability ? e.durability + '/3' : '40 HP',
             })),
             i - start,
             entries[i] ? itemSpecs[entries[i].item].name : '随身无药物',

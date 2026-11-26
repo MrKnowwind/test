@@ -3,6 +3,7 @@ import { createEnemy } from '../enemies/createEnemy.ts';
 import {soundPath,distance} from '../enemies/perception.ts';
 import type {Vec3} from '../contracts/demo.ts';
 import { strike } from './targeting.ts';
+import { isShield, shieldCharge, shields } from '../raid/catalog.ts';
 
 const MAX_HEALTH = 100;
 const MAGAZINE_SIZE = 8;
@@ -20,6 +21,7 @@ const TIME_EPSILON = 1e-8;
 
 export function createCombat(world: WorldQueries, spawns: readonly EnemySpawn[], kit?:ReturnType<typeof import('../raid/backpack.ts').createBackpack>): Combat {
   let health = MAX_HEALTH;
+  let shieldHit=0;
   let creative=false;
   const weapon: WeaponState = {
     id: 'pistol', aiming: false, action: 'ready', actionProgress: 0,
@@ -135,6 +137,9 @@ export function createCombat(world: WorldQueries, spawns: readonly EnemySpawn[],
       weapon: { ...weapon },
       enemies: enemies.map((enemy) => ({ ...enemy, position: [...enemy.position] })),
     };
+    const armor=kit?.slots.shield;
+    if(armor&&isShield(armor.item))frame.shield={item:armor.item,charge:shieldCharge(armor.item,armor.charge),capacity:shields[armor.item]};
+    if(shieldHit)frame.shieldHit=shieldHit;
     if(shot)frame.shot=shot;
     if (feedback) frame.feedback = feedback;
     return frame;
@@ -150,6 +155,7 @@ export function createCombat(world: WorldQueries, spawns: readonly EnemySpawn[],
     },
     update(dt, input) {
       shot = feedback = undefined;
+      shieldHit=0;
       if (health <= 0) return snapshot();
       noiseTime+=dt;
       if(input.stepRadius)emitNoise(input.playerFeet,input.stepRadius);
@@ -158,7 +164,18 @@ export function createCombat(world: WorldQueries, spawns: readonly EnemySpawn[],
       if(kit?.slots.pistol)kit.slots.pistol.loaded=weapon.loaded;
       for (const agent of agents) {
         const damage=agent.update(dt,input,creative);
-        if(!creative && damage>0){hitOrigin=[...agent.state.position];lastHit=agent.state.kind;health=Math.max(0,health-damage);}
+        if(!creative && damage>0){
+          hitOrigin=[...agent.state.position];lastHit=agent.state.kind;
+          const armor=kit?.slots.shield;
+          let absorbed=0;
+          if(armor&&isShield(armor.item)){
+            const charge=shieldCharge(armor.item,armor.charge);
+            absorbed=Math.min(charge,damage);
+            armor.charge=charge-absorbed;
+            shieldHit+=absorbed;
+          }
+          health=Math.max(0,health-(damage-absorbed));
+        }
         if (health === 0) {
           reloadRequested = false;
           startAction('ready');

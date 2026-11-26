@@ -1,4 +1,4 @@
-import { itemSpecs, pockets, packs, isPack, type ItemId, type Section } from './catalog.ts';
+import { itemSpecs, pockets, packs, isPack, isShield, shieldCharge, type EquipSlot, type ItemId, type Section } from './catalog.ts';
 export { itemSpecs } from './catalog.ts';
 export type Placement = { x: number; y: number; rotated: boolean; section?: string };
 export interface BagEntry extends Placement {
@@ -9,9 +9,10 @@ export interface BagEntry extends Placement {
   instance?: string;
   loaded?: number;
   durability?:number;
+  charge?:number;
   contents?: BagEntry[];
 }
-export type Cargo = Pick<BagEntry, 'item' | 'quantity' | 'issued' | 'instance' | 'loaded' | 'durability' | 'contents'>;
+export type Cargo = Pick<BagEntry, 'item' | 'quantity' | 'issued' | 'instance' | 'loaded' | 'durability' | 'contents' | 'charge'>;
 export function dimensions(entry: Pick<BagEntry, 'item' | 'rotated'>) {
   const { w, h } = itemSpecs[entry.item];
   return entry.rotated ? [h, w] : [w, h];
@@ -25,7 +26,7 @@ export function createBackpack(width = 6, height = 5, personal = false, layout?:
   const entries: BagEntry[] = [];
   let nextId = 1;
   let equipped: Cargo | undefined;
-  const slots: Partial<Record<'pistol' | 'knife', Cargo>> = {};
+  const slots: Partial<Record<EquipSlot, Cargo>> = {};
   const ordered = () => [...sections].sort((a, b) => a.w * a.h - b.w * b.h);
   const locate = (section?: string) => sections.find((s) => s.id === (section ?? sections[0].id));
   function fits(e: BagEntry, others = entries) {
@@ -86,6 +87,7 @@ export function createBackpack(width = 6, height = 5, personal = false, layout?:
         free = Math.min(quantity, issued);
       const cargo: Cargo = { item: c.item, quantity, issued: free, instance: c.instance, loaded: c.loaded };
       if(c.item==='healing-injector')cargo.durability=c.durability??3;
+      if(isShield(c.item))cargo.charge=shieldCharge(c.item,c.charge);
       const spot = p
         ? { ...cargo, x: p.x, y: p.y, rotated: p.rotated, id: -1, section: locate(p.section)?.id }
         : firstRoom(cargo, draft);
@@ -236,6 +238,8 @@ export function createBackpack(width = 6, height = 5, personal = false, layout?:
       equipped = undefined;
       delete slots.pistol;
       delete slots.knife;
+      delete slots.shield;
+      delete slots.head;
     },
   };
 }

@@ -8,7 +8,7 @@ import type {
   MapInteraction,
 } from '../contracts/demo.ts';
 import { createContainerSearch, type Placement } from './containerSearch.ts';
-import { isPack, itemSpecs, packs } from './catalog.ts';
+import { equipSlot, isPack, itemSpecs, packs, type EquipSlot } from './catalog.ts';
 import { type Cargo, createBackpack, portion } from './backpack.ts';
 import { buildLoadout, defaultLoadout, type Loadout } from './loadout.ts';
 
@@ -91,7 +91,7 @@ export function createRaid(runId: string, seed: number, map: RaidMap, plan: Load
   const search = createContainerSearch(seed, map.interactions);
   for (const box of search.containers.values()) {
     for (const entry of box.entries) {
-      if(entry.item==='healing-injector')entry.instance=box.id+'/'+entry.id;
+      if(entry.item==='healing-injector'||equipSlot(entry.item))entry.instance=box.id+'/'+entry.id;
       if(entry.instance)entry.instance=runId+'/'+entry.instance;
     }
   }
@@ -190,7 +190,7 @@ export function createRaid(runId: string, seed: number, map: RaidMap, plan: Load
   function generateItem(item:ItemId,quantity:number,at?:Vec3){
     if(!creative || result || !Number.isSafeInteger(quantity) || quantity<1 || quantity>itemSpecs[item].stack)return false;
     const cargo:Cargo={item,quantity};
-    if(isPack(item)||item==='pistol'||item==='knife'||item==='healing-injector')cargo.instance=runId+'/creative-'+(++generated);
+    if(isPack(item)||equipSlot(item)||item==='healing-injector')cargo.instance=runId+'/creative-'+(++generated);
     if(item==='pistol')cargo.loaded=8;
     if(item==='healing-injector')cargo.durability=3;
     if(at)return canDrop(at)?drop(cargo,at):false;
@@ -262,7 +262,7 @@ export function createRaid(runId: string, seed: number, map: RaidMap, plan: Load
     checkCard();
     return drop(e, at);
   }
-  function dropSlot(slot:'pistol'|'knife',at:Vec3){
+  function dropSlot(slot:EquipSlot,at:Vec3){
     const cargo=backpack.slots[slot];
     if(result || !cargo || !canDrop(at))return;
     delete backpack.slots[slot];return drop(cargo,at);
@@ -283,12 +283,28 @@ export function createRaid(runId: string, seed: number, map: RaidMap, plan: Load
   }
   function holster(id: number) {
     const e = backpack.entries.find((e) => e.id === id);
-    if (result || !e || (e.item !== 'pistol' && e.item !== 'knife') || backpack.slots[e.item]) return false;
+    const slot=e&&equipSlot(e.item);
+    if (result || !e || !slot) return false;
+    const old=backpack.slots[slot];
     backpack.remove(e.id);
-    backpack.slots[e.item] = e;
+    if(old&&!backpack.receive(old,e)){backpack.entries.push(e);return false;}
+    backpack.slots[slot] = e;
     return true;
   }
-  function stow(slot: 'pistol' | 'knife', placement?: Placement) {
+  function equipFromContainer(containerId:string,entryId:number,slot:EquipSlot){
+    const container=search.containers.get(containerId),entry=container?.entries.find(e=>e.id===entryId&&e.revealed);
+    if(result||!container||!entry||equipSlot(entry.item)!==slot)return false;
+    const old=backpack.slots[slot];
+    if(old&&!backpack.receive(old))return false;
+    backpack.slots[slot]={...entry};
+    container.entries.splice(container.entries.indexOf(entry),1);
+    const pack=ground.get(containerId);
+    if(pack)pack.contents=container.entries.map(e=>({...e}));
+    else if(!container.entries.length)consumed.add(containerId);
+    log.first??=itemSpecs[entry.item].name;
+    return true;
+  }
+  function stow(slot: EquipSlot, placement?: Placement) {
     const e = backpack.slots[slot];
     if (result || !e || !backpack.receive(e, placement)) return false;
     delete backpack.slots[slot];
@@ -367,6 +383,7 @@ export function createRaid(runId: string, seed: number, map: RaidMap, plan: Load
     collect,
     unpack,
     holster,
+    equipFromContainer,
     stow,
     visited,
     hitBy(source: string) {

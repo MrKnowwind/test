@@ -2,13 +2,13 @@ import type { CombatFrame, ItemId, WeaponId } from '../contracts/demo.ts';
 import type { Inventory, RaidResult } from '../raid/raid.ts';
 import type { TreatmentPose } from '../combat/treatment.ts';
 import { itemSpecs } from '../raid/catalog.ts';
+import type { Settlement } from '../raid/warehouse.ts';
+import { itemIcon } from './itemArt.ts';
 
 const spawnNames: Record<string, string> = {
   'south-loading': '南侧卸货口', 'warehouse-alley': '仓库外巷', 'scrap-shelter': '废车棚',
 };
 export const itemName = (item: ItemId) => itemSpecs[item].name;
-const list = (inventory: Readonly<Inventory>) => (Object.keys(inventory) as ItemId[])
-  .map(item => itemName(item) + ' × ' + inventory[item]).join('　');
 const byId = <T extends HTMLElement = HTMLElement>(id: string) => document.getElementById(id) as T;
 
 export function createGameView() {
@@ -47,15 +47,17 @@ export function createGameView() {
       hud.hidden = false;
     },
     showPaused() { menu('paused', '已暂停', '继续出击'); },
-    showResult(result: RaidResult, saved: boolean, exitLabel?: string) {
+    showResult(result: RaidResult, saved: boolean, exitLabel?: string, settlement?:Settlement) {
       menu('result', result.outcome === 'extracted' ? '撤离成功' : result.outcome === 'dead' ? '出击失败' : '已放弃出击',
         saved ? '返回整备' : '重试入库');
       label(stage, exitLabel ?? '出击结算');
-      const items = result.outcome === 'extracted' ? list(result.items) : list(result.lost ?? {});
       const score = [Math.floor(result.seconds ?? 0) + ' 秒', '击倒 ' + (result.log?.kills ?? 0), '搜索 ' + (result.visited?.length ?? 0)];
       if (result.practice) score.push('练习');
-      summary.replaceChildren(document.createTextNode(score.join('　')), document.createElement('br'),
-        document.createTextNode((result.outcome === 'extracted' ? '带出　' : '损失　') + (items || '空')));
+      const stats=document.createElement('div');stats.className='settlement-stats';stats.textContent=score.join('　');
+      const amounts=document.createElement('div');amounts.className='settlement-amounts';
+      for(const [name,value] of [['带回估值',settlement?.returned??0],['出击投入',settlement?.deployed??0],['净收益',settlement?.net??0]] as const){const cell=document.createElement('div'),title=document.createElement('small'),number=document.createElement('strong');title.textContent=name;number.textContent=result.practice?'—':(name==='净收益'&&value>0?'+':'')+value+' 券';cell.append(title,number);amounts.append(cell);}
+      function inventory(title:string,items:Inventory){const section=document.createElement('section'),heading=document.createElement('h3'),grid=document.createElement('div');heading.textContent=title;grid.className='settlement-items';for(const item of Object.keys(items) as ItemId[]){if(!items[item])continue;const tile=document.createElement('div'),name=document.createElement('span');name.textContent=itemName(item)+' ×'+items[item];tile.style.setProperty('--item-color',itemSpecs[item].color);tile.append(itemIcon(item),name);grid.append(tile);}if(!grid.children.length)grid.textContent='无';section.append(heading,grid);return section;}
+      const inventories=document.createElement('div');inventories.className='settlement-inventories';inventories.append(inventory('带出物资',result.outcome==='extracted'?result.items:{}),inventory('损失 / 消耗',settlement?.lost??result.lost??{}));summary.replaceChildren(stats,amounts,inventories);
     },
     updateObjectives(tasks: readonly { title: string; detail: string }[]) {
       objectives.hidden = tasks.length === 0;
@@ -74,6 +76,8 @@ export function createGameView() {
       label(spawn, frame.creative ? '创造模式' : spawnNames[spawnId] ?? spawnId);
       label(health, frame.creative ? '∞' : String(frame.health));
       bar.style.width = frame.health + '%';
+      const shield=frame.shield,shieldHud=byId('shield-hud');shieldHud.hidden=!shield;
+      if(shield){label(byId('shield-name'),itemSpecs[shield.item].name);label(byId('shield-charge'),Math.ceil(shield.charge)+'/'+shield.capacity);const track=byId('shield-bar');track.style.width=100*shield.charge/shield.capacity+'%';track.style.background=itemSpecs[shield.item].color;shieldHud.style.setProperty('--shield-segments',String(shield.capacity/25));}
       const state = frame.weapon;
       const names: Record<WeaponId, string> = { rifle: '制式步枪', shotgun: '泵动霰弹枪', pistol: itemName('pistol'), knife: itemName('knife') };
       label(weapon, treatment ? itemName(treatment.item) : state.unarmed ? '空手' : names[state.id]);

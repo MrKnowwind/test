@@ -3,6 +3,7 @@ import type { ItemId } from '../contracts/demo.ts';
 
 type Icon = ItemId | 'pistol' | 'knife';
 const cache = new Map<Icon, HTMLCanvasElement>();
+export function setModelIcon(id:Icon,canvas:HTMLCanvasElement){cache.set(id,canvas);}
 
 function shade(hex:string, factor:number) {
   const value=parseInt(hex.slice(1),16);
@@ -17,7 +18,7 @@ export function itemIcon(id: Icon) {
   canvas.setAttribute('aria-hidden','true');
   const c=canvas.getContext('2d')!;
   const saved=cache.get(id);
-  if(saved) { c.drawImage(saved,0,0); return canvas; }
+  if(saved) { c.drawImage(saved,0,0,canvas.width,canvas.height); return canvas; }
   c.scale(2,2);
   c.lineJoin='round';c.lineCap='round';
   const ink='#1e304a', light='#ecfff7';

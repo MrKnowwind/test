@@ -1,21 +1,21 @@
 import { createBackpack, dimensions, portion, type BagEntry, type Placement } from '../raid/backpack.ts';
-import { isPack, itemSpecs, packs, type ItemId, type PackId } from '../raid/catalog.ts';
-import { defaultLoadout, isMaterial, loadoutRequests, supplyItems, type Loadout, type Supply } from '../raid/loadout.ts';
+import { isPack, itemSpecs, packs, equipSlot, isShield, isHead, shields, headDevices, shieldCharge, gearLayout, type GearSlot, type ItemId, type PackId } from '../raid/catalog.ts';
+import { defaultLoadout, isCarryCargo, loadoutRequests, supplyItems, type Loadout, type Supply } from '../raid/loadout.ts';
 import { arrangeStash, readStashLayout, remainingStock, saveStashLayout, stashColumns, visibleStashRows } from '../raid/stash.ts';
-import { buyPrice, shopItems, type createWarehouse } from '../raid/warehouse.ts';
+import { buyPrice, shopItems, exchanges, type createWarehouse } from '../raid/warehouse.ts';
 import { itemIcon } from './itemArt.ts';
 import { renderPortMapPreviews } from './portMapPreview.ts';
 import { renderMerchantPortrait } from './merchantArt.ts';
 
-type Pane = 'home' | 'prepare' | 'buy' | 'sell' | 'tasks' | 'base';
+type Pane = 'home' | 'prepare' | 'buy' | 'sell' | 'exchange' | 'tasks' | 'base';
 type Bag = NonNullable<ReturnType<ReturnType<typeof createWarehouse>['preview']>>;
-type Selection = { from: 'stash' | 'carry'; id: number } | { from: 'slot'; slot: 'pack' | 'pistol' | 'knife' };
-const categories = { weapon:'装备', carry:'背包', ammo:'弹药', medical:'医疗', mechanical:'工业', electronics:'电子', shipping:'港务', research:'研究' };
+type Selection = { from: 'stash' | 'carry'; id: number } | { from: 'slot'; slot: Exclude<GearSlot,'primary1'|'primary2'> };
+const categories = { weapon:'武器', protection:'防护装备', carry:'背包', ammo:'弹药', medical:'医疗', mechanical:'工业', electronics:'电子', shipping:'港务', research:'研究' };
 const qualityLabels = ['普通','军用','精良','稀有','珍贵','机密'];
 const q = <T extends HTMLElement = HTMLElement>(id:string) => document.getElementById(id) as T;
 const isSupply = (item:ItemId): item is Supply => supplyItems.some(supply=>item===supply);
 
-export function createOutpostView(warehouse: ReturnType<typeof createWarehouse>, message: (text?: string) => void) {
+export function createOutpostView(warehouse: ReturnType<typeof createWarehouse>, message: (text?: string) => void, previewGear:(plan:Loadout)=>void=()=>{}) {
   const root = q('outpost'), slots = q('prepare-slots'), grid = q('prepare-grid'), stashGrid=q('stash-grid');
   const detail=q('stash-detail'), search=q<HTMLInputElement>('stash-search'), category=q<HTMLSelectElement>('stash-category');
   const merchantCategory=q<HTMLSelectElement>('merchant-category'), refreshLabel=q<HTMLTimeElement>('market-refresh');
@@ -23,7 +23,7 @@ export function createOutpostView(warehouse: ReturnType<typeof createWarehouse>,
   let plan: Loadout = { ...defaultLoadout };
   let pane: Pane = 'home', refreshAt=0;
   let bag = warehouse.preview(plan);
-  let stash = arrangeStash(remainingStock(warehouse.read() ?? {},plan),readStashLayout(localStorage));
+  let stash = arrangeStash(remainingStock(warehouse.read() ?? {},plan),readStashLayout(localStorage),warehouse.capacity().rows);
   let selected:Selection|undefined, dragging:Selection|undefined;
   for(const [key,title] of Object.entries(categories)){
     category.add(new Option(title,key));
@@ -86,7 +86,8 @@ export function createOutpostView(warehouse: ReturnType<typeof createWarehouse>,
     if(selector)root.querySelector(selector)?.classList.add('selected');
     const spec=itemSpecs[entry.item], heading=document.createElement('div'), text=document.createElement('div'), name=document.createElement('strong'), meta=document.createElement('small');
     heading.className='inspect-heading';name.textContent=spec.name+' ×'+entry.quantity;
-    meta.textContent=[qualityLabels[spec.rank],categories[spec.tag],spec.w+' × '+spec.h+' 格',entry.durability!==undefined?'耐久 '+entry.durability+'/3':'',entry.loaded!==undefined?'装填 '+entry.loaded:'',warehouse.price(entry.item)+' 券/件'].filter(Boolean).join(' · ');
+    const condition=s.from==='stash'?warehouse.condition(entry.item):entry;
+    meta.textContent=[qualityLabels[spec.rank],categories[spec.tag],spec.w+' × '+spec.h+' 格',isShield(entry.item)?'护盾 '+shieldCharge(entry.item,condition?.charge)+'/'+shields[entry.item]:isHead(entry.item)?(headDevices[entry.item]?'前方照明':'基础头部装备'):'',entry.durability!==undefined?'耐久 '+entry.durability+'/3':'',entry.loaded!==undefined?'装填 '+entry.loaded:'',warehouse.price(entry.item)+' 券/件'].filter(Boolean).join(' · ');
     text.append(name,meta);heading.append(itemIcon(entry.item),text);
     const actions=document.createElement('div');actions.className='inspect-actions';
     function action(label:string,fn:()=>void){const b=document.createElement('button');b.type='button';b.textContent=label;b.onclick=fn;actions.append(b);}
@@ -158,12 +159,15 @@ export function createOutpostView(warehouse: ReturnType<typeof createWarehouse>,
   }
   function reserve(item:ItemId,quantity:number,position?:Placement) {
     const next:Loadout={...plan,cargo:{...plan.cargo}};
-    if(isPack(item))next.pack=item;
+    if(position&&isCarryCargo(item))next.cargo![item]=(plan.cargo?.[item]??0)+quantity;
+    else if(isPack(item))next.pack=item;
     else if(item==='pistol'||item==='knife')next[item]='warehouse';
+    else if(isShield(item))next.shield=item;
+    else if(isHead(item))next.head=item;
     else if(isSupply(item))next[item]=(plan[item]??0)+quantity;
-    else if(isMaterial(item))next.cargo![item]=(plan.cargo?.[item]??0)+quantity;
+    else if(isCarryCargo(item))next.cargo![item]=(plan.cargo?.[item]??0)+quantity;
     else return false;
-    return changePlan(next,isSupply(item)||isMaterial(item)?position:undefined,item);
+    return changePlan(next,isSupply(item)||isCarryCargo(item)?position:undefined,item);
   }
   function release(s:Selection, position?:Placement){
     const next:Loadout={...plan,cargo:{...plan.cargo}};
@@ -176,7 +180,7 @@ export function createOutpostView(warehouse: ReturnType<typeof createWarehouse>,
     }else if(s.from==='carry'){
       if(!amount){message('配发补给不计入仓库');return;}
       if(isSupply(entry.item))next[entry.item]=Math.max(0,(plan[entry.item]??0)-amount);
-      else if(isMaterial(entry.item))next.cargo![entry.item]=Math.max(0,(plan.cargo?.[entry.item]??0)-amount);
+      else if(isCarryCargo(entry.item))next.cargo![entry.item]=Math.max(0,(plan.cargo?.[entry.item]??0)-amount);
       else return;
     }
     const previous=stash.entries.map(e=>({...e}));
@@ -184,7 +188,7 @@ export function createOutpostView(warehouse: ReturnType<typeof createWarehouse>,
       message('仓库目标格子空间不足');return;
     }
     if(!changePlan(next)&&position){
-      stash=arrangeStash(remainingStock(warehouse.read()??{},plan),previous);
+      stash=arrangeStash(remainingStock(warehouse.read()??{},plan),previous,warehouse.capacity().rows);
       renderStash();clearSelection();
     }
   }
@@ -207,24 +211,28 @@ export function createOutpostView(warehouse: ReturnType<typeof createWarehouse>,
   });
 
   function renderCarry(){
-    grid.replaceChildren();q('equipment-slots').replaceChildren();
+    grid.replaceChildren();q('equipment-slots').replaceChildren();q('weapon-slots').replaceChildren();
     if(!bag){grid.textContent='装备或空间不足';return;}
-    const kit=document.createElement('div');kit.className='prepare-kit';
-    for(const [slot,label] of [['pistol','手枪'],['knife','近战'],['pack','背包']] as const){
-      const area=document.createElement('div');area.className='equip-slot';
+    const gear=document.createElement('div'),weapons=document.createElement('div');gear.className='prepare-kit';weapons.className='weapon-kit';
+    for(const [slot,label] of gearLayout){
+      const area=document.createElement('div');area.className='equip-slot';area.dataset.gearSlot=slot;
       const title=document.createElement('small');title.textContent=label;area.append(title);
+      if(slot==='primary1'||slot==='primary2'){const empty=document.createElement('span');empty.className='empty-equip';empty.textContent='未配备';area.append(empty);weapons.append(area);continue;}
       const cargo=slot==='pack'?bag.equipped:bag.slots[slot];
-      if(cargo)area.append(makeTile({...cargo,rotated:false},{from:'slot',slot},cargo.issued?0:1));
+      if(cargo){const tile=makeTile({...cargo,rotated:false},{from:'slot',slot},cargo.issued?0:1);area.append(tile);const name=document.createElement('span');name.className='slot-name';name.textContent=itemSpecs[cargo.item].name+(isShield(cargo.item)?' · '+shieldCharge(cargo.item,cargo.charge)+'/'+shields[cargo.item]:'');area.append(name);}
       else{const empty=document.createElement('span');empty.className='empty-equip';empty.textContent='空';area.append(empty);}
       dropTarget(area,s=>{
-        if(s.from!=='stash')return;
         const item=entryFor(s)?.item;
-        if(item && (slot==='pack'?isPack(item):slot===item))reserve(item,1);
+        if(!item||s.from==='slot')return;
+        if(slot==='pack'?isPack(item):slot===equipSlot(item)){
+          if(s.from==='stash')reserve(item,1);
+          else if(s.from==='carry'&&slot!=='pack'&&(plan.cargo?.[item]??0)>0){const next:Loadout={...plan,cargo:{...plan.cargo,[item]:(plan.cargo?.[item]??0)-1}};if(isShield(item))next.shield=item;else if(isHead(item))next.head=item;else if(item==='pistol'||item==='knife')next[item]='warehouse';changePlan(next);}
+        }
         else message('请选择相应类型的装备');
       });
-      kit.append(area);
+      (slot==='pistol'||slot==='knife'?weapons:gear).append(area);
     }
-    q('equipment-slots').append(kit);
+    q('equipment-slots').append(gear);q('weapon-slots').append(weapons);
     const sections=document.createElement('div');sections.className='prepare-compartments';
     const pockets=document.createElement('div'), backpack=document.createElement('div');
     pockets.className=backpack.className='compartment-row';
@@ -240,6 +248,7 @@ export function createOutpostView(warehouse: ReturnType<typeof createWarehouse>,
         const e=entryFor(s);if(!e)return;
         const pos=cellAt(area,event,section.w,section.id);pos.rotated='rotated' in e?!!e.rotated:false;
         if(s.from==='stash')reserve(e.item,e.quantity,pos);
+        else if(s.from==='slot'&&s.slot!=='pack'&&!e.issued&&isCarryCargo(e.item)){const next:Loadout={...plan,cargo:{...plan.cargo,[e.item]:(plan.cargo?.[e.item]??0)+1}};next[s.slot]=undefined;changePlan(next,pos,e.item);}
         else if(s.from==='carry' && bag){
           if(bag.move(s.id,pos.x,pos.y,pos.rotated,pos.section)){storeCarryLayout(bag);message();}
           else message('格子被占用或超出范围');
@@ -271,6 +280,10 @@ export function createOutpostView(warehouse: ReturnType<typeof createWarehouse>,
         if(!changePlan({...plan,[weapon]:value==='issued'||value==='warehouse'?value:undefined}))prepare();
       });
     }
+    for(const [slot,title,items] of [['shield','能量护甲',Object.keys(shields)],['head','头部设备',Object.keys(headDevices)]] as const){
+      const options:[string,string][]=[['','空']];for(const id of items){const item=id as ItemId;if(stock[item]||plan[slot]===item)options.push([item,itemSpecs[item].name+' ×'+(stock[item]??0)]);}
+      select(title,options,plan[slot]??'',value=>{const item=value as ItemId;const next=slot==='shield'?{...plan,shield:isShield(item)?item:undefined}:{...plan,head:isHead(item)?item:undefined};if(!changePlan(next))prepare();});
+    }
     for(const item of supplyItems){
       const input=document.createElement('input');input.type='number';input.min='0';input.max=String(stock[item]??0);
       input.value=String(plan[item]??0);input.dataset.supply=item;input.disabled=!stock[item]&&!plan[item];
@@ -283,7 +296,7 @@ export function createOutpostView(warehouse: ReturnType<typeof createWarehouse>,
   }
   function renderStash(){
     stashGrid.replaceChildren();stashGrid.style.setProperty('--columns',String(stashColumns));
-    stashGrid.style.setProperty('--rows',String(visibleStashRows(stash.entries)));
+    const capacity=warehouse.capacity();stashGrid.style.setProperty('--rows',String(visibleStashRows(stash.entries,capacity.rows)));stashGrid.style.setProperty('--capacity-rows',String(capacity.rows));
     let matching=0;
     for(const entry of stash.entries){
       const spec=itemSpecs[entry.item];
@@ -305,13 +318,13 @@ export function createOutpostView(warehouse: ReturnType<typeof createWarehouse>,
     saveLayout();renderStash();clearSelection();message();
   });
   search.oninput=category.onchange=()=>{clearSelection();renderStash();};
-  q('stash-sort').onclick=()=>{stash=arrangeStash(remainingStock(warehouse.read()??{},plan));saveLayout();renderStash();clearSelection();message();};
+  q('stash-sort').onclick=()=>{stash=arrangeStash(remainingStock(warehouse.read()??{},plan),[],warehouse.capacity().rows);saveLayout();renderStash();clearSelection();message();};
   q('reset-loadout').onclick=()=>changePlan({...defaultLoadout},undefined,undefined,false);
 
   function tradeRow(item: ItemId, amount: number, price: number, buying: boolean, credits: number) {
     const row=document.createElement('article'), header=document.createElement('div'), name=document.createElement('strong'), info=document.createElement('small'), button=document.createElement('button');
     row.style.setProperty('--item-color',itemSpecs[item].color);
-    name.textContent=itemSpecs[item].name; info.textContent=(buying&&item==='pistol-ammo'?'每盒 12 发 · ':'')+'持有 '+amount;
+    name.textContent=itemSpecs[item].name; info.textContent=(buying&&item==='pistol-ammo'?'每盒 12 发 · ':'')+(isShield(item)?'护盾 '+shields[item]+' · ':isHead(item)&&headDevices[item]?'前方照明 · ':'')+'持有 '+amount;
     header.append(name,info);
     button.textContent=(buying?'购买':'出售')+' · '+price;
     button.setAttribute('aria-label',button.textContent+' 券 · '+name.textContent);
@@ -341,13 +354,17 @@ export function createOutpostView(warehouse: ReturnType<typeof createWarehouse>,
     const credits=warehouse.credits(),stock=warehouse.read()??{};
     q('credits').textContent=String(credits);
     bag=warehouse.preview(plan);
+    previewGear(plan);
+    const capacity=warehouse.capacity(),capText=capacity.used+' / '+capacity.limit+' 格（含整备）'+(capacity.overflow?' · 溢出库存保留，请整理或扩建':'');
+    q('stash-capacity').textContent=capText;q('base-capacity').textContent=capText;
+    for(const id of ['stash-expand','base-expand']){const b=q<HTMLButtonElement>(id);b.textContent=capacity.max?'已达上限':'扩建 +40 格 · '+capacity.price+' 券';b.disabled=capacity.max||credits<capacity.price;}
     q('kit-status').textContent=bag?'整备就绪 · 自带 '+loadoutRequests(plan).reduce((n,[,count])=>n+count,0)+' 件':'请检查整备';
     const kit=q('lobby-loadout');kit.replaceChildren();
-    for(const cargo of [bag?.slots.pistol,bag?.slots.knife,bag?.equipped]){
+    for(const cargo of [bag?.slots.pistol,bag?.slots.knife,bag?.slots.shield,bag?.slots.head,bag?.equipped]){
       if(!cargo)continue;
       const icon=itemIcon(cargo.item);icon.title=itemSpecs[cargo.item].name;kit.append(icon);
     }
-    stash=arrangeStash(remainingStock(stock,plan),stash.entries);
+    stash=arrangeStash(remainingStock(stock,plan),stash.entries,capacity.rows);
     saveLayout();clearSelection();
     if(pane==='prepare'){prepare();renderStash();}
     if(pane==='buy'){
@@ -356,19 +373,28 @@ export function createOutpostView(warehouse: ReturnType<typeof createWarehouse>,
       if(!items.length)q('buy-stock').textContent='此分类暂无商品';
     }
     if(pane==='sell')updateMarket();
+    if(pane==='exchange'){
+      const available=remainingStock(stock,plan);
+      q('exchange-stock').replaceChildren(...exchanges.map(recipe=>{const row=document.createElement('article'),info=document.createElement('div'),name=document.createElement('strong'),needs=document.createElement('small'),button=document.createElement('button');name.textContent=itemSpecs[recipe.reward].name+' ×'+recipe.quantity;needs.textContent=Object.entries(recipe.needs).map(([id,n])=>itemSpecs[id as ItemId].name+' ×'+n).join(' + ');info.append(name,needs);button.textContent='兑换';button.disabled=Object.entries(recipe.needs).some(([id,n])=>(available[id as ItemId]??0)<n);button.onclick=async()=>{button.disabled=true;message(await warehouse.exchange(recipe.id)?'兑换完成':'兑换失败，库存或空间不足');refresh();};row.append(itemIcon(recipe.reward),info,button);return row;}));
+      const repairs=Object.keys(shields).flatMap(id=>{const item=id as keyof typeof shields,repair=warehouse.repairQuote(item);if(!repair||!(available[item]??0))return [];const row=document.createElement('article'),info=document.createElement('div'),name=document.createElement('strong'),meta=document.createElement('small'),button=document.createElement('button');name.textContent=itemSpecs[item].name;meta.textContent='剩余 '+shieldCharge(item,repair.entry.charge)+' / '+shields[item];info.append(name,meta);button.textContent='充满 · '+repair.price+' 券';button.disabled=credits<repair.price;button.onclick=async()=>{button.disabled=true;message(await warehouse.repair(item,repair.price)?'维护完成':'维护未完成，报价已变化');refresh();};row.append(itemIcon(item),info,button);return [row];});q('repair-stock').replaceChildren(...repairs);if(!repairs.length)q('repair-stock').textContent='没有需要充能维护的未整备护甲';
+    }
+    if(pane==='base'){
+      const history=warehouse.history();q('raid-history').replaceChildren(...history.map(r=>{const row=document.createElement('div');row.className='history-row';const name=document.createElement('strong'),meta=document.createElement('small'),net=document.createElement('b');name.textContent=r.practice?'练习':r.outcome==='extracted'?'撤离成功':r.outcome==='dead'?'出击失败':'放弃出击';meta.textContent=new Date(r.at).toLocaleString()+' · '+Math.floor(r.seconds)+' 秒 · 击倒 '+r.kills;net.textContent=r.practice?'不计收益':(r.net>=0?'+':'')+r.net+' 券';net.dataset.positive=String(r.net>=0);row.append(name,meta,net);return row;}));if(!history.length)q('raid-history').textContent='完成一次出击后将在此记录。';
+    }
     clock();
   }
+  for(const id of ['stash-expand','base-expand'])q<HTMLButtonElement>(id).onclick=async()=>{message(await warehouse.expand()?'仓库已扩建':'扩建未完成');refresh();};
   merchantCategory.onchange=refresh;
   function open(next:Pane){
     pane=next;
     root.scrollTop=0;
-    const merchant=next==='buy'||next==='sell';
+    const merchant=next==='buy'||next==='sell'||next==='exchange';
     for(const button of nav){
       if(button.hasAttribute('aria-pressed'))
         button.setAttribute('aria-pressed',String(button.dataset.outpost===next||button.closest('.outpost-nav')&&merchant&&button.dataset.outpost==='buy'));
     }
     for(const id of ['home','prepare','tasks','base'])q(id+'-pane').hidden=next!==id;
-    q('merchant-pane').hidden=!merchant;q('buy-pane').hidden=next!=='buy';q('sell-pane').hidden=next!=='sell';
+    q('merchant-pane').hidden=!merchant;q('buy-pane').hidden=next!=='buy';q('sell-pane').hidden=next!=='sell';q('exchange-pane').hidden=next!=='exchange';
     message();refresh();
   }
   nav.forEach(button=>button.onclick=()=>open(button.dataset.outpost as Pane));

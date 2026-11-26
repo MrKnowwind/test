@@ -29,6 +29,7 @@ export const pools: Record<Tag, ItemId[]> = {
   medical: ['medkit', 'tray', 'seals', 'healing-injector'],
   carry: [],
   weapon: [],
+  protection: [],
 };
 export function drawLoose(
   seed: number,

@@ -14,14 +14,22 @@ export function remainingStock(stock: Inventory, plan: Loadout) {
   return available;
 }
 
-export function arrangeStash(stock: Inventory, saved: readonly PreparedPlacement[] = []) {
+export function stashArea(stock:Inventory) {
+  return (Object.keys(itemSpecs) as ItemId[]).reduce((sum,item)=>sum+itemSpecs[item].w*itemSpecs[item].h*Math.ceil((stock[item]??0)/itemSpecs[item].stack),0);
+}
+export function stashFits(stock:Inventory,rows:number) {
+  if(stashArea(stock)>stashColumns*rows)return false;
+  const bag=createBackpack(stashColumns,rows);
+  return (Object.keys(itemSpecs) as ItemId[]).filter(item=>(stock[item]??0)>0).sort((a,b)=>itemSpecs[b].w*itemSpecs[b].h-itemSpecs[a].w*itemSpecs[a].h).every(item=>bag.add(item,stock[item]!));
+}
+export function arrangeStash(stock: Inventory, saved: readonly PreparedPlacement[] = [], rows=stashMinimumRows) {
   const entries = (Object.keys(itemSpecs) as ItemId[]).filter(item => (stock[item] ?? 0) > 0);
   const area = entries.reduce((sum,item) => {
     const spec=itemSpecs[item];
     return sum + spec.w*spec.h*Math.ceil(stock[item]!/spec.stack);
   },0);
   // The ledger remains authoritative. Allocate enough rows for old and newly acquired stock.
-  const stash = createBackpack(stashColumns,Math.max(stashMinimumRows,area+stashMinimumRows));
+  const stash = createBackpack(stashColumns,Math.max(rows,area+rows));
   const remaining={...stock};
   for(const placement of saved){
     if(!placement || !Object.hasOwn(itemSpecs,placement.item) ||
@@ -38,8 +46,8 @@ export function arrangeStash(stock: Inventory, saved: readonly PreparedPlacement
   return stash;
 }
 
-export function visibleStashRows(entries: readonly BagEntry[]) {
-  return Math.max(stashMinimumRows,...entries.map(entry=>entry.y+dimensions(entry)[1]+2));
+export function visibleStashRows(entries: readonly BagEntry[],rows=stashMinimumRows) {
+  return Math.max(rows,...entries.map(entry=>entry.y+dimensions(entry)[1]));
 }
 
 export function readStashLayout(storage: Pick<Storage,'getItem'>): PreparedPlacement[] {

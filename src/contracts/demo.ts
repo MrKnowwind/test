@@ -99,6 +99,8 @@ export interface CombatFrame {
   lastHit?:EnemyKind;
   hitOrigin?:Vec3;
   health: number;
+  shield?: {item:import('../raid/catalog.ts').ShieldId;charge:number;capacity:number};
+  shieldHit?:number;
   weapon: WeaponState;
   enemies: readonly EnemyState[];
   feedback?: 'hit' | 'blocked' | 'empty';

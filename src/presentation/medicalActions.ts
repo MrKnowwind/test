@@ -3,6 +3,7 @@ import type { TreatmentPose } from '../combat/treatment.ts';
 import { batchRigid, block, ease, pivot, rod } from './modelParts.ts';
 import { pigment } from './shell.ts';
 import { makeGlove } from './viewmodelModels.ts';
+import { makeGearModel } from './gearModels.ts';
 
 export function makeMedicalActions(parent: Group) {
   const root = pivot(parent, [0, 0, 0], 'medical-action');
@@ -23,6 +24,7 @@ export function makeMedicalActions(parent: Group) {
   block(pad, shell, [0.071, 0.019, 0.062], [0, 0, 0], 0.006);
   block(pad, teal, [0.073, 0.004, 0.014], [0, 0.01, 0]);
   const injector = pivot(right.root, [-0.026, 0.003, -0.025], 'dose-pen');
+  const cell=makeGearModel('shield-cell');cell.position.set(-.025,.016,-.03);cell.rotation.z=Math.PI/2;right.root.add(cell);
   rod(injector, shell, [-0.068, 0, 0], [0.04, 0, 0], 0.015, 0.02, 12);
   rod(injector, dark, [-0.083, 0, 0], [-0.065, 0, 0], 0.008, 0.015, 12);
   const push = pivot(injector, [0.044, 0, 0], 'dose-plunger');
@@ -45,7 +47,7 @@ export function makeMedicalActions(parent: Group) {
     const { item, progress: p, elapsed } = last;
     const dressing = item === 'medkit';
     kit.visible = dressing;
-    injector.visible = !dressing;
+    injector.visible = item==='healing-injector';cell.visible=item==='shield-cell';
     pad.visible = dressing && p > 0.26;
     if (dressing) {
       const press = ease(p, 0.32, 0.5) * (1 - ease(p, 0.88, 1));

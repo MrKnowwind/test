@@ -4,6 +4,8 @@ import { sweptPlate, tailoring } from './sculpt.ts';
 import { makeGlove } from './viewmodelModels.ts';
 import { pigment } from './shell.ts';
 import { styleCharacter } from './celShading.ts';
+import { makeGearModel } from './gearModels.ts';
+import type { ShieldId,HeadId } from '../raid/catalog.ts';
 
 // The face is painted directly onto the head surface so eyelids and the mouth
 // follow the cheek curve when the portrait is turned to either side.
@@ -157,8 +159,12 @@ export function createOperator() {
   return root;
 }
 
-export function renderOperatorPortrait(renderer:THREE.WebGLRenderer) {
+function equipModel(actor:THREE.Object3D,item:ShieldId|HeadId,slot:'shield'|'head'){
+  const model=makeGearModel(item);if(slot==='shield'){model.position.set(0,1.15,.125);model.scale.setScalar(.86);}else model.position.set(0,1.66,.01);actor.add(model);return model;
+}
+export function renderOperatorPortrait(renderer:THREE.WebGLRenderer,shield?:ShieldId,head?:HeadId) {
   const scene=new THREE.Scene(), actor=createOperator();
+  if(shield)equipModel(actor,shield,'shield');if(head)equipModel(actor,head,'head');
   scene.add(actor,new THREE.HemisphereLight(0xfff4e3,0xa9bfd5,1.7));
   actor.rotation.y=.39;
   const key=new THREE.DirectionalLight(0xffecd7,2.2);key.position.set(-2,4,3);scene.add(key);
@@ -245,7 +251,15 @@ export function createOperatorPreview(renderer: THREE.WebGLRenderer) {
       renderer.setRenderTarget(oldTarget); renderer.setClearColor(old,alpha);
     }
   }
-  return { render, dispose() {
+  let equippedShield:ShieldId|undefined,equippedHead:HeadId|undefined;
+  let shield:THREE.Group|undefined,head:THREE.Group|undefined;
+  function removeGear(group?:THREE.Group){if(!group)return;group.removeFromParent();const materials=new Set<THREE.Material>();group.traverse(o=>{if(o instanceof THREE.Mesh){o.geometry.dispose();for(const material of [o.material].flat())materials.add(material);}});for(const material of materials)material.dispose();}
+  return { render, setGear(nextShield?:ShieldId,nextHead?:HeadId){
+    if(equippedShield===nextShield&&equippedHead===nextHead)return;
+    if(equippedShield!==nextShield){removeGear(shield);equippedShield=nextShield;shield=nextShield?equipModel(actor,nextShield,'shield'):undefined;}
+    if(equippedHead!==nextHead){removeGear(head);equippedHead=nextHead;head=nextHead?equipModel(actor,nextHead,'head'):undefined;}
+    schedule();
+  }, dispose() {
     cancelAnimationFrame(frame);
     target.dispose();
     const materials=new Set<THREE.Material>();

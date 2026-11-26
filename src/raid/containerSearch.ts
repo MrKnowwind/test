@@ -50,6 +50,13 @@ export function createContainerSearch(seed: number, interactions: readonly MapIn
       const pos = grid.room({ item, quantity: n });
       if (pos) grid.place(item, n, pos.x, pos.y, pos.rotated);
     }
+    // Independent equipment roll preserves existing material and quest placement.
+    if (['locker','cage','carrier'].includes(profile.kind) && random(101)<.32) {
+      const choices:ItemId[]=profile.kind==='carrier'
+        ? ['shield-green','shield-blue','shield-blue','shield-purple','shield-red','head-survey']
+        : ['shield-white','shield-white','shield-green','head-scout','shield-cell'];
+      grid.add(choices[Math.floor(random(102)*choices.length)],1);
+    } else if(profile.kind==='medical' && random(103)<.22)grid.add('shield-cell',1);
     const entries = grid.entries.map((e) => ({
       ...e,
       progress: 0,
