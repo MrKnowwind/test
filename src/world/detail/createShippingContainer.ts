@@ -5,7 +5,7 @@ import { enamel } from './materialLibrary.ts';
 import { randomSequence } from './noise.ts';
 
 export const containerSize = { w: 2.44, h: 2.59, d: 6.06 };
-type Options = { code: string; seed: number; tint: [number, number, number]; doors?: boolean };
+type Options = { code: string; seed: number; tint: [number, number, number]; doors?: boolean; open?:boolean };
 const neutral = new THREE.MeshStandardMaterial({ color: 0x7b8285, metalness: .29, roughness: .56 });
 
 // A trapezoidal corrugation profile, with a small bevel between the web and the crown.
@@ -36,14 +36,19 @@ const doorSheet = foldedSheet(1.02, 2.04, 3, .022);
 const roofSheet = foldedSheet(5.83, 2.22, 21, .028);
 const cornerSlot = new THREE.MeshStandardMaterial({ color: 0x11191b, roughness: .88 });
 
-export function createShippingContainer(materials: Materials, { code, seed, tint, doors = true }: Options) {
+export function createShippingContainer(materials: Materials, { code, seed, tint, doors = true,open=false }: Options) {
   const root = new THREE.Group();
   const { w, h, d } = containerSize;
   const skin = enamel(new THREE.Color(`rgb(${tint.join(',')})`));
   const frame = materials.steel;
   const panels: THREE.Mesh[] = [];
-  const body = box(root, frame, w - .151, h - .13, d - .12, 0, h / 2, 0);
-  body.castShadow = true;
+  if(open){
+    box(root,frame,w-.151,.075,d-.12,0,.0375,0).castShadow=true;
+    box(root,skin,w-.151,.10,d-.12,0,h-.11,0).castShadow=true;
+    box(root,skin,w-.15,h-.16,.10,0,h/2,-d/2+.09).castShadow=true;
+    for(const side of [-1,1])box(root,skin,.10,h-.16,d-.12,side*(w/2-.09),h/2,0).castShadow=true;
+    for(let z=-2.8;z<2.9;z+=.23)box(root,materials.timber,w-.24,.026,.20,0,.082,z);
+  }else{const body=box(root,frame,w-.151,h-.13,d-.12,0,h/2,0);body.castShadow=true;}
   for (const side of [-1, 1]) {
     const panel = mesh(root, sideSheet, skin, side * (w / 2 - .062), h / 2, 0);
     panel.rotation.y = side * Math.PI / 2;
@@ -76,7 +81,14 @@ export function createShippingContainer(materials: Materials, { code, seed, tint
   for (const end of [-1, 1]) {
     for (const y of [.105, h - .103]) box(root, frame, w - .28, .163, .14, 0, y, end * (d / 2 - .072), .012);
   }
-  if (doors) {
+  if(open){
+    // Both leaves are stowed along the outside walls; the opening stays real.
+    for(const side of [-1,1]){
+      box(root,frame,.08,2.25,1.05,side*(w/2+.09),1.29,d/2-.58,.012);
+      const panel=mesh(root,doorSheet,skin,side*(w/2+.14),1.29,d/2-.58);panel.rotation.y=side*Math.PI/2;panels.push(panel);
+      for(const z of [d/2-.91,d/2-.25])cylinder(root,materials.zinc,.018,2.16,side*(w/2+.16),1.29,z,12);
+    }
+  } else if (doors) {
     const face = d / 2 - .015;
     box(root, materials.rubber, .037, 2.32, .032, 0, 1.29, face);
     for (const side of [-1, 1]) {

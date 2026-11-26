@@ -17,6 +17,8 @@ import {
 } from './worldQueries.ts';
 
 import { addDistrictDetails, addPortHorizon } from './districtDetails.ts';
+import { buildHarbor } from './harbor.ts';
+import { harborInteractions,openContainerPlans } from './harborPlan.ts';
 import { districtOffsets, districtPoint, districtForInteraction, highwayPosition, servicePosition, type District } from './layout.ts';
 
 const v = (p: Vec3) => new THREE.Vector3(...p);
@@ -34,6 +36,7 @@ const localInteractions: readonly MapInteraction[] = [
 ];
 
 export const mapInteractions: readonly MapInteraction[] = [
+  ...harborInteractions,
   ...siteInteractions,
   ...localInteractions.map(target => ({ ...target, position: districtPoint(districtForInteraction(target.id), target.position) })),
   { id: 'plant-workshop', label: '厂区维修箱', kind: 'loot', item: 'salvage', quantity: 2, position: [83.6,1.12,-47.7] },
@@ -244,10 +247,23 @@ function* environmentSteps() {
   const colors: [number, number, number][] = [[49, 166, 177], [247, 107, 85], [125, 114, 203], [250, 179, 73]];
   for (const [index, [x, y, z, yaw, variant]] of layouts.entries()) {
     district(x < -32 ? 'wharf' : 'warehouse');
-    const asset = createShippingContainer(m, { code: 'SLT ' + String(74 + index * 13).padStart(3, '0'), seed: 114 + variant * 39, tint: colors[variant] });
+    const open=x<-32&&y===dock.y?openContainerPlans.find(p=>p.x===x+districtOffsets.wharf[0]&&p.z===z):undefined;
+    const asset = createShippingContainer(m, { code: 'SLT ' + String(74 + index * 13).padStart(3, '0'), seed: 114 + variant * 39, tint: colors[variant],open:!!open });
     asset.root.position.set(x, y, z); asset.root.rotation.y = yaw;
     staticRoot.add(asset.root);
-    obstacle(x, y + 1.295, z, yaw ? 6.06 : 2.44, 2.59, yaw ? 2.44 : 6.06);
+    if(open){
+      // Floor, side panels, rear wall and ceiling instead of a closed volume.
+      solids.push({min:[x+offset[0]-1.13,y,z+offset[1]-2.95],max:[x+offset[0]+1.13,y+.09,z+offset[1]+2.95],floor:true,walkSurface:true,surface:'metal'});
+      for(const s of [-1,1])obstacle(x+s*1.14,y+1.29,z,.17,2.58,6.06);
+      obstacle(x,y+1.29,z-2.96,2.44,2.58,.14);obstacle(x,y+2.53,z,2.44,.12,6.06);
+      solid([x,y+.40,z-2.05],[1.65,.80,1.0],open.style==='cold'?offwhite:painted,.045);
+      const dec= open.style==='luggage'?m.timber:open.style==='tools'?m.zinc:open.style==='cold'?offwhite:yellow;
+      for(const dz of [-.35,.35])box(staticRoot,dec,.40,.25,.32,x+.53,y+.53,z-2.05+dz,.035);
+      if(open.style==='cold'){for(const dx of [-.7,.7])box(staticRoot,offwhite,.08,.09,3.1,x+dx,y+1.95,z-.25);}
+      else if(open.style==='tools'){for(const dx of [-.50,-.15,.2])box(staticRoot,m.zinc,.06,.26,.035,x+dx,y+1.16,z-2.88);}
+      else if(open.style==='luggage'){box(staticRoot,rust,.55,.29,.43,x-.60,y+.60,z-2.05,.06);}
+      box(staticRoot,yellow,2.0,.026,.14,x,y+.103,z+2.85);
+    }else obstacle(x, y + 1.295, z, yaw ? 6.06 : 2.44, 2.59, yaw ? 2.44 : 6.06);
   }
   district('wharf');
   for (const z of [-35, -22, -9, 4, 17, 26]) {
@@ -290,6 +306,7 @@ function* environmentSteps() {
     beam([-48.6,10.1,3],[-48.6+side,5.1,3+side*1.9],.045,.045,dark);
     box(staticRoot,rust,.30,.46,.42,-48.6+side,4.87,3+side*2.2);
   }
+  buildHarbor(allStatic,m,solids);
 
   yield .2;
   district('warehouse');
@@ -599,7 +616,7 @@ function* environmentSteps() {
   }
 
   // A quiet port skyline extends past the fence without extra navigable acreage.
-  for(const [x,z,h,w] of [[-210,-10,11,9],[-212,-138,16,11],[140,-263,18,13],[112,-267,10,16],[-116,-263,14,12],[269,10,15,10]]) {
+  for(const [x,z,h,w] of [[-265,-112,11,9],[-212,-138,16,11],[140,-263,18,13],[112,-267,10,16],[-116,-263,14,12],[269,10,15,10]]) {
     box(staticRoot,painted,w,h,12,x,h/2,z,.1);
     box(staticRoot,m.zinc,w+.3,.22,12.3,x,h,z,.03);
     for(let y=3;y<h;y+=3.5) box(staticRoot,m.steel,w+.08,.12,12.1,x,y,z,.01);

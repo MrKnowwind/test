@@ -1,5 +1,6 @@
 import { supplySites } from '../world/supplySites.ts';
-import { lab, mapBounds, ramp } from '../world/worldQueries.ts';
+import { lab, mapBounds, mapViewBounds, ramp } from '../world/worldQueries.ts';
+import {gangways,harborBuildings,harborFloor,shipEnvelope,isShip} from '../world/harborPlan.ts';
 import type { ExitZone, FirstMap, Vec3 } from '../contracts/demo.ts';
 
 import { arcadeWidth, portBlocks, shopSide } from '../world/portBlocks.ts';
@@ -14,7 +15,8 @@ export function createTacticalMap() {
   const radar = mini.getContext('2d')!;
   const miniFloor = document.querySelector<HTMLElement>('#minimap-floor')!;
   let lastRadar = -Infinity;
-  const project = (x: number, z: number) => [80 + (x - mapBounds.minX) / 400 * 740, 85 + (z - mapBounds.minZ) / 400 * 580];
+  const scale=580/400, mapLeft=(900-(mapViewBounds.maxX-mapViewBounds.minX)*scale)/2;
+  const project = (x: number, z: number) => [mapLeft + (x - mapViewBounds.minX)*scale, 85 + (z - mapBounds.minZ)*scale];
   let lastDraw = 0;
   const compass = document.querySelector<HTMLElement>('#bearing')!;
   const heading = document.querySelector<HTMLElement>('#heading')!;
@@ -27,7 +29,7 @@ export function createTacticalMap() {
       if (now - lastRadar < 90) return;
       lastRadar = now;
       const underground = feet[1] < -2.5;
-      const floor = underground ? 'B1' : '地面';
+      const floor = underground ? 'B1' : harborFloor(feet);
       if (miniFloor.textContent !== floor) miniFloor.textContent = floor;
       const half = mini.width / 2, scale = half / (underground ? 25 : 45);
       const point = (x: number, z: number) => [half + (x - feet[0]) * scale, half + (z - feet[2]) * scale];
@@ -43,16 +45,21 @@ export function createTacticalMap() {
         rect(lab.minX, lab.minZ, lab.maxX, lab.maxZ, '#304457', '#709497');
         rect(ramp.minX, ramp.minZ, ramp.maxX, ramp.maxZ, '#53666b');
       } else {
+        rect(mapViewBounds.minX-200,mapBounds.minZ,mapBounds.minX,mapBounds.maxZ,'#1a4255');
         for (const road of roads) rect(road.x1, road.z1, road.x2, road.z2, '#4b5d5e');
         for (const path of footpaths) rect(path.x1, path.z1, path.x2, path.z2, '#394b4d');
         for (const [x, z, w, d] of portBlocks)
           rect(x - w / 2, z - d / 2, x + w / 2, z + d / 2, '#2c3e43', '#708386');
         for (const [x, z, w, d] of freightHalls)
           rect(x - w / 2, z - d / 2, x + w / 2, z + d / 2, '#2c3e43', '#708386');
+        for(const r of harborBuildings)rect(r.minX,r.minZ,r.maxX,r.maxZ,'#387174','#91beb9');
+        for(const r of gangways)rect(r.minX,r.minZ,r.maxX,r.maxZ,'#6a9d9b');
+        rect(shipEnvelope.minX,shipEnvelope.minZ,shipEnvelope.maxX,shipEnvelope.maxZ,'#5f8587','#c9e5d9');
       }
       radar.fillStyle = '#a2cfc5';
       for (const target of map.interactions) {
         if (!discovered.has(target.id) || consumed.has(target.id) || (target.position[1] < -2.5) !== underground) continue;
+        if(isShip(target.position)&&isShip(feet)&&harborFloor(target.position)!==floor)continue;
         const [x, z] = point(target.position[0], target.position[2]);
         radar.fillRect(x - 2, z - 2, 4, 4);
       }
@@ -80,6 +87,8 @@ export function createTacticalMap() {
       ctx.fillRect(0, 0, 900, 750);
       ctx.fillStyle = '#d3e0de';
       ctx.fillRect(80, 85, 740, 580);
+      const [seaLeft,seaTop]=project(mapViewBounds.minX,mapBounds.minZ),[shore,seaBottom]=project(mapBounds.minX,mapBounds.maxZ);
+      ctx.fillStyle='#a0c7d0';ctx.fillRect(seaLeft,seaTop,shore-seaLeft,seaBottom-seaTop);
       ctx.fillStyle = '#253e59';
       ctx.fillRect(0, 0, 900, 64);
       ctx.fillStyle = '#83dacd';
@@ -87,7 +96,7 @@ export function createTacticalMap() {
       ctx.strokeStyle = '#7795a04d';
       ctx.lineWidth = 1;
       for (let i = 0; i <= 10; i++) {
-        ctx.beginPath(); ctx.moveTo(80 + i * 74, 85); ctx.lineTo(80 + i * 74, 665); ctx.stroke();
+        const [x]=project(mapBounds.minX+i*40,mapBounds.minZ);ctx.beginPath();ctx.moveTo(x,85);ctx.lineTo(x,665);ctx.stroke();
       }
       for (let i = 0; i <= 10; i++) {
         ctx.beginPath(); ctx.moveTo(80, 85 + i * 58); ctx.lineTo(820, 85 + i * 58); ctx.stroke();
@@ -101,7 +110,7 @@ export function createTacticalMap() {
       ctx.fillStyle = '#486174';
       ctx.font = '12px monospace';
       for (let i = 0; i < 10; i++) {
-        ctx.fillText(String.fromCharCode(65 + i), 114 + i * 74, 81);
+        const [x]=project(mapBounds.minX+i*40+20,mapBounds.minZ);ctx.fillText(String.fromCharCode(65 + i),x,81);
         ctx.fillText(String(i + 1).padStart(2, '0'), 52, 118 + i * 58);
       }
       for (const road of [...roads,...footpaths]) {
@@ -128,6 +137,9 @@ export function createTacticalMap() {
         if(hasGallery(w,d))stairMark(x-shopSide(index)*(w/2-(w-arcadeWidth(index))/4),z+d/2);
       }
       for(const [x,z,w,d] of freightHalls)stairMark(x+w/2-1.5,z-d/2+1.2);
+      for(const r of [...harborBuildings,...gangways,shipEnvelope]){const [x,z]=project(r.minX,r.minZ),[a,b]=project(r.maxX,r.maxZ);ctx.fillStyle='#6ca7aa';ctx.fillRect(x,z,a-x,b-z);ctx.strokeStyle='#39777e';ctx.strokeRect(x,z,a-x,b-z);}
+      const [shipX,shipZ]=project((shipEnvelope.minX+shipEnvelope.maxX)/2,(shipEnvelope.minZ+shipEnvelope.maxZ)/2);
+      ctx.save();ctx.translate(shipX,shipZ);ctx.rotate(-Math.PI/2);ctx.fillStyle='#244958';ctx.font='bold 12px sans-serif';ctx.textAlign='center';ctx.fillText('海湾号邮轮',0,4);ctx.restore();
       for (const region of map.regions ?? []) {
         const [x, z] = project(region.center[0], region.center[2]);
         ctx.fillStyle = region.center[1] < -2 ? '#8e68a022' : '#65879410';
@@ -156,6 +168,7 @@ export function createTacticalMap() {
       }
       for (const target of map.interactions) {
         if (target.kind !== 'loot'||!discovered.has(target.id)) continue;
+        if(isShip(target.position)&&isShip(feet)&&harborFloor(target.position)!==harborFloor(feet))continue;
         const [sx, sz] = project(target.position[0], target.position[2]);
         ctx.fillStyle=ctx.strokeStyle='#347c78';
         ctx.beginPath(); ctx.arc(sx, sz, 2.8, 0, Math.PI * 2); if(consumed.has(target.id))ctx.stroke();else ctx.fill();

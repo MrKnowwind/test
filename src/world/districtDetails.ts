@@ -137,11 +137,12 @@ export function addPortHorizon(root: THREE.Group,m: Materials) {
   for(let i=0;i<p.count;i++) p.setY(i,Math.sin(p.getX(i)*.12+p.getZ(i)*.17)*.13+Math.sin(p.getZ(i)*.43)*.055);
   water.computeVertexNormals();mesh(root,water,ocean,-622,-2.1,-30);
   for(let z=-220;z<180;z+=8) {
+    if([-48,0].some(g=>Math.abs(z-g)<6))continue;
     box(root,m.concrete,2.3,1.4,7.6,-171,-.7,z,.08);
     cylinder(root,m.steel,.19,.8,-167,.4,z,12);
   }
   // A cargo hull made by extrusion, with bow, bridge, holds and deck fittings.
-  const ship=new THREE.Group();ship.position.set(-235,-1.9,-35);root.add(ship);
+  const ship=new THREE.Group();ship.position.set(-350,-1.9,-125);root.add(ship);
   const outline=new THREE.Shape();outline.moveTo(-10,-42);outline.lineTo(10,-42);outline.lineTo(12,30);outline.lineTo(0,48);outline.lineTo(-12,30);outline.closePath();
   const hull=new THREE.ExtrudeGeometry(outline,{depth:7,bevelEnabled:true,bevelSize:.8,bevelThickness:.4,bevelSegments:2,steps:1});
   hull.rotateX(-Math.PI/2);mesh(ship,hull,m.steel);

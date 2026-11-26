@@ -66,6 +66,11 @@ type Profile = {
   extra?: ItemId[];
 };
 export function caseProfile(id: string, item: ItemId): Profile {
+  if(id.startsWith('ship-cabin-'))return {kind:'locker',tag:'shipping',bags:['daypack','sling'],chance:.22,extra:item==='medkit'?['medkit']:undefined};
+  if(id==='harbor-cargo-cold')return {kind:'cold',tag:'medical',extra:['calibration']};
+  if(id==='harbor-cargo-tools'||id==='harbor-repair-tools')return {kind:'tool',tag:'mechanical'};
+  if(id==='harbor-cargo-luggage'||id==='harbor-terminal-luggage'||id==='ship-luggage')return {kind:'crate',tag:'shipping',bags:['school','daypack'],chance:.20};
+  if(id==='ship-medical')return {kind:'medical',tag:'medical'};
   if(id.startsWith('room-pump-'))return {kind:'panel',tag:'electronics'};
   if(id.startsWith('room-workshop-'))return {kind:'tool',tag:'mechanical'};
   if(id.startsWith('room-clinic-'))return {kind:'medical',tag:'medical'};

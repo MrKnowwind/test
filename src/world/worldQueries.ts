@@ -1,6 +1,7 @@
 import { roads, footpaths } from './roads.ts';
 import { districtRect } from './layout.ts';
 import type { Ledge, Vec3, WorldQueries } from '../contracts/demo.ts';
+import { offshoreWalkAreas,shipEnvelope } from './harborPlan.ts';
 
 export interface Slope {
   axis: 0 | 2;
@@ -19,6 +20,8 @@ export interface Solid {
 }
 
 export const mapBounds = { minX: -172, maxX: 228, minZ: -220, maxZ: 180 };
+// Render extent includes the vessel; movement does not gain a rectangular ocean floor.
+export const mapViewBounds={...mapBounds,minX:shipEnvelope.minX};
 export const lab = { ...districtRect('research', { minX: -8, maxX: 26, minZ: -42, maxZ: -20 }), y: -5.4 };
 export const ramp = { ...districtRect('research', { minX: 18, maxX: 23, minZ: -20, maxZ: -3 }), thickness: .32 };
 export const factory = { ...districtRect('plant', { minX: 30, maxX: 51, minZ: -16, maxZ: 4 }), y: 3.2 };
@@ -37,6 +40,8 @@ export const rampHeight = (z: number) => slopeHeight(rampSlope, 0, z);
 function inside(rect: { minX: number; maxX: number; minZ: number; maxZ: number }, x: number, z: number) {
   return x >= rect.minX && x <= rect.maxX && z >= rect.minZ && z <= rect.maxZ;
 }
+function playable(x:number,z:number){return inside(mapBounds,x,z)||offshoreWalkAreas.some(area=>inside(area,x,z));}
+function playableFootprint(x:number,z:number,radius:number){return [-radius,radius].every(dx=>[-radius,radius].every(dz=>playable(x+dx,z+dz)));}
 
 function floorAt(x: number, y: number, z: number) {
   if (!inside(mapBounds, x, z)) return null;
@@ -116,8 +121,7 @@ export function createWorldQueries(solids: readonly Solid[]): WorldQueries {
     return ground;
   }
   function blocked(at: Vec3, radius: number, height: number) {
-    if (!inside(mapBounds, at[0] - radius, at[2] - radius) ||
-        !inside(mapBounds, at[0] + radius, at[2] + radius)) return true;
+    if (!playableFootprint(at[0],at[2],radius))return true;
     return nearby(at[0],at[2],radius).some(solid => {
       if (!solid.slope) return blocksBody(solid, ...at, radius, height);
       const local: Vec3 = [at[0], at[1] - supportHeight(solid, at[0], at[2]), at[2]];
@@ -189,6 +193,7 @@ export function createWorldQueries(solids: readonly Solid[]): WorldQueries {
       const steps = Math.max(1, Math.ceil(Math.hypot(dx, dz) / .16));
       let [x, y, z] = from;
       function tryStep(toX: number, toZ: number) {
+        if(!playableFootprint(toX,toZ,radius))return false;
         let toY = floorAt(toX, y, toZ);
         const local=nearby(toX,toZ,radius);
         for(const s of local){

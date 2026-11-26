@@ -49,6 +49,7 @@ for(const s of openSpaces){assert.ok(s.outline.every(p=>inside(p,districts.find(
 let maxGrade=0,maxGradeRoad='';
 for(const {road:r,a,b} of segments){
   assert.ok(distance(a,b)>0,r.id);
+  assert.ok((a[0]===b[0])!==(a[1]===b[1]),`${r.id}: main roads must be straight`);
   if(r.type==='gangway'){
     assert.equal(a[0],ship.rect[2]);assert.ok(inside(a,ship.rect)&&a[0]<xmin);assert.ok(inPolygon(b,landOutline)&&quay.points.some(p=>same(p,b)));assert.ok(!inPolygon(a,landOutline));
   }else{
@@ -78,7 +79,7 @@ const distances=spawns.map(s=>{
   return {spawn:s.id,exit:allowed[0].name,straight:Math.round(distance(s.at,allowed[0].at)),roadEstimate:Math.round(estimate),height:+nodeY(s.at).toFixed(1)};
 });
 for(const l of lots.filter(l=>l!==ship))assert.ok(Math.min(...segments.filter(s=>s.road.type!=='gangway').map(s=>segRectDistance(s.a,s.b,l.rect)-s.road.width/2))<=30,`${l.id} isolated frontage`);
-console.log(`V2: ${lots.length} lots, ${roads.length} curved road/connection lines, ${spawns.length} spawns, ${exits.length} exits; offshore ship, land/clearance, heights and abstract graph passed.`);
+console.log(`V2: ${lots.length} lots, ${roads.length} straight road/connection lines, ${spawns.length} spawns, ${exits.length} exits; offshore ship, land/clearance, heights and abstract graph passed.`);
 console.log(`Terrain ${minY}–${maxY}m (${maxY-minY}m relief); largest planned road segment grade ${(maxGrade*100).toFixed(1)}% (${maxGradeRoad}).`);console.table(distances);
 
 if(process.argv.includes('--render')){
@@ -103,7 +104,7 @@ if(process.argv.includes('--render')){
   out.push(rect(bounds,`fill="url(#grid)"`),`</g>`,polygon(landOutline,`fill="none" stroke="#87a8a6" stroke-width="2.2" stroke-linejoin="round"`),rect(bounds,`fill="none" stroke="#accad0" stroke-width="1.2" stroke-dasharray="7 5" opacity=".75"`));
   for(let n=0;n<=400;n+=100){out.push(label(X(xmin+n),97,String(xmin+n),`class="small muted mono" text-anchor="middle"`),label(57,Z(zmin+n)+4,String(zmin+n),`class="small muted mono" text-anchor="end"`));}
   out.push(label(X(-218),Z(75),'外 海',`font-size="16" letter-spacing="3" text-anchor="middle" fill="#8ec6d7" transform="rotate(-90 ${X(-218)} ${Z(75)})"`));
-  // Draw the curved circulation with connected segment geometry and no rectangular road grid.
+  // Main roads stay straight; hills and building envelopes provide spatial variety.
   for(const r of roads){out.push(polyline(r.points,r.type==='gangway'?`stroke="#72d4d0" stroke-width="${r.width*scale}" stroke-linecap="round" stroke-dasharray="4 2"`:`stroke="#263e43" stroke-width="${(r.width+1)*scale}" stroke-linecap="round" stroke-linejoin="round"`));if(r.type!=='gangway')out.push(polyline(r.points,`stroke="#83968c" stroke-opacity=".76" stroke-width="${r.width*scale}" stroke-linecap="round" stroke-linejoin="round"`));if(r.width>=8)out.push(polyline(r.points,`stroke="#dce2d1" stroke-opacity=".6" stroke-width="1" stroke-dasharray="8 8"`));}
   const color=id=>districts.find(d=>d.id===id).color;
   for(const space of openSpaces){const cx=space.outline.reduce((s,p)=>s+X(p[0]),0)/space.outline.length,cy=space.outline.reduce((s,p)=>s+Z(p[1]),0)/space.outline.length;out.push(polygon(space.outline,`fill="#648774" fill-opacity=".28" stroke="#a4cbae" stroke-opacity=".62" stroke-dasharray="3 3"`),label(cx,cy+3,space.label,`font-size="10.5" text-anchor="middle" fill="#e2ebd0"`));}

@@ -16,6 +16,7 @@ import { createWarehouse } from '../raid/warehouse.ts';
 import { defaultLoadout, type Loadout } from '../raid/loadout.ts';
 import type { Cargo } from '../raid/backpack.ts';
 import {isPack,equipSlot,isShield,isHead} from '../raid/catalog.ts';
+import {harborFloor,isShip} from '../world/harborPlan.ts';
 import { itemIcon } from '../ui/itemArt.ts';
 import { createGameView, itemName } from '../ui/gameView.ts';
 import { createOutpostView } from '../ui/outpostView.ts';
@@ -636,7 +637,8 @@ async function startGame() {
       .sort((a, b) => Math.hypot(a.center[0] - player.feet[0], a.center[2] - player.feet[2]) -
         Math.hypot(b.center[0] - player.feet[0], b.center[2] - player.feet[2]))[0];
     map.updateExitLights(exit => raid.exitStatus(exit).kind);
-    view.updateHud(frame, raid.spawn.id, underground, region?.label,run.treatment.pose, ammoTime > 0);
+    const shipLabel=isShip(player.feet)?'海湾号 · '+harborFloor(player.feet):player.feet[0]<-172?'登船连桥':undefined;
+    view.updateHud(frame, raid.spawn.id, underground, shipLabel??region?.label,run.treatment.pose, ammoTime > 0);
     const now=performance.now();
     if(phase === 'raid' && now>=run.nextSurvey){
       run.nextSurvey=now+250;
