@@ -19,6 +19,7 @@ import {isPack,equipSlot,isShield,isHead} from '../raid/catalog.ts';
 import {harborFloor,isShip} from '../world/harborPlan.ts';
 import { isLabLevel, isResearchCampus, researchBuildingFloor } from '../world/researchPlan.ts';
 import { southernArea } from '../world/southPlan.ts';
+import { marketArea } from '../world/marketPlan.ts';
 import { itemIcon } from '../ui/itemArt.ts';
 import { createGameView, itemName } from '../ui/gameView.ts';
 import { createOutpostView } from '../ui/outpostView.ts';
@@ -642,7 +643,7 @@ async function startGame() {
     const shipLabel=isShip(player.feet)?'海湾号 · '+harborFloor(player.feet):player.feet[0]<-172?'登船连桥':undefined;
     const researchFloor = researchBuildingFloor(player.feet);
     const areaLabel = researchFloor ? '科研主楼 · ' + researchFloor :
-      isResearchCampus(player.feet) ? '科研园' : shipLabel ?? southernArea(player.feet) ?? region?.label;
+      isResearchCampus(player.feet) ? '科研园' : shipLabel ?? marketArea(player.feet) ?? southernArea(player.feet) ?? region?.label;
     view.updateHud(frame, raid.spawn.label ?? raid.spawn.id, underground, areaLabel,run.treatment.pose, ammoTime > 0);
     const now=performance.now();
     if(phase === 'raid' && now>=run.nextSurvey){

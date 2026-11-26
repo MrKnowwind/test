@@ -29,7 +29,7 @@ const surveyedLots: readonly Lot[] = [
   [188,82,12,11,5],[202,40,16,10,3],[201,13,14,14,3],
 ];
 // Authored landmarks occupy these former street blocks. Keep the other room IDs stable.
-const replacedLots = new Set([6,7,43,44]);
+const replacedLots = new Set([6,7,8,43,44]);
 export const portBlocks = surveyedLots.flatMap((lot,index) => replacedLots.has(index) ? [] : [[...lot,index] as const]);
 
 export function arcadeWidth(index: number) {

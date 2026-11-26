@@ -42,9 +42,7 @@ export function buildShopRoom(
 ) {
   const theme = themes[type],
     front = index % 4 < 2 ? 1 : -1;
-  // Only the surveyed southern dispensary retains the unique business name.
-  // Generic service rooms keep their stable interaction IDs during the C migration.
-  const roomName=type===2&&index===8?'极光药局':theme.name;
+  const roomName=theme.name;
   const wall = 0.22,
     height = 4.1;
   const innerX = x - (side * (width - wall)) / 2,

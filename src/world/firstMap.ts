@@ -12,6 +12,7 @@ import { districtPoint, servicePosition } from './layout.ts';
 import { regularExits, spawnPoints } from './raidPlan.ts';
 import { labLift, labLocalY } from './researchPlan.ts';
 import { communityPad, residentialPad, transitPad } from './southPlan.ts';
+import { parkingPad, pharmacyPad } from './marketPlan.ts';
 
 const botPosts: readonly Vec3[] = [[20, labLocalY, -31.2], [9.7, labLocalY, -35.6], [-4, labLocalY, -32]];
 function placeEnemies(seed: number): EnemySpawn[] {
@@ -76,6 +77,9 @@ export function createFirstMap(seed: number, environment = createEnvironment()):
       { id: 'residential-row', label: '港务家属区', center: [-135,residentialPad.height,134.5], radius: 24 },
       { id: 'community-center', label: '社区救护中心', center: [40,communityPad.height,126], radius: 20 },
       { id: 'transit-center', label: '交通站', center: [139,transitPad.height,122], radius: 23 },
+      { id: 'south-market', label: '生活商街', center: [-67,0,113], radius: 13 },
+      { id: 'south-pharmacy', label: '极光药局', center: [-66,pharmacyPad.height,138], radius: 13 },
+      { id: 'south-parking', label: '公共停车场', center: [197,parkingPad.height,129], radius: 16 },
       { id: 'lab', label: '地下实验室 · 高风险', center: districtPoint('research', [9, labLocalY, -31]), radius: 21 },
       { id: 'plant', label: '03 处理厂区', center: districtPoint('plant', [41, 0, -5]), radius: 45 },
       { id: 'research', label: '04 生化研究设施', center: districtPoint('research', [20.5, 0, -23]), radius: 50 },

@@ -12,6 +12,7 @@ import { itemSpecs, packs } from '../src/raid/catalog.ts';
 import { districtRoutes } from './fixtures/district-routes.mjs';
 import { isLabLevel, labLift, researchPad, researchBuildingFloor, researchUpperY } from '../src/world/researchPlan.ts';
 import { communityPad, residentialPad, southInteractions, transitPad } from '../src/world/southPlan.ts';
+import { marketArea, marketInteractions, parkingPad, pharmacyPad } from '../src/world/marketPlan.ts';
 
 const map = createFirstMap(42);
 const radius=.36, height=1.8;
@@ -376,6 +377,50 @@ test('southern terraces connect both arterials and offer distinct, searchable pu
  for(const enemy of map.enemies.filter(enemy=>['community-infected','transit-infected'].includes(enemy.id))){
    assert.equal(map.bodyClear(enemy.position,.36,1.8),true,enemy.id);
    assert.equal(map.groundHeight(enemy.position,.36),enemy.position[1],enemy.id);
+ }
+});
+
+test('market stores, the single pharmacy and parking have continuous approaches and reachable cases',async()=>{
+ const court=walk([-79.5,0,95],[[-79.5,119.4],[-66,119.4]]);
+ assert.equal(marketArea(court),'生活商街');
+ for(const [route,id] of [
+  [[[-74,119.4],[-74,112.15]],'market-convenience'],
+  [[[-67.2,119.4],[-67.2,114.25]],'market-hardware'],
+  [[[-60.2,119.4],[-60.2,112.75]],'market-kitchen'],
+ ]) visible(walk(court,route),id);
+ const clinic=walk(court,[[-66,137.0]]);
+ assert.equal(clinic[1],pharmacyPad.height);
+ visible(walk(clinic,[[-70.45,137.0],[-71.2,137.0]]),'room-clinic-8');
+ visible(walk(clinic,[[-66,133.6],[-63.4,133.6]]),'pharmacy-cold');
+ visible(walk(clinic,[[-66,141.15],[-62.6,141.15]]),'pharmacy-treatment');
+ assert.equal(map.interactions.filter(i=>i.label.startsWith('极光药局')).length,1);
+ assert.equal(map.interactions.filter(i=>i.id==='room-clinic-8').length,1);
+
+ const parking=walk([198,0,95],[[198,127]]);
+ assert.equal(parking[1],parkingPad.height);
+ visible(walk(parking,[[198,136],[203.6,136]]),'parking-charge');
+ visible(walk(parking,[[198,142.96],[187.8,142.96],[187.8,139.5]]),'parking-booth');
+ for(const {id,position} of marketInteractions){
+   const support=map.blockedDistance(position,[0,-1,0],1);
+   assert.ok(support!==null&&support<.10,id);
+ }
+
+ const {PerspectiveCamera}=await import('three');
+ const {createPlayer}=await import('../src/player/controller.ts');
+ for(const [start,ends] of [
+  [[-66,0,155.8],[[-66,pharmacyPad.height,138],[-66,0,120]]],
+  [[198,0,95],[[198,parkingPad.height,127],[198,0,155]]],
+ ]){
+   const player=createPlayer(new PerspectiveCamera(),map,{id:'market-route',position:start,yaw:0});
+   for(const destination of [...ends,ends[0],start]){
+     const [x,y,z]=destination, [px,,pz]=player.feet;
+     player.pose(player.feet,Math.atan2(px-x,pz-z));
+     const frames=Math.ceil(Math.hypot(px-x,pz-z)*10)+20;
+     for(let i=0;i<frames&&Math.hypot(player.feet[0]-x,player.feet[2]-z)>.14;i++)
+       player.move(1/60,{forward:1,strafe:0,lookX:0,lookY:0,running:true},false);
+     assert.ok(Math.hypot(player.feet[0]-x,player.feet[2]-z)<.15&&Math.abs(player.feet[1]-y)<.025,
+       JSON.stringify({destination,feet:player.feet}));
+   }
  }
 });
 

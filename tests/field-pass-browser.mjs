@@ -6,6 +6,7 @@ import { movement as speeds } from '../src/player/controller.ts';
 import { districtRoutes } from './fixtures/district-routes.mjs';
 import { lab, labLift, researchPad, researchUpperY } from '../src/world/researchPlan.ts';
 import { communityPad, residentialPad, transitPad } from '../src/world/southPlan.ts';
+import { parkingPad, pharmacyPad } from '../src/world/marketPlan.ts';
 
 const root = path.resolve(process.argv[2] ?? 'dist');
 const output = path.resolve(process.argv[3] ?? 'test-results/field-pass');
@@ -54,7 +55,7 @@ await page.addInitScript(fixedRoutes => {
     }
     painting = true;
   };
-}, cases.has('research') || cases.has('south'));
+}, ['research','south','market'].some(name=>cases.has(name)));
 const tick = (n=2, paint=false) => page.evaluate(([n,paint]) => window.advanceRaid(n,paint),[n,paint]);
 const state = () => page.evaluate(() => {
   const {feet,stance,climb,eye,countdown,result,flags,weapon,locked,backpack,items,spawn,fov,speed,grounded,health} = window.raidQA.state();
@@ -334,6 +335,17 @@ async function aim(id) {
   await tick();
 }
 
+async function searchCase(id) {
+  await aim(id);
+  await press('e');
+  const seconds=await page.evaluate(item=>raidQA.state().containers.find(c=>c.id===item)
+    .entries.reduce((total,entry)=>total+entry.duration,0),id);
+  await tick(Math.ceil((seconds+.3)*60));
+  await page.locator('.source-item.revealed').first().waitFor({timeout:10000});
+  assert.ok(await page.evaluate(item=>raidQA.state().searched.includes(item),id),id);
+  await closeBag();
+}
+
 async function research() {
   await start(42);
   await practice();
@@ -383,16 +395,6 @@ async function research() {
 }
 
 async function south() {
-  async function search(id) {
-    await aim(id);
-    await press('e');
-    const seconds=await page.evaluate(item=>raidQA.state().containers.find(c=>c.id===item)
-      .entries.reduce((total,entry)=>total+entry.duration,0),id);
-    await tick(Math.ceil((seconds+.3)*60));
-    await page.locator('.source-item.revealed').first().waitFor({timeout:10000});
-    assert.ok(await page.evaluate(item=>raidQA.state().searched.includes(item),id),id);
-    await closeBag();
-  }
   await start(5);
   assert.equal((await state()).spawn.id,'S-C');
   await practice();
@@ -402,18 +404,18 @@ async function south() {
   await capture('01-south-transfer-court');
   assert.equal(await page.locator('#floor').textContent(),'交通站与餐饮广场');
   await walkRoute([[136,122],[136,117.75]]);
-  await search('transit-dispatch');
+  await searchCase('transit-dispatch');
   await walkRoute([[136,122],[160.2,122],[160.2,120.5]]);
   await aim('transit-catering');
   await capture('02-south-catering');
-  await search('transit-catering');
+  await searchCase('transit-catering');
   await walkRoute([[160.2,122],[123,122],[123,95],[27,95],[27,122.15]]);
   await height(communityPad.height);
   await pose((await state()).feet,-Math.PI/2,.07);
   await capture('03-south-community-plaza');
   assert.equal(await page.locator('#floor').textContent(),'社区救护与活动中心');
   await walkRoute([[45.4,122.15]]);
-  await search('community-medical');
+  await searchCase('community-medical');
   await walkRoute([[27,122.15],[27,155],[26,155],[26,171]]);
   await height(0);
   await tick(315);
@@ -429,7 +431,7 @@ async function south() {
   await height(residentialPad.height+3.2);
   await aim('residential-1-upper');
   await capture('05-south-residential-upper');
-  await search('residential-1-upper');
+  await searchCase('residential-1-upper');
   await walkRoute([[-143,134.5],[-143,131.5],[-128.7,131.5],[-128.7,134.5],[-122.7,134.5],[-122.7,95]]);
   await height(0);
 
@@ -445,8 +447,54 @@ async function south() {
     checked:['S-C to transit and cafeteria','transit to community','south exit locked for S-C',
       'residential stairs and upper floor','north raid extracts through south highway']};
 }
+
+async function market() {
+  await start(8);
+  assert.equal((await state()).spawn.id,'S-B');
+  await practice();
+  await walkRoute([[-83,155.8],[-66,155.8],[-66,148.0],[-66,137.0]]);
+  await height(pharmacyPad.height);
+  assert.equal(await page.locator('#floor').textContent(),'极光药局');
+  await walkRoute([[-66,133.6],[-63.4,133.6]]);
+  await aim('pharmacy-cold');
+  await capture('01-pharmacy-cold');
+  await searchCase('pharmacy-cold');
+  await walkRoute([[-66,133.6],[-66,141.15],[-62.6,141.15]]);
+  await aim('pharmacy-treatment');
+  await capture('02-pharmacy-treatment');
+  await searchCase('pharmacy-treatment');
+  await walkRoute([[-66,141.15],[-66,119.4],[-74,119.4],[-74,112.15]]);
+  assert.match(await page.locator('#floor').textContent(),/便利店/);
+  await searchCase('market-convenience');
+  await walkRoute([[-74,119.4],[-67.2,119.4],[-67.2,114.25]]);
+  assert.match(await page.locator('#floor').textContent(),/五金杂货铺/);
+  await searchCase('market-hardware');
+  await walkRoute([[-67.2,119.4],[-60.2,119.4],[-60.2,112.75]]);
+  assert.match(await page.locator('#floor').textContent(),/街角食铺/);
+  await searchCase('market-kitchen');
+  await walkRoute([[-60.2,120.55]]);
+  await pose((await state()).feet,.53,.10);
+  await capture('03-market-frontage');
+  await walkRoute([[-79.5,119.4],[-79.5,95]]);
+  await height(0);
+
+  await pose([198,0,95],Math.PI);
+  await walkRoute([[198,120]]);
+  await height(parkingPad.height);
+  assert.equal(await page.locator('#floor').textContent(),'公共停车场');
+  await pose((await state()).feet,2.65,.06);
+  await capture('04-parking');
+  await walkRoute([[198,136],[203.6,136]]);
+  await searchCase('parking-charge');
+  await walkRoute([[198,136],[198,142.96],[187.8,142.96],[187.8,139.5]]);
+  await searchCase('parking-booth');
+  await walkRoute([[187.8,142.96],[198,142.96],[198,154.8]]);
+  await height(0);
+  report.market={spawn:'S-B',shops:3,pharmacy:pharmacyPad.height,parking:parkingPad.height,
+    checked:['both pharmacy entrances','three shop interiors','parking ramps, booth and charger','seven containers searched']};
+}
 try {
-  for(const [name,fn] of Object.entries({districts,bags,movement,exits,service,routes,controls,feel,research,south})){
+  for(const [name,fn] of Object.entries({districts,bags,movement,exits,service,routes,controls,feel,research,south,market})){
     if(cases.has(name)){await fn();console.log(name+' passed');}
   }
   assert.deepEqual(errors,[]);
