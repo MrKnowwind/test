@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { box } from './detail/geometry.ts';
 import { siteApproaches } from './supplySites.ts';
 import { enamel } from './detail/materialLibrary.ts';
+import { northTerrace,terrainHeight,houses } from './terrainPlan.ts';
 
 type Rect = { x1: number; x2: number; z1: number; z2: number };
 function rectangle(x: number, z: number, w: number, d: number): Rect {
@@ -15,16 +16,17 @@ export const roads = [
   [116,-100,130,10],[40.5,-113,9,38],[183,-90,25,9],[149,2,10,186],
   [50,-120,19,7],[162,-60,26,7],
   [-78,41,8,26],[-72,-52,82,6],[-55,-109,6,110],[-5,-93,120,6],
+  [-115,-186,10,50],[-123.5,-179,19,6],[-122,-204,14,6],
 ].map(([x,z,w,d])=>rectangle(x,z,w,d));
 
 const walkWidth = 3.4;
 // This pedestrian lane links the transit shed to the southern arterial through the freight court.
 export const freightWalk = [[-78,51],[-72,51],[-72,75],[-91,75]] as const;
 const walkLines = [...siteApproaches.map(route=>route.points), freightWalk, [[-72,75],[-72,95]] as const];
-export const footpaths = walkLines.flatMap(points => points.slice(1).map(([x,z],i)=>{
+export const footpaths = [...walkLines.flatMap(points => points.slice(1).map(([x,z],i)=>{
   const [lastX,lastZ]=points[i];
   return rectangle((lastX+x)/2,(lastZ+z)/2,Math.abs(x-lastX)+walkWidth,Math.abs(z-lastZ)+walkWidth);
-}));
+})),...houses.map(h=>rectangle(-123,h.z,7,3.2))];
 
 function overlaps(a: Rect, b: Rect) {
   return a.x1 < b.x2 && a.x2 > b.x1 && a.z1 < b.z2 && a.z2 > b.z1;
@@ -41,7 +43,15 @@ function subtract(a: Rect, b: Rect) {
 export function buildRoads(root: THREE.Group, asphalt: THREE.Material) {
   const paint = enamel(0xbad5df);
   function surface(r: Rect, y: number, material: THREE.Material) {
-    box(root,material,r.x2-r.x1,.012,r.z2-r.z1,(r.x1+r.x2)/2,y,(r.z1+r.z2)/2);
+    // Split at the real grading boundaries so pavement never floats, clips or
+    // changes the road centreline when crossing onto the new hill.
+    const t=northTerrace, xs=[r.x1,...[t.minX,t.maxX].filter(x=>x>r.x1&&x<r.x2),r.x2],zs=[r.z1,...[t.minZ,t.crestZ,t.maxZ].filter(z=>z>r.z1&&z<r.z2),r.z2];
+    for(let i=1;i<xs.length;i++)for(let j=1;j<zs.length;j++){
+      const x=(xs[i-1]+xs[i])/2,z=(zs[j-1]+zs[j])/2,w=xs[i]-xs[i-1],d=zs[j]-zs[j-1];
+      if(terrainHeight(x,z)===null){box(root,material,w,.012,d,x,y,z);continue;}
+      const geo=new THREE.BoxGeometry(w,.012,d);geo.translate(x,y,z);const p=geo.getAttribute('position');
+      for(let k=0;k<p.count;k++)p.setY(k,p.getY(k)+(terrainHeight(p.getX(k),p.getZ(k))??0));geo.computeVertexNormals();root.add(new THREE.Mesh(geo,material));
+    }
   }
   const walkway = enamel(0x8299ab);
   // Cut intersections out of the pavement before batching. A path can meet either

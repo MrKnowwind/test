@@ -3,7 +3,8 @@ import { portBlocks } from '../world/portBlocks.ts';
 import { freightHalls } from '../world/upperRoutes.ts';
 import { districtOffsets, highwayPosition, servicePosition } from '../world/layout.ts';
 import { mapBounds, mapViewBounds, dock, lab } from '../world/worldQueries.ts';
-import {gangways,harborBuildings,shipEnvelope} from '../world/harborPlan.ts';
+import {gangways,harborBuildings,shipOutline} from '../world/harborPlan.ts';
+import {civicBuildings,northTerrace} from '../world/terrainPlan.ts';
 
 export function renderPortMapPreviews() {
   for(const canvas of document.querySelectorAll<HTMLCanvasElement>('.port-map')){
@@ -23,12 +24,14 @@ export function renderPortMapPreviews() {
     }
     rect(dock.minX,dock.minZ,dock.maxX,dock.maxZ,'#326170','#629f9e');
     rect(lab.minX,lab.minZ,lab.maxX,lab.maxZ,'#564d66','#94839e');
+    const t=northTerrace;rect(t.minX,t.minZ,t.maxX,t.crestZ,'#557b71');rect(t.minX,t.crestZ,t.maxX,t.maxZ,'#3e5d5b');
     for(const r of footpaths)rect(r.x1,r.z1,r.x2,r.z2,'#3b5055');
     for(const r of roads)rect(r.x1,r.z1,r.x2,r.z2,'#6f8887');
     for(const [px,pz,w,d] of [...portBlocks,...freightHalls])rect(px-w/2,pz-d/2,px+w/2,pz+d/2,'#adc0b7','#d2ddd72e');
     for(const r of harborBuildings)rect(r.minX,r.minZ,r.maxX,r.maxZ,'#5c9b9b','#c7dfd8');
+    for(const r of civicBuildings)rect(r.minX,r.minZ,r.maxX,r.maxZ,'#a7b5be','#d2e2d5');
     for(const r of gangways)rect(r.minX,r.minZ,r.maxX,r.maxZ,'#91c8c2');
-    rect(shipEnvelope.minX,shipEnvelope.minZ,shipEnvelope.maxX,shipEnvelope.maxZ,'#d0e0d9','#71caca');
+    c.beginPath();shipOutline.forEach(([px,pz],i)=>{i?c.lineTo(x(px),z(pz)):c.moveTo(x(px),z(pz));});c.closePath();c.fillStyle='#d0e0d9';c.fill();c.strokeStyle='#71caca';c.stroke();
     c.font='bold 12px system-ui,sans-serif';c.textAlign='center';c.textBaseline='middle';
     for(const [name,px,pz] of [['码头',-135,-5],['仓储',0,0],['处理厂',districtOffsets.plant[0]+42,-42],['研究区',40,-147],['公路',-40,155]] as const){
       c.fillStyle='#12232be8';c.fillRect(x(px)-27,z(pz)-10,54,20);

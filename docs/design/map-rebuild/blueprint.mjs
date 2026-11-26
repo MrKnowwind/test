@@ -140,7 +140,7 @@ if(process.argv.includes('--render')){
   // POI and terrain key.
   out.push(`<rect x="951" y="106" width="443" height="752" rx="7" fill="#162b33" stroke="#354f58"/>`,label(973,136,'功能地块  /  基础平台高程',`font-size="19" font-weight="700"`),label(973,159,'不同轮廓为建筑体量示意，不是最终外墙。',`class="small muted"`));
   let y=185;
-  for(const id of ['W','C','E','N','S']){const d=districts.find(d=>d.id===id);out.push(`<rect x="973" y="${y-12}" width="5" height="15" fill="${d.color}"/>`,label(986,y,d.name,`font-size="15" font-weight="700" fill="${d.color}"`));y+=21;for(const l of lots.filter(l=>l.district===id)){out.push(label(974,y,l.id,`class="small mono" fill="${d.color}"`),label(1014,y,l.name,`font-size="14"`),label(1370,y,l===ship?'+2.8 / +6.2m':`+${l.padY}m`,`class="small muted mono" text-anchor="end"`));y+=18;}y+=9;}
+  for(const id of ['W','C','E','N','S']){const d=districts.find(d=>d.id===id);out.push(`<rect x="973" y="${y-12}" width="5" height="15" fill="${d.color}"/>`,label(986,y,d.name,`font-size="15" font-weight="700" fill="${d.color}"`));y+=21;for(const l of lots.filter(l=>l.district===id)){out.push(label(974,y,l.id,`class="small mono" fill="${d.color}"`),label(1014,y,l.name,`font-size="14"`),label(1370,y,l===ship?'+2.8 / 6.2 / 9.75m':`+${l.padY}m`,`class="small muted mono" text-anchor="end"`));y+=18;}y+=9;}
   assert.ok(y<858);
   out.push(`<path d="M65 880H1394" stroke="#3c5559"/>`,label(65,907,'海拔示意 · 等高线间隔 4m',`font-size="14" font-weight="700"`));
   bands.forEach((c,i)=>out.push(`<rect x="${65+i*54}" y="923" width="54" height="14" fill="${c}" stroke="#758c85" stroke-width=".5"/>`,label(65+i*54,954,`+${i*4}m`,`font-size="11" class="muted"`)));
@@ -180,11 +180,11 @@ if(process.argv.includes('--render')){
     else if(l.shape==='tower'){add(.21,.22,.8,.8,9);add(.38,.38,.63,.63,13);}
     else add(.08,.10,.92,.88,l.floors.length>1?6.5:4.8);
   }
-  // Ship masses have two deck elevations; the blue sea remains non-walkable.
-  const [sx,sz,ex,ez]=ship.rect;ax.push(...mass([sx+1,sz+4,ex-1,ez-3],.0,offshore.cabinY,'#9dbcbc'),...mass([sx+3,sz+12,ex-3,ez-12],offshore.cabinY,offshore.upperDeckY-offshore.cabinY,'#d9e8df'),...mass([sx+5,sz+19,ex-5,sz+37],offshore.upperDeckY,3.4,'#77aeb0'));
+  // Three deck elevations, with a raised bow bridge and an aft observation deck.
+  const [sx,sz,ex,ez]=ship.rect;ax.push(...mass([sx+2,sz+4,ex-1,ez-3],.0,offshore.cabinY,'#9dbcbc'),...mass([sx+3,sz+12,ex-3,ez-12],offshore.cabinY,offshore.upperDeckY-offshore.cabinY,'#d9e8df'),...mass([sx+5,sz+19,ex-5,sz+37],offshore.upperDeckY,4.9,'#77aeb0'),...mass([sx+12,ez-41,ex-7,ez-16],offshore.upperDeckY,offshore.sunDeckY-offshore.upperDeckY,'#d9e8df'));
   for(const m of masses.sort((a,b)=>a.depth-b.depth))ax.push(...mass(m.box,m.y,m.h,m.c));
   for(const p of [[-165,-48],[-165,0]])ax.push(iline([[...p,offshore.quayY+.35],[-186,p[1],offshore.cabinY+.35]],`stroke="#e1f3e8" stroke-width="3"`));
-  const annotations=[['外海邮轮 · 双层',[-196,-33,9],[-90,-25]],['西部低岸 +0.8m',[-135,35,3],[-115,22]],['中央物流台地 +4–6m',[2,-37,12],[0,-46]],['东部工业盆地 +2m',[174,-44,10],[113,15]],['北部科研高地 +10–23m',[128,-178,31],[56,-27]],['南部缓丘 +6–10m',[-30,126,15],[25,42]]];
+  const annotations=[['外海邮轮 · 三层',[-208,-33,9.75],[-90,-25]],['西部低岸 +0.8m',[-135,35,3],[-115,22]],['中央物流台地 +4–6m',[2,-37,12],[0,-46]],['东部工业盆地 +2m',[174,-44,10],[113,15]],['北部科研高地 +10–23m',[128,-178,31],[56,-27]],['南部缓丘 +6–10m',[-30,126,15],[25,42]]];
   for(const [name,p,[dx,dy]] of annotations){const [x,y]=iso(...p),tx=x+dx,ty=y+dy;ax.push(`<path d="M${x} ${y}L${tx} ${ty-4}" stroke="#c3e3d8" stroke-width="1" opacity=".85"/>`,label(tx,ty,name,`font-size="14" text-anchor="${dx<0?'end':dx>0?'start':'middle'}" font-weight="700" paint-order="stroke" stroke="#102129" stroke-width="5" stroke-linejoin="round"`));}
   ax.push(label(31,750,'陆地／海面／桥面分离 · 仅标示地形、道路和建筑体量，内景与最终碰撞待灰盒。',`font-size="13" fill="#a9c3c2"`),`</svg>`);
   writeFileSync(new URL('./relief.svg',import.meta.url),ax.join('\n')+'\n');

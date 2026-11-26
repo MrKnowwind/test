@@ -2,6 +2,7 @@ import { roads, footpaths } from './roads.ts';
 import { districtRect } from './layout.ts';
 import type { Ledge, Vec3, WorldQueries } from '../contracts/demo.ts';
 import { offshoreWalkAreas,shipEnvelope } from './harborPlan.ts';
+import { terrainHeight } from './terrainPlan.ts';
 
 export interface Slope {
   axis: 0 | 2;
@@ -45,6 +46,8 @@ function playableFootprint(x:number,z:number,radius:number){return [-radius,radi
 
 function floorAt(x: number, y: number, z: number) {
   if (!inside(mapBounds, x, z)) return null;
+  const terrain=terrainHeight(x,z);
+  if(terrain!==null)return terrain;
   if (inside(ramp, x, z)) return rampHeight(z);
   if (inside(factoryRamp, x, z)) return slopeHeight(factorySlope, x, z);
   if (inside(dockRamp, x, z)) return slopeHeight(dockSlope, x, z);
@@ -184,7 +187,7 @@ export function createWorldQueries(solids: readonly Solid[]): WorldQueries {
         if (!solid.surface || x < solid.min[0] || x > solid.max[0] || z < solid.min[2] || z > solid.max[2]) continue;
         if (Math.abs(supportHeight(solid,x,z)-y) < .14) return solid.surface;
       }
-      if (Math.abs(y) < .15 && [roads,footpaths].some(lanes => lanes.some(r=>x>=r.x1 && x<=r.x2 && z>=r.z1 && z<=r.z2))) return 'concrete';
+      if (Math.abs(y-(terrainHeight(x,z)??0)) < .15 && [roads,footpaths].some(lanes => lanes.some(r=>x>=r.x1 && x<=r.x2 && z>=r.z1 && z<=r.z2))) return 'concrete';
       return 'gravel';
     },
     bodyClear: (at, radius, height) => !blocked(at, radius, height),

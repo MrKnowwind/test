@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import type { Vec3 } from '../contracts/demo.ts';
 import type { Materials } from './detail/materialLibrary.ts';
-import { box, cable, cylinder, mesh, strut, label } from './detail/geometry.ts';
+import { box, cable, cylinder, mesh, strut } from './detail/geometry.ts';
 
 type SolidBuilder = (at: Vec3, size: Vec3, material: THREE.Material, bevel?: number) => THREE.Mesh;
 
@@ -11,13 +11,6 @@ export function addDistrictDetails(root: THREE.Group, m: Materials, solid: Solid
   const glass = new THREE.MeshStandardMaterial({ color: 0x587276, metalness: .2, roughness: .28 });
   const b = (at: Vec3, size: Vec3, mat: THREE.Material = paint, bevel = .015) => box(root, mat, ...size, ...at, bevel);
   const beam = (a: Vec3, c: Vec3, width = .12) => strut(root, trim, new THREE.Vector3(...a), new THREE.Vector3(...c), width);
-  function sign(x: number, y: number, z: number, title: string, note: string) {
-    const plate = label(root, 4.8, 1.15, (ctx,w,h) => {
-      ctx.fillStyle='#233632';ctx.fillRect(0,0,w,h);ctx.strokeStyle='#9ea58d';ctx.strokeRect(5,5,w-10,h-10);
-      ctx.fillStyle='#ded6ad';ctx.font='bold 38px Microsoft YaHei';ctx.fillText(title,18,52);
-      ctx.font='18px sans-serif';ctx.fillText(note,18,88);
-    },.08);plate.position.set(x,y,z);
-  }
   function pallet(x: number, y: number, z: number, loaded = true) {
     for (const dx of [-.48,0,.48]) b([x+dx,y+.07,z],[.12,.14,1.05],m.timber,.006);
     for(let i=0;i<6;i++) b([x,y+.17,z-.48+i*.19],[1.22,.07,.15],m.timber,.004);
@@ -109,7 +102,7 @@ export function addDistrictDetails(root: THREE.Group, m: Materials, solid: Solid
   solid([-41,1.7,0],[14,3.4,.2],paint,.02);
   for(const x of [-47,-35]) solid([x,1.7,14],[.16,3.4,.16],trim,.01);
   b([-41,3.5,7],[14.6,.17,14.8],paint);
-  bench(-42,2);cabinet(-47,3);sign(-41,2.7,14.2,'维修工棚','TOOLS / KEEP AISLE CLEAR');
+  bench(-42,2);cabinet(-47,3);
   for(const z of [5,9]) {
     cylinder(root,paint,.36,.95,-45,.48,z,24);
     for(const y of [.08,.85]) cylinder(root,trim,.38,.06,-45,y,z,24);
@@ -153,16 +146,7 @@ export function addPortHorizon(root: THREE.Group,m: Materials) {
     for(let dz=-5;dz<=5;dz+=1)box(ship,m.zinc,5.75,2.3,.025,x,8+y*2.8,z+dz);
   }
   cylinder(ship,m.steel,.14,12,0,21,31,12);
-  for(let z=-180;z<=110;z+=85) {
-    for(const x of [-300,-280]) {
-      strut(root,m.steel,new THREE.Vector3(x,0,z),new THREE.Vector3(x+6,42,z),.85);
-      strut(root,m.steel,new THREE.Vector3(x,0,z+13),new THREE.Vector3(x+6,42,z),.85);
-    }
-    strut(root,m.safety,new THREE.Vector3(-302,42,z),new THREE.Vector3(-206,49,z),.8);
-    strut(root,m.safety,new THREE.Vector3(-302,45,z),new THREE.Vector3(-206,52,z),.45);
-    for(let i=0;i<12;i++)strut(root,m.steel,new THREE.Vector3(-302+i*8,42+i*.58,z),new THREE.Vector3(-294+i*8,45+(i+1)*.58,z),.2);
-    cable(root,m.rubber,[[-218,48,z],[-218,27,z],[-218,12,z]],.065);
-  }
+  // No floating offshore cranes: the working gantry cranes remain on the real quay.
   const rock=new THREE.MeshStandardMaterial({color:0x8496b8,roughness:1});
   for(const [cx,cz,yaw] of [[25,-320,0],[328,-20,Math.PI/2],[20,285,0]]) {
     const terrain=new THREE.PlaneGeometry(680,210,80,24);terrain.rotateX(-Math.PI/2);

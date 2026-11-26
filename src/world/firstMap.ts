@@ -6,6 +6,7 @@ import { loosePoints } from './loosePoints.ts';
 import { createShopDoors } from './shopDoors.ts';
 import { roll } from '../raid/loot.ts';
 import { supplySites } from './supplySites.ts';
+import { northTerrace } from './terrainPlan.ts';
 
 import { districtPoint, highwayPosition, servicePosition } from './layout.ts';
 
@@ -71,6 +72,8 @@ export function createFirstMap(seed: number, environment = createEnvironment()):
   return {
     ...queries, scene, doors, spawnPoints, exits, updateExitLights,
     regions: [
+      { id: 'north-terrace', label: '北部高地 · 海关与气象站', center: [-134,northTerrace.height,-186], radius: 53 },
+      { id: 'residential-row', label: '港务家属区', center: [-135,0,134.5], radius: 27 },
       { id: 'lab', label: '地下实验室 · 高风险', center: districtPoint('research', [9, lab.y, -31]), radius: 21 },
       { id: 'plant', label: '03 处理厂区', center: districtPoint('plant', [41, 0, -5]), radius: 45 },
       { id: 'research', label: '04 生化研究设施', center: districtPoint('research', [20.5, 0, -23]), radius: 50 },

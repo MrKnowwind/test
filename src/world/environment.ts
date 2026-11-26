@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { siteInteractions, supplySites } from './supplySites.ts';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import type { MapInteraction, Vec3 } from '../contracts/demo.ts';
-import { box, cable, cylinder, label, mesh, strut } from './detail/geometry.ts';
+import { box, cable, cylinder, mesh, strut } from './detail/geometry.ts';
 import { createMaterialLibrary, enamel, paving, emissive } from './detail/materialLibrary.ts';
 import { createShippingContainer, foldedSheet } from './detail/createShippingContainer.ts';
 import { buildStreetCourts } from './streetCourts.ts';
@@ -19,7 +19,9 @@ import {
 import { addDistrictDetails, addPortHorizon } from './districtDetails.ts';
 import { buildHarbor } from './harbor.ts';
 import { harborInteractions,openContainerPlans } from './harborPlan.ts';
-import { districtOffsets, districtPoint, districtForInteraction, highwayPosition, servicePosition, type District } from './layout.ts';
+import { northTerrace,terrainHeight,civicInteractions } from './terrainPlan.ts';
+import { buildCivicDistrict,buildNorthTerrace } from './civicDistrict.ts';
+import { districtOffsets, districtPoint, districtForInteraction, type District } from './layout.ts';
 
 const v = (p: Vec3) => new THREE.Vector3(...p);
 
@@ -37,6 +39,7 @@ const localInteractions: readonly MapInteraction[] = [
 
 export const mapInteractions: readonly MapInteraction[] = [
   ...harborInteractions,
+  ...civicInteractions,
   ...siteInteractions,
   ...localInteractions.map(target => ({ ...target, position: districtPoint(districtForInteraction(target.id), target.position) })),
   { id: 'plant-workshop', label: '厂区维修箱', kind: 'loot', item: 'salvage', quantity: 2, position: [83.6,1.12,-47.7] },
@@ -100,18 +103,6 @@ function* environmentSteps() {
     tileByPosition(geometry, 3);
     mesh(staticRoot, geometry, material);
     solids.push({ min: [rect.minX, -.32, rect.minZ], max: [rect.maxX, 0, rect.maxZ], floor: true, walkSurface: true, surface: 'concrete', slope: profile });
-  }
-
-  function sign(at: Vec3, width: number, yaw: number, title: string, note: string, accent = '#a8f7e3') {
-    const object = label(staticRoot, width, width * .24, (ctx, w, h) => {
-      ctx.fillStyle = '#23344e'; ctx.fillRect(0, 0, w, h);
-      ctx.strokeStyle = '#7296b1'; ctx.lineWidth = 4; ctx.strokeRect(5, 5, w - 10, h - 10);
-      ctx.fillStyle = accent; ctx.fillRect(12, 12, 6, h - 24);
-      ctx.font = 'bold 51px Microsoft YaHei UI, sans-serif'; ctx.fillText(title, 29, 61, w - 45);
-      ctx.fillStyle = '#c4dbe6'; ctx.font = '20px Microsoft YaHei UI, sans-serif'; ctx.fillText(note, 30, 96, w - 42);
-    }, .12);
-    object.position.set(...at); object.rotation.y = yaw;
-    return object;
   }
 
   function beam(a: Vec3, b: Vec3, width = .14, depth = width, material = m.steel) {
@@ -208,7 +199,7 @@ function* environmentSteps() {
 
   // Subtract the lower quay and descent apertures from the continuous ground slab.
   let ground = [{ minX: -172, maxX: 228, minZ: -220, maxZ: 180 }];
-  for (const cut of [dock, dockRamp, ramp]) {
+  for (const cut of [dock, dockRamp, ramp, northTerrace]) {
     ground = ground.flatMap(r => {
       const x1 = Math.max(r.minX, cut.minX), x2 = Math.min(r.maxX, cut.maxX);
       const z1 = Math.max(r.minZ, cut.minZ), z2 = Math.min(r.maxZ, cut.maxZ);
@@ -221,6 +212,7 @@ function* environmentSteps() {
     });
   }
   for (const r of ground) slab(r.minX, r.maxX, r.minZ, r.maxZ, 0, groundMaterial);
+  buildNorthTerrace(allStatic,m,solids);
   slab(dock.minX, dock.maxX, dock.minZ, dock.maxZ, dock.y, m.concrete);
   for (const z of [dock.minZ,dock.maxZ]) {
     solid([(dock.minX+dock.maxX)/2,dock.y/2,z],[dock.maxX-dock.minX,-dock.y,.08],m.concrete,0);
@@ -404,7 +396,6 @@ function* environmentSteps() {
   for(const dx of [-1.7,1.7]) solid([ox+dx,1.5,oz+2.1],[1.4,3,.22],offwhite,.02);
   box(staticRoot,m.zinc,5.1,.16,4.7,ox,3.13,oz,.016);
   solid([-9,.48,12.75],[1.75,.96,.8],m.steel,.02);
-  sign([-10,2.7,16.65],2.6,0,'值班室','SERVICE ACCESS');
   lamp([-10,2.75,14.6],0xffbd84,28);
   lamp([-4,5.8,8],0xffd5a3,120);
   lamp([-4,5.8,19],0xffc28b,90);
@@ -551,7 +542,6 @@ function* environmentSteps() {
   solid([-4,-4.24,-39.2],[1.4,2.32,.74],yellow,.045);
   box(staticRoot,m.steel,.94,1.7,.055,-4,-4.2,-38.79,.022);
   box(staticRoot,emissive(0xe4a957,.8),.2,.085,.028,-4,-3.45,-38.75,.004);
-  sign([-4,-2.67,-38.77],1.7,0,'货梯配电','E 呼叫货梯','#e4c48b');
   for(const [x,z,w] of [[7.2,-38.7,3.1],[20.5,-37.4,4.3],[22,-24.2,1.8]]) {
     solid([x,-4.91,z],[w,.98,.85],m.steel,.018);
     solid([x,-4.38,z],[w+.08,.08,.96],offwhite,.012);
@@ -580,12 +570,8 @@ function* environmentSteps() {
     for (let i = 0; i < 3; i++) box(staticRoot, emissive(0x759f83,.32), .042, .025, .012, x + .38, lab.y + .36 + i * .065, -40.22, .003);
     obstacle(x,lab.y+1.6,-40.75,1.24,3.2,1.24);
   }
-  sign([7.4,-2.6,-41.76],3.3,0,'样本保管室','RESTRICTED / BIOHAZARD','#a1c9b6');
-  sign([20.5,-2.4,-41.77],3.8,0,'隔离安保区','SECURITY / 武器回收','#d7a37f');
-  sign([16,-2.7,-29.4],2.2,Math.PI/2,'隔离走廊','← 样本 / 货梯','#a0c9bd');
   for(let y=lab.y+.2;y<-1.2;y+=.16) box(staticRoot,m.zinc,.07,.1,3.8,-7.82,y,-25);
   for(const z of [-27,-23]) post(-7.7,lab.y,z,4.65);
-  sign([-7.63,-1.37,-25],3.5,Math.PI/2,'实验室货梯','呼叫后在梯内等候','#a5d5c2');
 
   district();
   yield .51;
@@ -596,19 +582,15 @@ function* environmentSteps() {
   // Main road and two parallel approaches; roads stay clear for navigation and AI.
   district();
   buildRoads(staticRoot, m.asphalt);
-  // A single direction marker where the service road forks. The exit itself has the card reader.
-  post(168,0,-83,2.4); sign([168,2.09,-82.86],1.8,0,'维修出口 →','持卡通行');
+  // Physical gateway frame; location and requirements are displayed by the HUD/map.
   for(const x of [-154,-148]) post(x,0,144.7,4);
   beam([-154,4,144.7],[-148,4,144.7],.2);
-  sign([highwayPosition[0],3.24,144.86],4.6,0,'公路出口','入区守候 5 秒','#9ac79f');
-  sign([servicePosition[0]+2.91,2.8,servicePosition[2]],3.5,-Math.PI/2,'维修通道','需维修卡 / 值班室领取');
   truck(-8.2,138,0,'medical'); truck(140,77,0,'cells');
   for(const [x,z] of [[-19,31],[7,29],[128,-20],[27,-126]]) drum(x,0,z);
   district('wharf'); truck(-48.2,22,dock.y,'freight'); district();
   // Local barricades explain finite roads without encircling the world in a wall.
   for (const z of [-211,173]) for(const x of [-115,60,175]) {
-    for(const dx of [-6,-2,2,6]) solid([x+dx,.55,z],[3.2,1.1,.8],m.concrete,.09);
-    sign([x,2.1,z],4,0,'道路封锁','隔离区边界 / 禁止通行');
+    for(const dx of [-6,-2,2,6]) solid([x+dx,(terrainHeight(x+dx,z)??0)+.55,z],[3.2,1.1,.8],m.concrete,.09);
   }
   for(const [x,z] of [[-110,65],[-110,5],[-110,-55],[65,45],[65,-35],[65,-115],[180,55],[180,-25],[-40,150],[70,150]]) {
     post(x,0,z,7.5); beam([x,7.3,z],[x+1.1,7.3,z],.11);
@@ -669,7 +651,7 @@ function* environmentSteps() {
     } as const;
     const [code,tint]=taxonomy[site.item];
     const fascia=enamel(tint);
-    // The front lintel carries both the sign and the canopy. Keep the approach between its feet open.
+    // The front lintel supports the canopy. Keep the approach between its feet open.
     for (const side of [-1,1]) {
       const px=x+side*2.85;
       solid([px,.3,z+6.86],[.54,.6,.72],m.steel,.09);
@@ -759,6 +741,7 @@ function* environmentSteps() {
   const rooms=block.value;
   freightHalls.forEach(([x,z,w,d],i)=>upper.warehouse(x,z,w,d,i,rooms.cases));
   buildStreetCourts(staticRoot,m,solid);
+  buildCivicDistrict(allStatic,m,solids);
   addPortHorizon(allStatic, m);
   for(const interaction of mapInteractions) addPickup(interaction);
 

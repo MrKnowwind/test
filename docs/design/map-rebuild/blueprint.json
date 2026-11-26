@@ -1,5 +1,5 @@
 {
-  "version": "3.5A-v2-straight-road",
+  "version": "3.5A-v2-straight-road-expanded-vessel",
   "status": "approved-layout-with-straight-road-correction",
   "units": "metres; x east, z south; rectangles [minX,minZ,maxX,maxZ]",
   "bounds": [-172, -220, 228, 180],
@@ -13,7 +13,7 @@
     "seaY": 0,
     "roadGradeLimit": 0.20
   },
-  "offshore": {"lot":"W1","cabinY":2.8,"upperDeckY":6.2,"quayY":0.8,"connectionType":"ship-and-gangways-only"},
+  "offshore": {"lot":"W1","cabinY":2.8,"upperDeckY":6.2,"sunDeckY":9.75,"quayY":0.8,"connectionType":"ship-and-gangways-only"},
   "districts": [
     {"id":"W", "name":"西部港口", "color":"#57c9ce", "area":[-172,-107,-98,72],"outline":[[-168,-107],[-104,-107],[-99,-67],[-102,-20],[-99,24],[-98,57],[-113,70],[-166,66],[-172,39],[-172,-64]]},
     {"id":"C", "name":"中央物流", "color":"#d1ae63", "area":[-86,-98,60,72],"outline":[[-86,-91],[-26,-94],[-17,-85],[59,-93],[60,-20],[56,16],[60,67],[23,72],[-25,71],[-82,65],[-86,33],[-83,-14]]},
@@ -22,7 +22,7 @@
     {"id":"S", "name":"南部生活", "color":"#8fc68f", "area":[-172,88,228,180],"outline":[[-153,92],[-106,90],[-79,91],[-22,96],[45,91],[104,88],[161,92],[211,92],[214,159],[196,175],[-127,175],[-156,157]]}
   ],
   "lots": [
-    {"id":"W1","district":"W","name":"盐港客运邮轮","rect":[-207,-77,-186,12],"padY":2.8,"floors":["船舱层","上甲板"],"work":"new"},
+    {"id":"W1","district":"W","name":"盐港客运邮轮","rect":[-232,-112,-186,55],"padY":2.8,"floors":["船舱层","上甲板","顶层甲板"],"work":"new"},
     {"id":"W2","district":"W","name":"客运候船厅","rect":[-153,-96,-110,-70],"padY":1.0,"floors":["1F"],"work":"new","shape":"terminal"},
     {"id":"W3","district":"W","name":"开放集装箱堆场","rect":[-151,-62,-111,-12],"padY":0.8,"floors":["地面"],"work":"rebuild","shape":"yard"},
     {"id":"W4","district":"W","name":"装卸维修工棚","rect":[-153,-7,-109,10],"padY":0.8,"floors":["1F"],"work":"rebuild","shape":"sawtooth"},

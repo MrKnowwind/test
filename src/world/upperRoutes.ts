@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import type { MapInteraction, Vec3 } from '../contracts/demo.ts';
 import { enamel, emissive, type Materials } from './detail/materialLibrary.ts';
-import { box, cylinder, label, strut } from './detail/geometry.ts';
+import { box, cylinder, strut } from './detail/geometry.ts';
 import type { Solid } from './worldQueries.ts';
 
 type Builder = (at:Vec3,size:Vec3,material:THREE.Material,bevel?:number)=>THREE.Mesh;
@@ -51,13 +51,6 @@ export function upperRoutes(root:THREE.Group,m:Materials,solid:Builder,solids:So
     solids.push({min:[x-w/2,top-.26,z-d/2],max:[x+w/2,top,z+d/2],walkSurface:true,surface:'metal'});
     box(root,m.zinc,w-.07,.016,d-.07,x,top+.006,z);
   }
-  function sign(x:number,y:number,z:number,w:number,text:string,caption:string){
-    const plate=label(root,w,w*.32,(g,pw,ph)=>{
-      g.fillStyle='#243951';g.fillRect(0,0,pw,ph);
-      g.fillStyle='#ff9a63';g.fillRect(0,0,pw*.035,ph);g.font='bold 61px sans-serif';g.fillStyle='#ebf8ee';g.fillText(text,26,72,pw-48);
-      g.font='bold 24px monospace';g.fillStyle='#8be2d8';g.fillText(caption,27,110,pw-46);
-    },.17);plate.position.set(x,y,z);
-  }
   function gallery(x:number,z:number,w:number,d:number,shopSide:number,opening:number,index:number,cases:MapInteraction[]){
     const y=galleryHeight,side=-shopSide,wing=(w-opening)/2, sx=x+side*(w/2-wing/2);
     const north=z-d/2,south=z+d/2,landing=north+2.15,boundary=x+side*opening/2;
@@ -70,7 +63,6 @@ export function upperRoutes(root:THREE.Group,m:Materials,solid:Builder,solids:So
     solid([sx,2.15,north],[wing,4.3,.21],m.steel,0);
     for(const signSide of [-1,1])solid([sx+signSide*(wing/2-.12),2.12,south],[.24,4.24,.30],m.steel,0);
     solid([sx,3.82,south],[wing,.78,.34],m.steel,0);
-    sign(sx,3.80,south+.19,Math.min(wing-.3,3),'楼梯 ↑ 2F','PUBLIC GALLERY');
     railing(boundary,(south+landing)/2,y,south-landing,false);
     railing(x,north+.08,y,w-.25,true);
     railing(x-side*wing/2,south+.60,y,mainW-.2,true);
@@ -151,8 +143,6 @@ export function upperRoutes(root:THREE.Group,m:Materials,solid:Builder,solids:So
     box(root,m.zinc,1.34,.45,.79,hoist,5.02,beamZ,.06);
     for(const dx of [-.34,.34])box(root,m.steel,.045,.63,.045,hoist+dx,4.49,beamZ);
     box(root,m.safety,1.23,.17,.25,hoist,4.12,beamZ);
-    // Routes wayfinding is repeated at the loading threshold and above the stairs.
-    sign(sideX,4.87,north+.4,2.25,'夹层 ↑','DISPATCH / 2F');
     for(const sx of [-1,1])for(let i=0;i<Math.floor(d/2.6);i++)
       box(root,m.safety,.09,.014,1.64,x+sx*2.2,.031,north+1.5+2.6*i);
   }

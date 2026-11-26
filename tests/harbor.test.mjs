@@ -41,6 +41,26 @@ test('ship reception, three cabins, lounge and upper service points can be inspe
   view([-191.1,4.1,-19],'ship-upper-locker');
 });
 
+test('expanded passenger wing connects eight distinct rooms, the forward lounge and aft rooms to the old corridor',()=>{
+  const hall=walk([-188,.7,0],[[-188,12],[-208.5,12]]);
+  for(const [id,z] of [['ship-galley',-84],['ship-dining',-67],['ship-cabin-d',-51],['ship-cabin-e',-34],['ship-theater',-16],['ship-laundry',7],['ship-crew',25],['ship-bulk-storage',37]]){
+    const room=walk(hall,[[-208.5,z],[-223.2,z]]);view(room,id);walk(room,[[-208.5,z]]);
+  }
+  view(walk(hall,[[-208.5,-83],[-204.3,-83]]),'ship-forward-lounge');
+  for(const [id,z] of [['ship-aft-office',23],['ship-aft-quarters',36]])view(walk([-188,.7,12],[[-188,z],[-198.9,z]]),id);
+});
+
+test('two lower stairs plus accessible third deck and upper interior hall paths complete round trips',()=>{
+  const bow=walk([-188,.7,-70],[[-188,-88]]);assert.ok(Math.abs(bow[1]-shipLevels.upper)<.04);assert.ok(Math.abs(walk(bow,[[-188,-70]])[1]-shipLevels.cabin)<.04);
+  for(const [id,z] of [['ship-upper-library',-64],['ship-upper-cafe',-33]]){
+    const room=walk([-188,4.1,-15],[[-206.5,-15],[-206.5,z],[-222.1,z]]);view(room,id);walk(room,[[-206.5,z]]);
+  }
+  for(const [id,z] of [['ship-upper-ballroom',22],['ship-upper-fitness',34]])view(walk([-188,4.1,12],[[-188,z],[-213.9,z]]),id);
+  const roof=walk([-202,4.1,-15],[[-222,-15],[-222,9],[-222,26],[-222,30],[-213,30],[-213,33]]);
+  assert.ok(Math.abs(roof[1]-shipLevels.sun)<.05);assert.equal(harborFloor(roof),'顶层甲板');view(roof,'ship-sun-service');
+  const back=walk(roof,[[-213,30],[-222,30],[-222,26],[-222,9]]);assert.ok(Math.abs(back[1]-shipLevels.upper)<.04);
+});
+
 test('landside facilities have actual entrances, search surfaces and an upper office return route',()=>{
   view(walk([-137.5,0,-70],[[-137.5,-83],[-147,-83]]),'harbor-terminal-luggage');
   view(walk([-137.5,0,-70],[[-137.5,-92],[-128,-92]]),'harbor-terminal-desk');

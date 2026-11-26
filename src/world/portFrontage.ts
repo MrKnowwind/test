@@ -3,9 +3,9 @@ import { box, cylinder, mesh } from './detail/geometry.ts';
 import type { Materials } from './detail/materialLibrary.ts';
 
 const services = [
-  { name: '潮汐泵房', english: 'TIDAL WORKS', dark: '#27586c', accent: '#77e2d5' },
-  { name: '港务工坊', english: 'DOCK REPAIR', dark: '#733f43', accent: '#ffae78' },
-  { name: '极光药局', english: 'AURORA MED', dark: '#56426e', accent: '#dbb8fb' },
+  { dark: '#27586c', accent: '#77e2d5' },
+  { dark: '#733f43', accent: '#ffae78' },
+  { dark: '#56426e', accent: '#dbb8fb' },
 ] as const;
 
 function paintedPanel(fallback: string, draw: (ctx: CanvasRenderingContext2D) => void) {
@@ -19,37 +19,6 @@ function paintedPanel(fallback: string, draw: (ctx: CanvasRenderingContext2D) =>
   map.colorSpace = THREE.SRGBColorSpace;
   map.anisotropy = 4;
   return new THREE.MeshBasicMaterial({map, color: 0xdce7ee});
-}
-
-function serviceBillboard(type: number) {
-  const service = services[type];
-  return paintedPanel(service.dark, ctx => {
-    ctx.fillStyle = service.dark;
-    ctx.fillRect(0, 0, 640, 256);
-    ctx.fillStyle = service.accent;
-    ctx.fillRect(0, 0, 11, 256);
-    ctx.fillRect(32, 220, 575, 3);
-    ctx.save();
-    ctx.translate(88, 107);
-    ctx.fillStyle = service.accent;
-    if (type === 0) {
-      ctx.fill(new Path2D('M0 -57Q18 -28 39 -6Q64 26 34 51Q0 75 -31 51Q-60 25 -37 -4Z'));
-      ctx.fillStyle = service.dark;
-      ctx.fill(new Path2D('M-23 21Q-6 34 21 14Q13 37 -4 38Q-19 38 -23 21Z'));
-    } else if (type === 1) {
-      ctx.fill(new Path2D('M-47 37L4 -14Q-1 -56 41 -52L22 -30L33 -18L55 -38Q61 4 22 8L-30 60Z'));
-    } else {
-      ctx.fill(new Path2D('M-15 -47H15V-15H47V15H15V47H-15V15H-47V-15H-15Z'));
-    }
-    ctx.restore();
-    ctx.fillStyle = '#fff5dd';
-    ctx.font = 'bold 61px sans-serif';
-    ctx.fillText(service.name, 164, 116, 443);
-    ctx.fillStyle = service.accent;
-    ctx.font = 'bold 28px sans-serif';
-    ctx.fillText(service.english, 167, 163);
-    for (let i = 0; i < 4; i++) ctx.fillRect(552 + i * 12, 185, 5, 19);
-  });
 }
 
 function litWindow(type: number) {
@@ -78,7 +47,7 @@ function litWindow(type: number) {
 }
 
 const plane = new THREE.PlaneGeometry();
-// The signs and workstations share each tenant's visual identity.
+// Functional equipment screens are distinct from architectural nameboards.
 function serviceConsole(type:number){
   const service=services[type];
   return paintedPanel(service.dark,ctx=>{
@@ -86,7 +55,6 @@ function serviceConsole(type:number){
     ctx.fillStyle=service.accent;ctx.fillRect(0,0,640,8);
     ctx.fillStyle='#e9f3ea';ctx.font='bold 29px sans-serif';
     ctx.fillText(['泵组压力监测','港务维修工单','冷藏药品监测'][type],22,50);
-    ctx.fillStyle=service.accent;ctx.font='18px monospace';ctx.fillText(service.english,440,47);
     ctx.strokeStyle='#3e6170';ctx.lineWidth=2;
     for(let i=0;i<12;i++){ctx.beginPath();ctx.moveTo(24+i*53,69);ctx.lineTo(24+i*53,232);ctx.stroke();}
     for(let i=0;i<5;i++){ctx.beginPath();ctx.moveTo(20,75+i*37);ctx.lineTo(620,75+i*37);ctx.stroke();}
@@ -114,7 +82,6 @@ function serviceConsole(type:number){
 }
 
 export function createFrontage(root: THREE.Group, m: Materials) {
-  const boards = services.map((_, type) => serviceBillboard(type));
   const glass = services.map((_, type) => litWindow(type));
   function panel(material: THREE.Material, x: number, y: number, z: number,
     width: number, height: number, yaw: number) {
@@ -131,11 +98,8 @@ export function createFrontage(root: THREE.Group, m: Materials) {
         const yaw = side * Math.PI / 2;
         const lip = wall + side * .15;
         box(root, m.ceramic, .17, 3.05, depth - .65, wall, 1.57, z);
-        // Preserve the painted emblem's aspect ratio on short and long shopfronts.
-        box(root, m.steel, .12, 1.06, depth * .83, lip, 2.51, z);
-        panel(boards[type], lip + side * .067, 2.51, z, 2.6, 1.04, yaw);
-        for (const end of [-1, 1])
-          box(root, accent, .07, .12, depth * .16, lip + side * .08, 2.51, z + end * depth * .29);
+        // Continuous architectural trim, not a signboard or blank plaque.
+        box(root, m.steel, .09, .14, depth * .83, lip, 2.68, z);
         box(root, accent, .55, .17, depth - .3, lip, 3.16, z, .035);
         if (type === 0) {
           for (const fraction of [-.28, .02, .29]) {

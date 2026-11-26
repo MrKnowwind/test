@@ -71,6 +71,12 @@ export function caseProfile(id: string, item: ItemId): Profile {
   if(id==='harbor-cargo-tools'||id==='harbor-repair-tools')return {kind:'tool',tag:'mechanical'};
   if(id==='harbor-cargo-luggage'||id==='harbor-terminal-luggage'||id==='ship-luggage')return {kind:'crate',tag:'shipping',bags:['school','daypack'],chance:.20};
   if(id==='ship-medical')return {kind:'medical',tag:'medical'};
+  if(id==='ship-galley'||id==='ship-upper-cafe')return {kind:'cold',tag:'medical'};
+  if(id==='ship-laundry'||id==='ship-bulk-storage'||id==='ship-upper-fitness')return {kind:'tool',tag:'mechanical'};
+  if(id==='ship-theater'||id==='ship-upper-ballroom'||id==='ship-aft-office')return {kind:'panel',tag:'electronics'};
+  if(id.startsWith('ship-')||id.startsWith('residential-'))return {kind:'locker',tag:'shipping',bags:['daypack','sling'],chance:.12};
+  if(id.startsWith('north-observatory-'))return {kind:'panel',tag:'electronics'};
+  if(id.startsWith('north-customs-'))return {kind:'files',tag:'shipping'};
   if(id.startsWith('room-pump-'))return {kind:'panel',tag:'electronics'};
   if(id.startsWith('room-workshop-'))return {kind:'tool',tag:'mechanical'};
   if(id.startsWith('room-clinic-'))return {kind:'medical',tag:'medical'};

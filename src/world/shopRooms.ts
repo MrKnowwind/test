@@ -10,9 +10,9 @@ const screenPlane = new THREE.PlaneGeometry(1, 1);
 export const doorWidth = 1.9;
 export const doorHeight = 2.5;
 const themes = [
-  { name: '潮汐泵房', case: '仪表接线箱', item: 'terminal', id: 'pump' },
-  { name: '港务工坊', case: '维修工具屉', item: 'wrench', id: 'workshop' },
-  { name: '极光药局', case: '急救药品箱', item: 'medkit', id: 'clinic' },
+  { name: '设备机房', case: '仪表接线箱', item: 'terminal', id: 'pump' },
+  { name: '维修间', case: '维修工具屉', item: 'wrench', id: 'workshop' },
+  { name: '医务储藏间', case: '急救药品箱', item: 'medkit', id: 'clinic' },
 ] as const;
 
 // Tenants cluster by the work they serve. The southern starter block retains its familiar shops.
@@ -42,6 +42,9 @@ export function buildShopRoom(
 ) {
   const theme = themes[type],
     front = index % 4 < 2 ? 1 : -1;
+  // Only the surveyed southern dispensary retains the unique business name.
+  // Generic service rooms keep their stable interaction IDs during the C migration.
+  const roomName=type===2&&index===8?'极光药局':theme.name;
   const wall = 0.22,
     height = 4.1;
   const innerX = x - (side * (width - wall)) / 2,
@@ -74,7 +77,7 @@ export function buildShopRoom(
       x: dx,
       z: dz,
       alongX,
-      label: theme.name + ' · ' + (end === 'street' ? '临街门' : '骑楼门'),
+      label: roomName + ' · ' + (end === 'street' ? '临街门' : '骑楼门'),
     });
   }
   entrance(x, frontZ, true, width, 0, 'street');
@@ -116,7 +119,7 @@ export function buildShopRoom(
   const caseX = x - side * counterW * 0.18;
   rooms.cases.push({
     id,
-    label: theme.name + ' · ' + theme.case,
+    label: roomName + ' · ' + theme.case,
     kind: 'loot',
     item: theme.item,
     quantity: 1,

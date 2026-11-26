@@ -34,35 +34,6 @@ export function addIndustrialDetails(scene: THREE.Group, part: Part) {
     vertexColors: true, fog: false, toneMapped: false, side: THREE.BackSide, depthWrite: false,
   })));
 
-  function sign(center: Vec3, width: number, yaw: number, title: string, note: string, accent: string) {
-    if (typeof document === 'undefined') return;
-    const canvas = document.createElement('canvas');
-    canvas.width = 640;
-    canvas.height = 192;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-    ctx.fillStyle = '#202b30';
-    ctx.fillRect(0, 0, 640, 192);
-    ctx.strokeStyle = '#566771';
-    ctx.lineWidth = 4;
-    ctx.strokeRect(6, 6, 628, 180);
-    ctx.fillStyle = accent;
-    ctx.fillRect(18, 20, 10, 152);
-    ctx.font = '700 66px Microsoft YaHei UI, sans-serif';
-    ctx.fillText(title, 48, 93, 548);
-    ctx.fillStyle = '#c6d3d5';
-    ctx.font = '500 34px Microsoft YaHei UI, sans-serif';
-    ctx.fillText(note, 50, 153, 535);
-    const map = new THREE.CanvasTexture(canvas);
-    map.colorSpace = THREE.SRGBColorSpace;
-    map.anisotropy = 4;
-    const mesh = new THREE.Mesh(new THREE.PlaneGeometry(width, width * 0.3), new THREE.MeshBasicMaterial({ map }));
-    mesh.name = title;
-    mesh.position.set(...center);
-    mesh.rotation.y = yaw;
-    scene.add(mesh);
-  }
-
   function light(center: Vec3, color: number, power: number, range: number, cool = false) {
     part(center, [0.68, 0.16, 0.34], lampShell);
     part([center[0], center[1] - 0.085, center[2]], [0.56, 0.024, 0.27], cool ? cyan : amber);
@@ -113,9 +84,6 @@ export function addIndustrialDetails(scene: THREE.Group, part: Part) {
   ribs(-16, 1.3, 1.4, 5.6, 2.6, 2.8, teal);
   ribs(19, 1.3, 6, 2.2, 2.6, 2.6, fadedRed);
   ribs(0.2, 1.35, -10.8, 5.8, 2.7, 2.4, fadedRed);
-  sign([-17.46, 2.04, 17.41], 2.06, 0, '南侧卸货口', '← 公路出口', '#efd2a2');
-  sign([-17.38, 2.02, 2.92], 2.17, 0, '废车棚', '← 公路出口', '#d8e1db');
-  sign([18.82, 2.04, 7.43], 1.96, 0, '仓库外巷', '← 地下实验室', '#c1e4ed');
 
   for (const z of [-17, -10, -3, 4, 11, 18]) {
     part([-24.68, 1.22, z], [0.22, 2.44, 0.16], frame);
@@ -129,16 +97,13 @@ export function addIndustrialDetails(scene: THREE.Group, part: Part) {
     part([-23.16, 4.02, z], [1.17, 0.14, 0.14], zinc);
     light([-22.6, 3.94, z], 0xffb775, 85, 9);
   }
-  sign([-21, 2.76, -22.62], 4.35, 0, '公路出口', '常开', '#a9e5c2');
   light([-21, 3.23, -21.8], 0x9bffc4, 44, 8, true);
   exitMark(-21, 0, -19, 1.8, 0x96e9b2);
 
   for (let y = 0.18; y < 2.12; y += 0.16) part([24.54, y, -14], [0.28, 0.11, 2.85], zinc);
-  sign([24.35, 2.71, -14], 3.15, -Math.PI / 2, '维修通道', '需维修卡', '#f1c37d');
   light([24.03, 3.14, -14], 0xffbd75, 58, 8);
   exitMark(22.5, 0, -14, 1.55, 0xe6b264);
 
-  sign([-10, 2.59, -4.79], 2.32, 0, '值班室', '维修卡 · 工作台', '#ffdb98');
   light([-10, 2.77, -8.4], 0xffca91, 34, 5.8);
   light([-10, 2.75, -4.43], 0xffb368, 22, 5.8);
   part([-10, 0.89, -10.3], [2.12, 0.075, 0.96], ochre);
@@ -149,12 +114,10 @@ export function addIndustrialDetails(scene: THREE.Group, part: Part) {
     for (const x of [-4.1, 5.8]) part([x, 4.35, z], [3.5, 0.17, 0.18], frame, x < 0 ? 0.33 : -0.33);
   }
   for (const [x, z] of [[-4.3, -2.5], [3.9, 1.8], [4.6, -9.1]]) light([x, 4.61, z], 0xffc28f, 104, 10);
-  sign([1, 4.23, 5.62], 3.65, 0, '装卸棚', '卸货通道', '#efc683');
 
   for (let x = 11.18; x < 17; x += 0.24) part([x, 2.12, 12.95], [0.10, 4.15, 0.08], teal);
   for (let z = 13.2; z < 21; z += 0.24) part([10.97, 2.12, z], [0.08, 4.15, 0.11], teal);
   for (let y = 0.19; y < 2.7; y += 0.16) part([14.1, y, 12.82], [3.57, 0.11, 0.19], zinc);
-  sign([14, 3.63, 12.77], 3.75, Math.PI, '仓库外巷', '坡道入口在北侧', '#c9d7db');
   light([14, 4.18, 12.39], 0xffc084, 60, 8);
   for (const x of [-4.5, 3.5, -15]) {
     const [y, z, width] = x === -4.5 ? [1.24, -3.4, 2.1] : x === 3.5 ? [1.8, 1.65, 2.35] : [0.98, 10, 1.55];
@@ -168,7 +131,6 @@ export function addIndustrialDetails(scene: THREE.Group, part: Part) {
     light([13.83, rampHeight(z) + 1.07, z], 0x88dce8, 0, 4, true);
     part([12, rampHeight(z), z], [3.76, 0.018, 0.13], roadPaint);
   }
-  sign([12, 2.94, 7.46], 4.28, 0, '地下实验室', '货梯需先接通配电', '#a9e5ed');
   light([12, 3.72, 7.42], 0x91e9fa, 58, 8, true);
 
   for (const z of [-6.2, -9.3, -13.9]) {
@@ -185,7 +147,6 @@ export function addIndustrialDetails(scene: THREE.Group, part: Part) {
     for (const y of [-1.25, -1.51]) part([x, y, -15.66], [0.12, 0.14, 0.13], zinc);
   }
   for (const z of [-6.65, -10.25]) part([7.72, -2.56, z], [0.42, 3.28, 0.20], ochre);
-  sign([8, -1.24, -8.45], 2.05, Math.PI / 2, '隔离实验区', '样本与配电', '#b9e1ea');
   part([-1.5, -1.4, -9.5], [0.58, 0.16, 4.06], zinc);
   for (const x of [-1.75, -1.25]) part([x, -3.79, -9.5], [0.028, 0.23, 3.88], ochre);
 
@@ -195,14 +156,11 @@ export function addIndustrialDetails(scene: THREE.Group, part: Part) {
   part([-7.5, -2.72, -14.585], [0.13, 0.06, 0.04], amber);
   part([-7, -1.33, -15.21], [0.13, 1.55, 0.13], ochre);
   part([-7, -0.63, -10.93], [0.13, 0.13, 8.65], ochre);
-  sign([-7, -2.04, -14.67], 1.65, 0, '配电柜', '货梯供电', '#f8c775');
   light([-7, -0.97, -14.05], 0xffb471, 35, 5.6);
-  sign([3.3, -1.99, -15.82], 2.4, 0, '样本保管台', '生化实验区', '#ade1dc');
   part([3.3, -3.12, -14.4], [1.47, 0.08, 0.93], teal);
 
   for (let y = -4.02; y < -1.18; y += 0.19) part([-9.76, y, -6.6], [0.12, 0.15, 2.55], zinc);
   for (const z of [-8, -5.2]) part([-9.67, -2.52, z], [0.32, 3.36, 0.24], ochre);
-  sign([-9.54, -0.98, -6.6], 2.9, Math.PI / 2, '实验室货梯', '需配电柜通电', '#ade1dc');
   light([-9.15, -0.88, -8.4], 0x8ae7e0, 34, 5.8, true);
   exitMark(-7.7, lab.y, -6.6, 1.55, 0x9de2df);
 

@@ -15,15 +15,8 @@ export function addArcology(root: THREE.Group,m: Materials,solid: Solid) {
   const glass=enamel(0x284a70);
   const rail=(a:Vec3,b:Vec3,w:number,d:number,mat:THREE.Material)=>
     strut(root,mat,new THREE.Vector3(...a),new THREE.Vector3(...b),w,d);
-  function badge(x:number,y:number,z:number,code:string,w:number) {
-    const board=label(root,w,w*.36,(g,width,height)=>{
-      g.fillStyle='#203451';g.fillRect(0,0,width,height);
-      g.fillStyle='#71f1da';g.fillRect(0,0,10,height);
-      g.font='900 86px sans-serif';g.fillStyle='#f3f7ed';g.fillText(code,24,91,width-42);
-    },.16);board.position.set(x,y,z);
-  }
   // Chamfered station body, panoramic visor, overhanging lid and recessed service bay.
-  function station(x:number,z:number,w:number,d:number,h:number,accent:THREE.Material,code:string,_sub:string) {
+  function station(x:number,z:number,w:number,d:number,h:number,accent:THREE.Material,_code:string,_sub:string) {
     solid([x,.32,z],[w+.42,.64,d+.42],navy,.22);
     solid([x,h/2+.5,z],[w,h-.28,d],porcelain,.28);
     solid([x,h+.55,z],[w+.48,.46,d+.5],accent,.21);
@@ -37,12 +30,11 @@ export function addArcology(root: THREE.Group,m: Materials,solid: Solid) {
     box(root,mint,w*.54,.09,.06,x,h*.83,front+.105);
     box(root,navy,w*.54,h*.26,.08,x,h*.245,front+.055,.035);
     for(let i=-2;i<=2;i++) box(root,m.zinc,.12,h*.19,.09,x+i*w*.08,h*.24,front+.1);
-    badge(x,h*.66,front+.092,code,Math.min(w*.24,1.45));
     solid([x-w*.19,h+1.11,z],[w*.46,.72,d*.63],navy,.14);
     for(let i=0;i<4;i++) box(root,m.zinc,w*.4,.12,.19,x-w*.19,h+1.5,z+(i-1.5)*d*.13,.03);
   }
   // Walk-through platforms have a level sill and a clear view between their two portals.
-  function concourse(x:number,z:number,w:number,d:number,h:number,accent:THREE.Material,code:string,sub:string) {
+  function concourse(x:number,z:number,w:number,d:number,h:number,accent:THREE.Material,_code:string,_sub:string) {
     const roof=h+.2, sideX=w/2-.2;
     box(root,m.concrete,w,.04,d,x,.02,z);
     solid([x,roof,z],[w+.56,.38,d+1.3],navy,.18);
@@ -69,9 +61,8 @@ export function addArcology(root: THREE.Group,m: Materials,solid: Solid) {
         solid([tx,1.66,z],[.23,.67,1.5],porcelain,.075);
         const screen=label(root,1.32,.51,(ctx,width,height)=>{
           ctx.fillStyle='#172f4c';ctx.fillRect(0,0,width,height);
-          ctx.fillStyle='#a8f5e4';ctx.font='bold 37px sans-serif';ctx.fillText(code,14,42);
-          ctx.fillStyle='#79b7d2';ctx.fillRect(15,60,width-32,4);
-          ctx.fillStyle='#d0dfe7';ctx.font='27px sans-serif';ctx.fillText(sub,14,101,width-30);
+          ctx.fillStyle='#79b7d2';ctx.fillRect(15,12,width-32,4);
+          ctx.fillStyle='#a8f5e4';for(let i=0;i<6;i++){ctx.fillRect(18+i*72,40,42,22+(i%3)*13);ctx.fillRect(18+i*72,112,42,8);}
         },.23);
         screen.position.set(tx+.12,1.66,z);screen.rotation.y=Math.PI/2;
       }
