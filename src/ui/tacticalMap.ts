@@ -11,8 +11,8 @@ import { marketBuildings } from '../world/marketPlan.ts';
 import { innBuilding, innFloor, innStair } from '../world/innPlan.ts';
 import type { ExitZone, FirstMap, Vec3 } from '../contracts/demo.ts';
 
-import { arcadeWidth, portBlocks, shopSide } from '../world/portBlocks.ts';
-import { freightHalls, hasGallery } from '../world/upperRoutes.ts';
+import { streetFootprints } from '../world/portBlocks.ts';
+import { freightHalls } from '../world/upperRoutes.ts';
 import { roads, footpaths } from '../world/roads.ts';
 
 const publicBuildings=[...civicBuildings,...districtBuildings,researchBuilding,...researchAnnexBuildings,...southBuildings,...marketBuildings,innBuilding];
@@ -77,8 +77,7 @@ export function createTacticalMap() {
         for(const t of terrainSections)rect(t.minX,t.minZ,t.maxX,t.maxZ,t.northY===t.southY?'#405b5a':'#344b4a');
         for (const road of roads) rect(road.x1, road.z1, road.x2, road.z2, '#4b5d5e');
         for (const path of footpaths) rect(path.x1, path.z1, path.x2, path.z2, '#394b4d');
-        for (const [x, z, w, d] of portBlocks)
-          rect(x - w / 2, z - d / 2, x + w / 2, z + d / 2, '#2c3e43', '#708386');
+        for(const r of streetFootprints)rect(r.minX,r.minZ,r.maxX,r.maxZ,r.building?'#2c3e43':'#47615b');
         for (const [x, z, w, d] of freightHalls)
           rect(x - w / 2, z - d / 2, x + w / 2, z + d / 2, '#2c3e43', '#708386');
         for(const r of harborBuildings)rect(r.minX,r.minZ,r.maxX,r.maxZ,'#387174','#91beb9');
@@ -163,16 +162,10 @@ export function createTacticalMap() {
         ctx.fillStyle='#b34f2e';
         ctx.fillRect(sx-3,sz-1.5,6,3);
       };
-      for(const [x,z,w,d,,index] of portBlocks) {
-        const [left,top]=project(x-w/2,z-d/2),[right,bottom]=project(x+w/2,z+d/2);
-        const gap=(right-left)*arcadeWidth(index)/w;
-        ctx.fillStyle='#8390aa';
-        ctx.fillRect(left,top,(right-left-gap)/2,bottom-top);
-        ctx.fillRect((left+right+gap)/2,top,(right-left-gap)/2,bottom-top);
-        ctx.fillStyle='#b1d8d0';
-        const wing=(right-left-gap)/2;
-        ctx.fillRect((shopSide(index)<0?left:right-wing)+1,top+1,wing-2,bottom-top-2);
-        if(hasGallery(w,d))stairMark(x-shopSide(index)*(w/2-(w-arcadeWidth(index))/4),z+d/2);
+      for(const r of streetFootprints){
+        const [left,top]=project(r.minX,r.minZ),[right,bottom]=project(r.maxX,r.maxZ);
+        ctx.fillStyle=r.building?'#8390aa':'#adc7b6';
+        ctx.fillRect(left,top,right-left,bottom-top);
       }
       for(const [x,z,w,d] of freightHalls)stairMark(x+w/2-1.5,z-d/2+1.2);
       for(const r of [...harborBuildings,...gangways,...publicBuildings]){const [x,z]=project(r.minX,r.minZ),[a,b]=project(r.maxX,r.maxZ);ctx.fillStyle='#6ca7aa';ctx.fillRect(x,z,a-x,b-z);ctx.strokeStyle='#39777e';ctx.strokeRect(x,z,a-x,b-z);}

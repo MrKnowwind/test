@@ -1,165 +1,214 @@
 import * as THREE from 'three';
-import { createFrontage } from './portFrontage.ts';
 import type { Vec3 } from '../contracts/demo.ts';
-import { roads, footpaths } from './roads.ts';
-import type { Solid } from './worldQueries.ts';
-import { box, cylinder, mesh, strut } from './detail/geometry.ts';
-import { enamel, emissive, type Materials } from './detail/materialLibrary.ts';
+import { box, cylinder, mesh } from './detail/geometry.ts';
+import { emissive, enamel, type Materials } from './detail/materialLibrary.ts';
+import { streetLots, type DistrictName, type Fixture, type Roof, type Side, type StreetLot } from './portLots.ts';
+import { buildRoomFixture, doorHeight, doorWidth, roomCase, type BuildSolid, type FixtureSite, type ShopRooms } from './shopRooms.ts';
 
-import { hasGallery, galleryHeight, type upperRoutes } from './upperRoutes.ts';
-import { buildShopRoom, tenantType, type ShopRooms } from './shopRooms.ts';
+type Room = 'a' | 'b' | 'c';
+type Point = { x: number; z: number };
+type Cell = Point & { col: number; row: number; room: Room };
+type Edge = FixtureSite & { cell: Cell; other?: Cell; side: Side; span: number; alongX: boolean; passage?: 'open' | 'shutter' };
+const sides = [
+  { side:'north',nx:0,nz:-1 },{ side:'east',nx:1,nz:0 },
+  { side:'south',nx:0,nz:1 },{ side:'west',nx:-1,nz:0 },
+] as const;
+const rooms = ['a','b','c'] as const;
+const buildingColors: Record<DistrictName, number> = {
+  harbor:0x448c95, logistics:0x7b8b73, industrial:0xa46543, research:0x616785, residential:0xa27162,
+};
+const companionFixture: Record<Fixture, Fixture> = {
+  counter:'seating', rack:'packing', packing:'rack', files:'counter', bench:'rack', pump:'wash',
+  switchboard:'testing', wash:'lockers', lockers:'seating', break:'seating', kitchen:'wash',
+  bunks:'lockers', laundry:'rack', testing:'bench', dispatch:'seating', seating:'break',
+};
 
-export const shopSide=(index:number)=>index%2?1:-1;
-type Lot = readonly [number,number,number,number,number];
-// Surveyed build envelopes in metres. Their centres have clearance from service roads,
-// existing structures, encounter spawns and the complete approach to each supply point.
-const surveyedLots: readonly Lot[] = [
-  [-18,82,12,11,3],[-38,80,16,10,4],[-18,61,14,14,2],[-22,41,19,11,5],
-  [18,74,12,10,3],[38,78,16,14,3],[37,113,14,11,4],[43,132,19,10,2],
-  [-65,134,12,14,5],[-87,132,16,11,3],[-132,72,14,10,3],
-  [-71,-67,14,14,3],[-77,-87,19,11,3],
-  [-44,-82,12,10,4],[-40,-105,16,14,2],[0,-80,14,11,5],[17,-63,19,10,3],
-  [19,-40,12,14,3],[40,-18,16,11,4],[75,31,14,10,2],[80,62,19,14,5],
-  [103,59,12,11,3],[115,77,16,10,3],[124,56,14,14,4],[113,31,19,11,2],
-  [101,12,12,10,5],[127,11,16,14,3],[201,-56,14,11,3],[195,-107,19,10,4],
-  [161,-122,12,14,2],[141,-127,16,11,5],[120,-143,14,10,3],[121,-162,19,14,3],
-  [100,-183,12,11,4],[68,-180,16,10,2],[47,-184,14,14,5],[22,-188,19,11,3],
-  [-6,-150,12,10,3],[-17,-173,16,14,4],[-75,-148,14,11,2],[-83,-127,19,10,5],
-  [14,170,12,14,3],[-42,170,16,11,3],[128,131,14,10,4],[151,133,19,14,2],
-  [188,82,12,11,5],[202,40,16,10,3],[201,13,14,14,3],
-];
-// Authored landmarks occupy these former street blocks. Keep the other room IDs stable.
-const replacedLots = new Set([6,7,8,43,44]);
-export const portBlocks = surveyedLots.flatMap((lot,index) => replacedLots.has(index) ? [] : [[...lot,index] as const]);
+function buildingPlan(lot: StreetLot) {
+  const [id,x,z,width,depth,district,name,use] = lot;
+  if (typeof use === 'string') return { id,x,z,width,depth,district,name, yard:use } as const;
+  const [roof,entry,grid,functionList] = use;
+  const cellW=width/3, cellD=depth/3;
+  const cells: Cell[] = [];
+  for (let index=0;index<grid.length;index++) {
+    const room=grid[index];
+    if (room==='.') continue;
+    const col=index%3,row=Math.floor(index/3);
+    cells.push({col,row,x:x+(col-1)*cellW,z:z+(row-1)*cellD,room:room as Room});
+  }
+  const findCell=(col:number,row:number)=>cells.find(cell=>cell.col===col&&cell.row===row);
+  const edges: Edge[] = [];
+  for(const cell of cells) for (const direction of sides) {
+    const {side,nx,nz}=direction;
+    const other=findCell(cell.col+nx,cell.row+nz);
+    if (other?.room===cell.room || (other && nx+nz<0)) continue;
+    edges.push({
+      side,nx,nz,cell,other,alongX:nx===0,span:nx===0?cellW:cellD,
+      x:cell.x+nx*cellW/2,z:cell.z+nz*cellD/2, passage:other?'open':undefined,
+    });
+  }
 
-export function arcadeWidth(index: number) {
-  return index % 3 === 2 ? 4.8 : 4;
+  // Disconnected wings open separately onto public space. Each connected wing
+  // has an open route from outside, so a closed utility shutter never seals its loot.
+  const pending = new Set(cells);
+  const entries: Edge[] = [];
+  while(pending.size) {
+    const component=[pending.values().next().value!];
+    pending.delete(component[0]);
+    for (const cell of component) for (const {nx,nz} of sides) {
+      const neighbor=findCell(cell.col+nx,cell.row+nz);
+      if(neighbor && pending.delete(neighbor))component.push(neighbor);
+    }
+    const outside=edges.filter(edge=>!edge.other&&component.includes(edge.cell));
+    const outer=outside.filter(edge=>edge.cell.col+edge.nx<0||edge.cell.col+edge.nx>2||edge.cell.row+edge.nz<0||edge.cell.row+edge.nz>2);
+    const primary=outer.find(edge=>edge.side===entry&&edge.cell.room==='a')
+      ?? outer.find(edge=>edge.side===entry) ?? outer.find(edge=>edge.cell.room==='a') ?? outer[0] ?? outside[0];
+    primary.passage='open';
+    entries.push(primary);
+    const secondary=outer.find(edge=>edge.cell.room==='c'&&edge.side!==primary.side&&edge.cell!==primary.cell);
+    if(secondary)secondary.passage='shutter';
+  }
+
+  const fixtures = rooms.map((room,index)=>{
+    const role:Fixture=functionList[index];
+    const walls=edges.filter(edge=>!edge.passage&&edge.cell.room===room);
+    const wall=walls.find(edge=>edge.side!==entry)??walls[0];
+    if(!wall)throw new Error(`Street lot ${id}, room ${room} has no wall space for its fixture`);
+    return {room,role,wall,cell:wall.cell,id:'street-'+id+'-'+room};
+  });
+  const fittings=fixtures.flatMap(({room,role,cell})=>{
+    const wall=edges.find(edge=>!edge.passage&&edge.cell.room===room&&edge.cell!==cell);
+    return wall?[{role:companionFixture[role],wall}]:[];
+  });
+  return {id,x,z,width,depth,district,name,roof,grid,cells,cellW,cellD,edges,entries,fixtures,fittings} as const;
 }
 
-export function* buildPortBlocks(root:THREE.Group,m:Materials,occupied:readonly Solid[],
-  solid:(at:Vec3,size:Vec3,mat:THREE.Material,bevel?:number)=>THREE.Mesh, upper:ReturnType<typeof upperRoutes>) {
-  const rooms:ShopRooms={doors:[],cases:[],occupants:[]};
-  const blue=enamel(0x5989a2), violet=enamel(0x9389bd), warm=enamel(0xf5a479);
-  const glazing=enamel(0x334f71), sill=enamel(0xbbd4dc), panel=enamel(0xdae1da);
-  const light=emissive(0xa6f3e6,.25);
-  const reserved=[...roads,...footpaths];
-  const canopyGeometry=new THREE.IcosahedronGeometry(1,0);
-  const foliage=enamel(0x438e83), newGrowth=enamel(0x87c39b);
-  const frontage=createFrontage(root,m);
-  for (const [visited,[x,z,w,d,levels,index]] of portBlocks.entries()) {
-    const type=tenantType(index,x,z), accent=z < -75?violet:type===1?warm:blue;
-    const arcade=4.1, height=levels*2.95, roof=arcade+height;
-    // One occupied shop and one service core flank the covered lane.
-    const opening=arcadeWidth(index), sideWidth=(w-opening)/2;
-    const accessible=hasGallery(w,d);
-    for(const side of [-1,1]) {
-      const px=x+side*(w/2-sideWidth/2);
-      if(side===shopSide(index)){
-        buildShopRoom(rooms,root,solid,m,index,px,z,sideWidth,d,side,accent,light,frontage.consoles[type],type);
-        continue;
-      }
-      if(accessible)continue;
-      solid([px,arcade/2,z],[sideWidth,arcade,d],m.steel,.12);
-      for(const front of [-1,1]) {
-        const fz=z+front*(d/2+.015);
-        box(root,accent,sideWidth-.24,3.34,.12,px,2.06,fz,.055);
-        box(root,glazing,sideWidth*.74,2.61,.10,px,1.78,fz+front*.095,.045);
-        for(const y of [1,1.45,1.9,2.35])
-          box(root,sill,sideWidth*.65,.045,.10,px,y,fz+front*.16);
-        box(root,light,sideWidth*.66,.12,.13,px,3.37,fz+front*.09);
-      }
-      box(root,m.zinc,.22,.06,d*.93,x+side*(opening/2-.31),.04,z);
+export const streetPlans=streetLots.map(buildingPlan);
+export function isStreetBuilding(plan: (typeof streetPlans)[number]): plan is Extract<(typeof streetPlans)[number],{cells:Cell[]}> {
+  return 'cells' in plan;
+}
+
+export const streetFootprints = streetPlans.flatMap(plan => isStreetBuilding(plan)
+  ? plan.cells.map(cell => ({
+    minX:cell.x-plan.cellW/2,maxX:cell.x+plan.cellW/2,minZ:cell.z-plan.cellD/2,maxZ:cell.z+plan.cellD/2,building:true,
+  }))
+  : [{ minX:plan.x-plan.width*.41,maxX:plan.x+plan.width*.41,minZ:plan.z-plan.depth*.41,maxZ:plan.z+plan.depth*.41,building:false }]);
+
+export function streetArea([x,y,z]: Vec3) {
+  if (y < -.09 || y > 3.15) return undefined;
+  return streetPlans.find(plan => Math.abs(x-plan.x)<=plan.width/2 && Math.abs(z-plan.z)<=plan.depth/2 &&
+    (!isStreetBuilding(plan) || plan.cells.some(cell=>Math.abs(x-cell.x)<=plan.cellW/2&&Math.abs(z-cell.z)<=plan.cellD/2)))?.name;
+}
+
+function ceiling(roof: Roof, room: Room) {
+  if (roof==='monitor' || roof==='sawtooth') return room==='a'?4.40:3.25;
+  if (roof==='stepped') return room==='b'?4.12:3.35;
+  return roof==='gable'?3.45:3.2;
+}
+
+function buildYard(root: THREE.Group, m: Materials, solid: BuildSolid,
+  plan: Exclude<(typeof streetPlans)[number],{cells:Cell[]}>, accent: THREE.Material) {
+  const { x,z,width:w,depth:d,yard }=plan;
+  const border=x-w*.31;
+  const stone=new THREE.IcosahedronGeometry(1,0);
+  const green=enamel(0x57775e);
+  box(root,m.concrete,w*.82,.026,d*.82,x,.014,z);
+  if (yard==='garden') {
+    for(const dz of [-d*.28,d*.28]){
+      solid([border,.34,z+dz],[1.47,.68,2.30],m.ceramic,.08);
+      cylinder(root,m.timber,.10,1.64,border,1.35,z+dz,9);
+      const top=mesh(root,stone,green,border,2.39,z+dz);top.scale.set(1.12,1.03,.99);
     }
-    frontage.shop(type,x,z,w,d,accent);
-    // Keep the passage mouths, public footpaths and adjacent service yards clear.
-    // Each small cluster belongs against a sealed shop wall.
-    for(const side of [1,-1]) {
-      const px=x+side*(w/2+1.26), pz=z+d*(index%2 ? .17 : -.17);
-      const x1=px-.84,x2=px+.84,z1=pz-2.5,z2=pz+2.5;
-      if(reserved.some(r=>x1<r.x2 && x2>r.x1 && z1<r.z2 && z2>r.z1)) continue;
-      if(occupied.some(s=>!s.floor && s.min[1]<3.8 && s.max[1]>.12 &&
-        x1<s.max[0] && x2>s.min[0] && z1<s.max[2] && z2>s.min[2])) continue;
-      if(type===0) {
-        solid([px,.31,pz],[1.40,.62,4.12],sill,.12);
-        box(root,m.steel,1.24,.13,3.91,px,.66,pz,.04);
-        for(const dz of [-1.12,1.1]) {
-          const treeZ=pz+dz;
-          cylinder(root,m.timber,.065,1.24,px,1.33,treeZ,7);
-          const crown=mesh(root,canopyGeometry,foliage,px,2.02,treeZ);
-          crown.scale.set(.75,.93,.92);
-          const top=mesh(root,canopyGeometry,newGrowth,px+.12*side,2.54,treeZ+.1);
-          top.scale.set(.51,.56,.59);
-        }
-      } else if(type===1) {
-        // Sealed delivery lockers, with a flush pickup console facing the street.
-        solid([px,1.02,pz],[.77,2.04,3.6],m.steel,.09);
-        for(let i=0;i<4;i++) for(let j=0;j<2;j++) {
-          const cz=pz+(i-1.5)*.86,cy=.54+j*.92;
-          box(root,i===1?warm:sill,.08,.85,.79,px+side*.397,cy,cz,.028);
-          box(root,m.steel,.09,.055,.24,px+side*.443,cy+.17,cz+.15);
-        }
-        box(root,warm,.97,.14,3.82,px,2.07,pz,.06);
-      } else {
-        // Low waiting bench at the dispensary with a short light at one end.
-        for(const dz of [-.99,.99]) solid([px,.21,pz+dz],[.62,.42,.26],m.steel,.04);
-        solid([px,.49,pz],[.84,.14,2.69],m.timber,.045);
-        solid([px-side*.34,.84,pz],[.13,.64,2.70],sill,.045);
-        solid([px,.81,pz+1.9],[.40,1.62,.42],m.steel,.08);
-        box(root,light,.32,.44,.34,px,1.84,pz+1.9,.055);
-        box(root,violet,.43,.09,.45,px,2.10,pz+1.9,.04);
-      }
-      break;
+    solid([x+w*.21,.28,z],[.58,.56,2.15],m.timber,.05);
+  } else if (yard==='turning') {
+    const bayX=x+w*.28;
+    for(const dz of [-d*.24,d*.23]){
+      solid([bayX,.22,z+dz],[2.25,.44,1.31],m.timber,.07);
+      for (const dx of [-.64,0,.64]) box(root,m.zinc,.08,.035,1.24,bayX+dx,.46,z+dz);
     }
-    if(accessible)upper.gallery(x,z,w,d,shopSide(index),opening,index,rooms.cases);
-    else solid([x,arcade+.26,z],[w+.65,.52,d+.64],m.steel,.12);
-    const aw=type===1?w-.84:w, ad=type===2?d-1:d;
-    if(accessible){
-      const ceiling=galleryHeight+2.84;
-      solid([x,(ceiling+roof)/2,z],[aw,roof-ceiling,ad],panel,.11);
-      solid([x,ceiling+.04,z],[w+.34,.18,d+.65],accent,.05);
-    }else solid([x,arcade+height/2+.28,z],[aw,height-.45,ad],panel,.22);
-    for(let floor=accessible?1:0;floor<levels;floor++) {
-      const y=arcade+1.85+floor*2.95;
-      for(const side of [-1,1]) {
-        const fz=z+side*(ad/2+.035),fx=x+side*(aw/2+.035);
-        // Window bays sit inside deep reveals with a projecting sill/solar shade.
-        box(root,glazing,aw-1.2,1.45,.16,x,y,fz);
-        box(root,glazing,.16,1.45,ad-1.2,fx,y,z);
-        frontage.panel(frontage.glass[(floor+type)%3],x,y,fz+side*.09,aw-1.42,1.34,side>0?0:Math.PI);
-        frontage.panel(frontage.glass[type],fx+side*.09,y,z,ad-1.42,1.34,side*Math.PI/2);
-        if(type===1 && floor%2===0) {
-          box(root,warm,aw*.47,.23,1.07,x-aw*.18,y-.59,fz+side*.25,.05);
-          box(root,sill,aw*.47,.35,.10,x-aw*.18,y-.36,fz+side*.73);
-        }
-        for(let n=1;n<4;n++) box(root,sill,.19,1.52,.21,x+(n/4-.5)*(aw-1.0),y,fz);
-        box(root,type===0?blue:sill,aw-.46,.18,.65,x,y-.74,fz);
-        box(root,accent,.23,1.53,.34,fx,y,z+ad*.17);
-      }
+    for(const dz of [-d*.33,d*.33])box(root,m.safety,w*.42,.022,.14,x-w*.10,.043,z+dz);
+  } else if(yard==='queue'){
+    for (const dz of [-d*.29,d*.29])solid([border,1.29,z+dz],[.18,2.58,.23],m.steel);
+    box(root,accent,2.4,.17,d*.69,border+.53,2.60,z);
+    solid([border+.32,.37,z],[.58,.74,d*.47],m.timber,.055);
+  } else if(yard==='drainage'){
+    box(root,m.steel,1.26,.034,d*.72,border,.028,z);
+    for(let dz=-d*.31;dz<d*.35;dz+=.55)box(root,m.zinc,1.18,.045,.09,border,.049,z+dz);
+    solid([x+w*.22,.44,z+d*.25],[1.68,.88,1.32],accent,.075);
+  } else {
+    for(const dz of [-d*.25,0,d*.25]){
+      solid([border,.36,z+dz],[1.16,.72,.07],m.steel);
+      box(root,m.zinc,.16,.085,.09,border-.49,.72,z+dz);
     }
-    solid([x,roof,z],[aw+.48,.34,ad+.48],accent,.1);
-    if(type===0) {
-      // Insulated roof plant with external coolant collars, readable from the next street.
-      for(const side of [-1,1]) {
-        const px=x+side*w*.23;
-        cylinder(root,panel,w*.155,2.8,px,roof+1.57,z,12);
-        for(const y of [.32,2.54,2.98]) cylinder(root,m.steel,w*.16,.19,px,roof+y,z,12);
-        cylinder(root,light,w*.13,.12,px,roof+3.09,z,12);
-      }
-    } else if(type===1) {
-      const px=x-w*.14,pz=z+d*.08;
-      solid([px,roof+1.45,pz],[w*.61,2.65,d*.62],blue,.22);
-      box(root,glazing,w*.51,1.0,.14,px,roof+1.6,pz+d*.31,.06);
-      solid([px,roof+2.89,pz],[w*.65,.29,d*.66],sill,.07);
-    } else {
-      for(const side of [-1,1]) {
-        const px=x+side*w*.31;
-        strut(root,accent,new THREE.Vector3(px,roof+.1,z-d*.35),
-          new THREE.Vector3(px,roof+3.16,z+d*.28),.4,.4);
-      }
-      const collector=box(root,blue,w*.68,.19,d*.67,x,roof+1.74,z-.03*d,.045);
-      collector.rotation.x=-Math.atan2(3.06,d*.63);
-    }
-    if ((visited + 1) % 6 === 0) yield (visited + 1) / portBlocks.length;
   }
-  return rooms;
+}
+
+export function* buildPortBlocks(root:THREE.Group,m:Materials,solid:BuildSolid) {
+  const result:ShopRooms={doors:[],cases:[],occupants:[]};
+  const wallDepth=.19;
+  const glass=enamel(0x466d83), lamp=emissive(0xbee9dd,.43);
+  const palette=Object.fromEntries(Object.entries(buildingColors).map(([id,color])=>[id,enamel(color)]));
+  for(const [visited,plan] of streetPlans.entries()) {
+    const accent=palette[plan.district];
+    if(!isStreetBuilding(plan)) {
+      buildYard(root,m,solid,plan,accent);
+    } else {
+      const {id,roof,cellW,cellD}=plan;
+      for (const cell of plan.cells) {
+        const h=ceiling(roof,cell.room);
+        box(root,cell.room==='a'?m.concrete:m.zinc,cellW,.022,cellD,cell.x,.017,cell.z);
+        solid([cell.x,h+.13,cell.z],[cellW,.26,cellD],accent,.01);
+        const width=cellW-.22,depth=cellD-.22;
+        if(roof==='gable') {
+          for(const side of [-1,1]){
+            const piece=box(root,accent,width*.57,.14,depth,cell.x+side*width*.245,h+.62,cell.z,.02);
+            piece.rotation.z=-side*.27;
+          }
+        } else if(roof==='sawtooth') {
+          const panel=box(root,m.steel,width*1.04,.16,depth,cell.x,h+.79,cell.z,.03);
+          panel.rotation.z=-.26;
+          box(root,glass,.12,.74,depth,cell.x-width*.46,h+.58,cell.z);
+        } else if(roof==='monitor' && cell.room==='a') {
+          box(root,glass,width*.63,.54,depth*.62,cell.x,h+.48,cell.z,.025);
+          box(root,m.steel,width*.73,.17,depth*.71,cell.x,h+.83,cell.z,.04);
+        } else if(roof==='stepped') {
+          box(root,cell.room==='b'?m.steel:accent,width,.18,depth,cell.x,h+.38,cell.z,.026);
+        }
+        box(root,lamp,Math.min(1.60,cellW*.51),.055,.14,cell.x,h-.042,cell.z);
+      }
+
+      for (const [edgeIndex,edge] of plan.edges.entries()) {
+        const {x,z,alongX,span,passage,nx,nz}=edge;
+        const h=Math.max(ceiling(roof,edge.cell.room),edge.other?ceiling(roof,edge.other.room):0);
+        const at=(u:number,y:number):Vec3=>[x+(alongX?u:0),y,z+(alongX?0:u)];
+        const size=(w:number,height:number,thickness:number):Vec3=>alongX?[w,height,thickness]:[thickness,height,w];
+        const partition=(u:number,w:number,low:number,high:number,material:THREE.Material)=>
+          solid(at(u,(low+high)/2),size(w,high-low,wallDepth),material,.013);
+        if(passage){
+          const wing=(span-doorWidth)/2;
+          for(const side of [-1,1]) partition(side*(doorWidth+wing)/2,wing,0,h,m.ceramic);
+          partition(0,doorWidth,doorHeight,h,m.steel);
+          if(!edge.other) {
+            box(root,accent,...size(doorWidth+.52,.15,.76),x+nx*.19,doorHeight+.24,z+nz*.19,.035);
+            box(root,lamp,...size(doorWidth-.24,.068,.12),x+nx*.44,doorHeight+.15,z+nz*.44);
+          }
+          if(passage==='shutter')result.doors.push({id:'street-'+id+'-shutter-'+edgeIndex,x,z,alongX,label:'勤务卷门'});
+        } else {
+          partition(0,span,0,h,edge.other?m.steel:accent);
+          if(!edge.other && edge.cell.room==='a') {
+            box(root,glass,...size(span*.68,.82,.09),x+nx*.12,1.97,z+nz*.12,.032);
+            box(root,m.zinc,...size(span*.75,.094,.27),x+nx*.15,1.51,z+nz*.15,.016);
+          }
+        }
+      }
+      for (const {room,role,wall,id:fixtureId} of plan.fixtures) {
+        buildRoomFixture(root,m,solid,role,wall,accent);
+        if(room!=='a')result.cases.push(roomCase(fixtureId,role,wall));
+      }
+      for(const {role,wall} of plan.fittings)buildRoomFixture(root,m,solid,role,wall,accent);
+      const post=plan.fixtures[1].cell;
+      result.occupants.push({id:'street-infected-'+id,kind:'infected',position:[post.x,0,post.z],yaw:Math.PI});
+    }
+    if((visited+1)%6===0)yield (visited+1)/streetPlans.length;
+  }
+  return result;
 }

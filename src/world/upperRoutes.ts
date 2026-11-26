@@ -5,8 +5,6 @@ import { box, cylinder, strut } from './detail/geometry.ts';
 import type { Solid } from './worldQueries.ts';
 
 type Builder = (at:Vec3,size:Vec3,material:THREE.Material,bevel?:number)=>THREE.Mesh;
-export const galleryHeight=4.62;
-export const hasGallery=(w:number,d:number)=>w>=14 && d>=11;
 export const freightHalls=[
   [-4,8,24,26,0],[-78,3,32,40,1],[90,-32,32,36,2],
   [7,-113,30,24,4],[-45,63,22,16,6],
@@ -50,36 +48,6 @@ export function upperRoutes(root:THREE.Group,m:Materials,solid:Builder,solids:So
     box(root,m.steel,w,.26,d,x,top-.13,z).castShadow=true;
     solids.push({min:[x-w/2,top-.26,z-d/2],max:[x+w/2,top,z+d/2],walkSurface:true,surface:'metal'});
     box(root,m.zinc,w-.07,.016,d-.07,x,top+.006,z);
-  }
-  function gallery(x:number,z:number,w:number,d:number,shopSide:number,opening:number,index:number,cases:MapInteraction[]){
-    const y=galleryHeight,side=-shopSide,wing=(w-opening)/2, sx=x+side*(w/2-wing/2);
-    const north=z-d/2,south=z+d/2,landing=north+2.15,boundary=x+side*opening/2;
-    stair(sx,south-.08,landing,Math.min(wing-.7,2.4),y);
-    const mainW=w-wing;
-    floor(x-side*wing/2,z,mainW,d+.28,y);
-    floor(sx,(north+landing)/2,wing,landing-north+.014,y);
-    const backX=x+side*(w/2-.10);
-    solid([backX,2.15,z],[.20,4.3,d],m.ceramic,0);
-    solid([sx,2.15,north],[wing,4.3,.21],m.steel,0);
-    for(const signSide of [-1,1])solid([sx+signSide*(wing/2-.12),2.12,south],[.24,4.24,.30],m.steel,0);
-    solid([sx,3.82,south],[wing,.78,.34],m.steel,0);
-    railing(boundary,(south+landing)/2,y,south-landing,false);
-    railing(x,north+.08,y,w-.25,true);
-    railing(x-side*wing/2,south+.60,y,mainW-.2,true);
-    floor(x-side*wing/2,south+.32,mainW,.66,y);
-    railing(x+shopSide*(w/2-.09),z,y,d+1,false);
-    railing(boundary,south+.34,y,.6,false);
-    // A recessed dispatch booth and a wide glazed porch form the usable second storey.
-    const deskX=x+shopSide*(w/2-1.02),deskZ=z-.1*d;
-    solid([deskX,y+.49,deskZ],[1.10,.98,2.65],m.ceramic,.055);
-    box(root,m.safety,1.19,.09,2.76,deskX,y+.97,deskZ);
-    solid([deskX+shopSide*.53,y+1.56,deskZ],[.13,1.12,2.7],m.steel,.025);
-    box(root,m.zinc,.16,.42,.77,deskX+shopSide*.51,y+1.71,deskZ+.72);
-    for(const dz of [-d/2+.22,d/2-.18]){
-      for(const px of [x+shopSide*(w/2-.23),boundary])solid([px,y+1.4,z+dz],[.21,2.8,.23],m.steel,0);
-    }
-    for(const px of [x-side*.25,x+shopSide*2.1])box(root,m.safety,.09,.02,1.3,px,y+.025,south-.64);
-    cases.push({id:'gallery-'+index,kind:'loot',label:z < -120 ? '冷链交接箱' : x > 90 ? '检修备件箱' : '二层港务交接箱',item:z < -120 ? 'tray' : x > 90 ? 'wrench' : 'manual',quantity:1,position:[deskX,y+1.23,deskZ-.42]});
   }
   function warehouse(x:number,z:number,w:number,d:number,index:number,cases:MapInteraction[]){
     const y=3.12,sideX=x+w/2-1.5,west=x-w/2+1.75,north=z-d/2,south=z+d/2;
@@ -146,5 +114,5 @@ export function upperRoutes(root:THREE.Group,m:Materials,solid:Builder,solids:So
     for(const sx of [-1,1])for(let i=0;i<Math.floor(d/2.6);i++)
       box(root,m.safety,.09,.014,1.64,x+sx*2.2,.031,north+1.5+2.6*i);
   }
-  return {gallery,warehouse};
+  return {warehouse};
 }

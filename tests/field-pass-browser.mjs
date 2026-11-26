@@ -10,6 +10,8 @@ import { parkingPad, pharmacyPad } from '../src/world/marketPlan.ts';
 import { innDoorX, innPad, innStair, innUpperY } from '../src/world/innPlan.ts';
 import { archivePad, observationPad, ridgeCrest } from '../src/world/researchAnnexPlan.ts';
 import { tidalWalk } from '../src/world/terrainPlan.ts';
+import { isStreetBuilding, streetPlans } from '../src/world/portBlocks.ts';
+import { fixturePosition } from '../src/world/shopRooms.ts';
 
 const root = path.resolve(process.argv[2] ?? 'dist');
 const output = path.resolve(process.argv[3] ?? 'test-results/field-pass');
@@ -58,7 +60,7 @@ await page.addInitScript(fixedRoutes => {
     }
     painting = true;
   };
-}, ['research','south','market','inn','annex','terrain'].some(name=>cases.has(name)));
+}, ['research','south','market','inn','annex','terrain','street'].some(name=>cases.has(name)));
 const tick = (n=2, paint=false) => page.evaluate(([n,paint]) => window.advanceRaid(n,paint),[n,paint]);
 const state = () => page.evaluate(() => {
   const {feet,stance,climb,eye,countdown,result,flags,weapon,locked,backpack,items,spawn,fov,speed,grounded,health} = window.raidQA.state();
@@ -591,8 +593,50 @@ async function terrain() {
   await capture('07-land-outline');
   report.terrain = { spawn: 'S-A', tidal: tidalWalk.height, returnedToRoad: true };
 }
+async function street() {
+  await start(3);
+  await practice();
+  const visited=[];
+  for (const id of [12,4,20,39,42]) {
+    const plan=streetPlans.find(lot=>lot.id===id);
+    assert.ok(plan && isStreetBuilding(plan));
+    const entry=plan.entries[0];
+    const outside=[entry.x+entry.nx*.85,entry.z+entry.nz*.85];
+    const coordinates=cell=>[cell.x,cell.z];
+    const cells=[entry.cell], parents=new Map([[entry.cell,null]]);
+    for(const cell of cells)for(const next of plan.cells){
+      if(parents.has(next)||Math.abs(cell.col-next.col)+Math.abs(cell.row-next.row)!==1)continue;
+      parents.set(next,cell);
+      cells.push(next);
+    }
+    await pose([outside[0],0,outside[1]]);
+    await walkRoute([coordinates(entry.cell)]);
+    assert.equal(await page.locator('#floor').textContent(),plan.name);
+    const searched=[];
+    for(const fixture of plan.fixtures.filter(x=>x.room!=='a')){
+      assert.ok(parents.has(fixture.cell),fixture.id);
+      const route=[];
+      for(let cell=fixture.cell;parents.get(cell);cell=parents.get(cell))route.push(coordinates(cell));
+      await walkRoute(route.reverse());
+      const [x,,z]=fixturePosition(fixture.wall);
+      const delta=[x-fixture.cell.x,z-fixture.cell.z];
+      const scale=Math.min(1,2.15/Math.hypot(...delta));
+      await walkRoute([[x-scale*delta[0],z-scale*delta[1]]]);
+      await searchCase(fixture.id);
+      searched.push(fixture.id);
+      if(fixture.room==='b'){
+        await aim(fixture.id);
+        await capture(`street-${plan.district}-${plan.roof}`);
+      }
+      await walkRoute([coordinates(fixture.cell),...route.slice(0,-1).reverse(),coordinates(entry.cell)]);
+    }
+    await walkRoute([outside]);
+    visited.push({id,name:plan.name,district:plan.district,roof:plan.roof,searched});
+  }
+  report.street=visited;
+}
 try {
-  for(const [name,fn] of Object.entries({districts,bags,movement,exits,service,routes,controls,feel,research,south,market,inn,annex,terrain})){
+  for(const [name,fn] of Object.entries({districts,bags,movement,exits,service,routes,controls,feel,research,south,market,inn,annex,terrain,street})){
     if(cases.has(name)){await fn();console.log(name+' passed');}
   }
   assert.deepEqual(errors,[]);

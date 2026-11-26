@@ -824,7 +824,7 @@ function* environmentSteps() {
   addArcology(staticRoot, m, solid);
   yield .59;
   const upper=upperRoutes(staticRoot,m,solid,solids);
-  const blocks=buildPortBlocks(staticRoot, m, solids, solid,upper);
+  const blocks=buildPortBlocks(staticRoot, m, solid);
   let block=blocks.next();
   while (!block.done) {
     yield .59 + block.value * .23;

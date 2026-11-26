@@ -350,18 +350,66 @@ test('freight court links the transfer shed, supply gate and both sides of the p
   walk([-72,0,95],[[-72,85],[-68,85],[-68,75],[-72,75]]);
 });
 
-test('street blocks leave a continuous ground-floor passage under every upper floor',async()=>{
-  const {portBlocks}=await import('../src/world/portBlocks.ts');
-  for(const [x,z,,depth] of portBlocks) {
-    const south=z+depth/2+.8,north=z-depth/2-.8;
-    walk([x,0,south],[[x,north],[x,south]]);
-    assert.ok(map.blockedDistance([x,1.65,z],[0,1,0],4)!==null);
+test('all 43 former street lots have distinct functional replacements and no repeated dispensaries', async () => {
+  const {isStreetBuilding,streetPlans}=await import('../src/world/portBlocks.ts');
+  const priorLots=Array.from({length:48},(_,id)=>id).filter(id=>![6,7,8,43,44].includes(id));
+  const formerDispensaries=[2,4,5,11,15,17,19,24,28,30,31,34,35,38,39];
+  assert.deepEqual(streetPlans.map(plan=>plan.id),priorLots);
+  assert.equal(streetPlans.filter(plan=>formerDispensaries.includes(plan.id)).length,15);
+  assert.deepEqual(map.interactions.filter(target=>target.id.startsWith('room-')||target.id.startsWith('gallery-')).map(target=>target.id),['room-clinic-8']);
+  const buildings=streetPlans.filter(isStreetBuilding);
+  assert.equal(buildings.length,34);
+  assert.equal(streetPlans.length-buildings.length,9);
+  assert.equal(new Set(buildings.map(plan=>plan.grid)).size,buildings.length);
+  assert.equal(new Set(buildings.map(plan=>plan.roof)).size,5);
+  assert.equal(new Set(buildings.map(plan=>plan.grid.replace(/[abc]/g,'#'))).size,26);
+  assert.ok(buildings.every(plan=>plan.fittings.length>0));
+  assert.equal(map.interactions.filter(target=>target.kind==='loot'&&target.id.startsWith('street-')).length,buildings.length*2);
+  for(const yard of streetPlans.filter(plan=>!isStreetBuilding(plan))){
+    assert.equal(walk([yard.x,0,yard.z-yard.depth/2-.56],[[yard.x,yard.z+yard.depth/2+.56]])[1],0,yard.name);
   }
 });
 
-test('freight mezzanines and shop balconies allow a round trip on foot to their search cases',async()=>{
-  const {arcadeWidth, portBlocks, shopSide}=await import('../src/world/portBlocks.ts');
-  const {freightHalls, galleryHeight, hasGallery}=await import('../src/world/upperRoutes.ts');
+test('every new street building has walkable rooms and physically separated search points', async () => {
+  const {isStreetBuilding,streetPlans}=await import('../src/world/portBlocks.ts');
+  for(const building of streetPlans.filter(isStreetBuilding)){
+    const reachable=new Set();
+    const queue=[];
+    for(const {cell,x,z,nx,nz} of building.entries){
+      const outside=[x+nx*.58,0,z+nz*.58];
+      assert.ok(map.bodyClear(outside,radius,height),building.name+' entrance apron '+outside);
+      const inside=walk(outside,[[cell.x,cell.z]]);
+      assert.equal(inside[1],0);
+      walk(inside,[[outside[0],outside[2]]]);
+      queue.push(cell);
+      reachable.add(cell);
+    }
+    for(const cell of queue)for(const neighbor of building.cells){
+      if(reachable.has(neighbor)||Math.abs(cell.col-neighbor.col)+Math.abs(cell.row-neighbor.row)!==1)continue;
+      walk([cell.x,0,cell.z],[[neighbor.x,neighbor.z]]);
+      reachable.add(neighbor);
+      queue.push(neighbor);
+    }
+    assert.equal(reachable.size,building.cells.length,building.name);
+    for(const {room,cell,id} of building.fixtures){
+      const feet=[cell.x,0,cell.z];
+      assert.ok(map.bodyClear(feet,radius,height),id+' interior clearance');
+      assert.ok(map.blockedDistance([cell.x,1.65,cell.z],[0,1,0],4)!==null,id+' ceiling');
+      if(room==='a')continue;
+      const target=map.interactions.find(item=>item.id===id);
+      const [dx,dz]=[target.position[0]-cell.x,target.position[2]-cell.z];
+      const scale=Math.min(1,2.2/Math.hypot(dx,dz));
+      const standX=target.position[0]-scale*dx,standZ=target.position[2]-scale*dz;
+      const stand=walk(feet,[[standX,standZ]]);
+      const eye=[stand[0],stand[1]+1.65,stand[2]];
+      const delta=target.position.map((v,i)=>v-eye[i]),length=Math.hypot(...delta);
+      assert.equal(findInteraction(map,map.interactions,new Set(),eye,delta.map(v=>v/length))?.id,id);
+    }
+  }
+});
+
+test('freight mezzanines allow a round trip on foot to their search cases',async()=>{
+  const {freightHalls}=await import('../src/world/upperRoutes.ts');
   const {findInteraction}=await import('../src/player/controller.ts');
   function traverse(feet, targets, id){
     for(const [x,z] of targets){
@@ -381,11 +429,6 @@ test('freight mezzanines and shop balconies allow a round trip on foot to their 
     const back=traverse(feet,points.slice(0,-1).reverse(),id);
     assert.ok(Math.abs(back[1])<.10,id+' did not return to street level');
   }
-  portBlocks.forEach(([x,z,w,d,,i])=>{
-    if(!hasGallery(w,d))return;
-    const side=shopSide(i),sx=x-side*(w/2-(w-arcadeWidth(i))/4),landing=z-d/2+1.05,deskZ=z-.1*d;
-    visit('gallery-'+i,[[sx,z+d/2+.65],[sx,landing],[x,landing],[x,deskZ],[x+side*(w/2-2.26),deskZ]],galleryHeight);
-  });
   freightHalls.forEach(([x,z,w,d,i])=>{
     const sx=x+w/2-1.5,low=z-d/2+1.2,bridge=z+d/2-2.1;
     visit('freight-loft-'+i,[[sx,low-.70],[sx,low+7.8],[sx,bridge],[x-w/2+3.38,bridge]],3.12);
