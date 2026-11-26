@@ -1,5 +1,6 @@
 import type { MapInteraction, Vec3 } from '../contracts/demo.ts';
 import { researchApproach, researchPad, researchSteps } from './researchPlan.ts';
+import { residentialPad, southGrades } from './southPlan.ts';
 
 // World Y=0 is the original city datum, 2.1 m above the sea.
 export const northTerrace={minX:-160,maxX:-103,minZ:-218,maxZ:-111,crestZ:-166,height:8};
@@ -9,6 +10,7 @@ export const northGatePad = { minX: 22, maxX: 44, minZ: -220, maxZ: -198, height
 type Grade = {
   minX: number; maxX: number; minZ: number; maxZ: number;
   northY: number; southY: number;
+  finishInset?: number;
 };
 
 export const newTerrainSections: readonly Grade[] = [
@@ -18,7 +20,8 @@ export const newTerrainSections: readonly Grade[] = [
   { ...northGatePad, maxZ: -209, northY: northGatePad.height, southY: northGatePad.height },
   { ...northGatePad, minZ: -209, northY: northGatePad.height, southY: 0 },
   { ...researchApproach, northY: researchPad.height, southY: 0 },
-  { ...researchSteps, northY: 0, southY: researchPad.height },
+  { ...researchSteps, northY: 0, southY: researchPad.height, finishInset: .10 },
+  ...southGrades,
 ];
 
 export const terrainSections: readonly Grade[] = [
@@ -53,7 +56,7 @@ export const civicInteractions:readonly MapInteraction[]=[
   found('north-observatory-console','气象记录终端','terminal',[-141,9.07,-204]),
   found('north-observatory-upper','观测平台设备柜','board',[-141,12.47,-204]),
   ...houses.flatMap((h,i)=>[
-    found(`residential-${i}-ground`,['客厅置物柜','家庭厨房储物柜','工作间抽屉'][i],(['manual','medkit','salvage'] as const)[i],[-136,1.07,h.z]),
-    found(`residential-${i}-upper`,['主卧行李柜','儿童房书桌','阁楼数据盒'][i],(['sealbag','manual','terminal'] as const)[i],[-137,4.27,h.z]),
+    found(`residential-${i}-ground`,['客厅置物柜','家庭厨房储物柜','工作间抽屉'][i],(['manual','medkit','salvage'] as const)[i],[-136,residentialPad.height+1.07,h.z]),
+    found(`residential-${i}-upper`,['主卧行李柜','儿童房书桌','阁楼数据盒'][i],(['sealbag','manual','terminal'] as const)[i],[-137,residentialPad.height+4.27,h.z]),
   ]),
 ];

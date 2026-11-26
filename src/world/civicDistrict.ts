@@ -3,6 +3,7 @@ import {box,cylinder,mesh,strut} from './detail/geometry.ts';
 import {enamel,emissive,type Materials} from './detail/materialLibrary.ts';
 import {northTerrace,terrainHeight,houses} from './terrainPlan.ts';
 import type {Solid,Slope} from './worldQueries.ts';
+import { residentialPad } from './southPlan.ts';
 
 // Constructed north-west relief and differentiated civic/household buildings.
 // Rendered surfaces, collision and search locations share the authored dimensions.
@@ -53,7 +54,7 @@ export function buildNorthTerrace(root:THREE.Group,m:Materials,solids:Solid[]){
 }
 
 export function buildCivicDistrict(root:THREE.Group,m:Materials,solids:Solid[]){
-  const group=new THREE.Group();group.name='civic-3.5C-first';root.add(group);
+  let group=new THREE.Group();group.name='north-civic';root.add(group);
   const cream=enamel(0xe0dac1),sand=enamel(0xc8b494),brick=enamel(0xb66f64),sage=enamel(0x7caa91),slate=enamel(0x455d70),glass=enamel(0x52798b),blue=enamel(0x627da5),purple=enamel(0x877bb1),wood=enamel(0xa78763),light=emissive(0xe7f3d3,.45),green=enamel(0x4b906e);
   const b=(x:number,y:number,z:number,w:number,h:number,d:number,mat:THREE.Material,bevel=0)=>box(group,mat,w,h,d,x,y,z,bevel);
   function solid(x:number,y:number,z:number,w:number,h:number,d:number,mat:THREE.Material,bevel=0){const o=b(x,y,z,w,h,d,mat,bevel);o.castShadow=true;solids.push({min:[x-w/2,y-h/2,z-d/2],max:[x+w/2,y+h/2,z+d/2]});return o;}
@@ -101,6 +102,8 @@ export function buildCivicDistrict(root:THREE.Group,m:Materials,solids:Solid[]){
   for(const z of [-208,-201])lamp(-141,top+2.85,z);
 
   // S1: three attached houses share only the structure; interiors and roof lines are individual.
+  group=new THREE.Group();group.name='residential-row';group.position.y=residentialPad.height;root.add(group);
+  const firstHouseSolid=solids.length;
   for(const [i,h] of houses.entries()){
     const z=h.z,a=z-4.5,c=z+4.5,x1=-144,x2=-126,f=3.2,accent=[sage,brick,blue][i];
     const exterior=[cream,sand,cream][i];
@@ -133,5 +136,14 @@ export function buildCivicDistrict(root:THREE.Group,m:Materials,solids:Solid[]){
     lamp(-135,2.78,z);lamp(-135,f+2.63,z);
     // Individual planters and porch equipment; leave central entries clear.
     for(const dz of [-3.2,3.2]){solid(-124.5,.35,z+dz,1.15,.7,.85,cream,.07);cylinder(group,green,.32,.78,-124.5,1.04,z+dz,10);}
+  }
+  for (const collider of solids.slice(firstHouseSolid)) {
+    if (collider.slope) {
+      collider.slope.height += residentialPad.height;
+    } else {
+      const [x1,y1,z1]=collider.min, [x2,y2,z2]=collider.max;
+      collider.min=[x1,y1+residentialPad.height,z1];
+      collider.max=[x2,y2+residentialPad.height,z2];
+    }
   }
 }

@@ -19,13 +19,15 @@ import {
 import { addDistrictDetails, addPortHorizon } from './districtDetails.ts';
 import { buildHarbor } from './harbor.ts';
 import { harborInteractions,openContainerPlans } from './harborPlan.ts';
-import { northTerrace,terrainHeight,civicInteractions,gradeHeight,newTerrainSections,coldChainPad,northGatePad } from './terrainPlan.ts';
+import { northTerrace,terrainHeight,civicInteractions,gradeHeight,newTerrainSections } from './terrainPlan.ts';
 import { buildCivicDistrict,buildNorthTerrace } from './civicDistrict.ts';
 import { districtOffsets, districtPoint, districtForInteraction, type District } from './layout.ts';
 import { buildDistrictSites, districtInteractions } from './districtSites.ts';
 import { regularExits } from './raidPlan.ts';
-import { labCeilingUnder, labLocalY, researchApproach, researchInteractions, researchPad, researchSteps } from './researchPlan.ts';
+import { labCeilingUnder, labLocalY, researchInteractions, researchPad } from './researchPlan.ts';
 import { buildResearchBuilding } from './researchBuilding.ts';
+import { southInteractions } from './southPlan.ts';
+import { buildSouthDistrict } from './southDistrict.ts';
 
 const v = (p: Vec3) => new THREE.Vector3(...p);
 
@@ -46,6 +48,7 @@ export const mapInteractions: readonly MapInteraction[] = [
   ...civicInteractions,
   ...districtInteractions,
   ...researchInteractions,
+  ...southInteractions,
   ...siteInteractions,
   ...localInteractions.map(target => ({ ...target, position: districtPoint(districtForInteraction(target.id), target.position) })),
   { id: 'plant-workshop', label: '厂区维修箱', kind: 'loot', item: 'salvage', quantity: 2, position: [83.6,1.12,-47.7] },
@@ -218,15 +221,14 @@ function* environmentSteps() {
       ].filter(p => p.maxX > p.minX && p.maxZ > p.minZ);
     });
   }
-  const ground = [dock, dockRamp, northTerrace, coldChainPad, northGatePad, researchPad, researchApproach, researchSteps]
+  const ground = [dock, dockRamp, northTerrace, researchPad, ...newTerrainSections]
     .reduce(cutOut, [{ minX: -172, maxX: 228, minZ: -220, maxZ: 180 }] as readonly Footprint[]);
   for (const r of ground) slab(r.minX, r.maxX, r.minZ, r.maxZ, 0, groundMaterial);
   buildNorthTerrace(allStatic,m,solids);
   const fill = enamel(0x89988c);
   for (const section of newTerrainSections) {
     const { minX, maxX, minZ, maxZ, northY, southY } = section;
-    // The north stair treads cover this foundation. Lower its rendered top below the nosing.
-    const finishOffset = minX === researchSteps.minX && minZ === researchSteps.minZ ? .10 : 0;
+    const finishOffset = section.finishInset ?? 0;
     const geometry = new THREE.BoxGeometry(maxX - minX, 1, maxZ - minZ);
     geometry.translate((minX + maxX) / 2, 0, (minZ + maxZ) / 2);
     const positions = geometry.getAttribute('position');
@@ -808,6 +810,7 @@ function* environmentSteps() {
   for (const [x,z,w,d,index] of freightHalls) upper.warehouse(x,z,w,d,index,rooms.cases);
   buildStreetCourts(staticRoot,m,solid);
   buildCivicDistrict(allStatic,m,solids);
+  buildSouthDistrict(staticRoot,m,solids,solid);
   addPortHorizon(allStatic, m);
   for(const interaction of mapInteractions) addPickup(interaction);
 

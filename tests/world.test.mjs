@@ -11,6 +11,7 @@ import { createRaid } from '../src/raid/raid.ts';
 import { itemSpecs, packs } from '../src/raid/catalog.ts';
 import { districtRoutes } from './fixtures/district-routes.mjs';
 import { isLabLevel, labLift, researchPad, researchBuildingFloor, researchUpperY } from '../src/world/researchPlan.ts';
+import { communityPad, residentialPad, southInteractions, transitPad } from '../src/world/southPlan.ts';
 
 const map = createFirstMap(42);
 const radius=.36, height=1.8;
@@ -317,7 +318,7 @@ test('freight mezzanines and shop balconies allow a round trip on foot to their 
     const back=traverse(feet,points.slice(0,-1).reverse(),id);
     assert.ok(Math.abs(back[1])<.10,id+' did not return to street level');
   }
-  portBlocks.forEach(([x,z,w,d],i)=>{
+  portBlocks.forEach(([x,z,w,d,,i])=>{
     if(!hasGallery(w,d))return;
     const side=shopSide(i),sx=x-side*(w/2-(w-arcadeWidth(i))/4),landing=z-d/2+1.05,deskZ=z-.1*d;
     visit('gallery-'+i,[[sx,z+d/2+.65],[sx,landing],[x,landing],[x,deskZ],[x+side*(w/2-2.26),deskZ]],galleryHeight);
@@ -335,6 +336,10 @@ test('the playable body crosses port, B1 and new district ramp seams in both dir
     [[-135,-.8,27],[-120,0,27]], [[140.5,0,-16],[140.5,3.2,-34]], [[40.5,researchPad.height,-130],[40.5,lab.y,-155]],
     [[26,0,-196],[26,1.8,-212]], [[38,0,0],[38,3.6,35]], [[38,0,70],[38,3.6,35]],
     [[40.5,0,-70],[40.5,researchPad.height,-130]], [[36,0,-196],[36,researchPad.height,-174]],
+    [[-122.7,0,95],[-122.7,residentialPad.height,121]],
+    [[-122.7,residentialPad.height,148],[-122.7,0,155.4]],
+    [[27,0,95],[27,communityPad.height,116]], [[27,0,151],[27,communityPad.height,137]],
+    [[123,0,158],[123,transitPad.height,130]], [[123,0,95],[123,transitPad.height,113]],
   ]){
     const player=createPlayer(new PerspectiveCamera(),map,{id:'seam',position:start,yaw:0});
     for(const to of [end,start]){
@@ -346,6 +351,32 @@ test('the playable body crosses port, B1 and new district ramp seams in both dir
       assert.ok(Math.abs(player.feet[1]-to[1])<.02);
     }
   }
+});
+
+test('southern terraces connect both arterials and offer distinct, searchable public interiors',()=>{
+ const home=walk([-122.7,0,95],[[-122.7,123],[-122.7,148]]);
+ assert.equal(home[1],residentialPad.height);
+ assert.ok(Math.abs(walk(home,[[-122.7,155.4]])[1])<.02);
+
+ const court=walk([27,0,152],[[27,136],[27,122.15]]);
+ assert.equal(court[1],communityPad.height);
+ visible(walk(court,[[45.4,122.15]]),'community-medical');
+ visible(walk(court,[[27,128.6],[36.35,128.6]]),'community-reception');
+ visible(walk(court,[[27,128.6],[34.5,128.6],[34.5,127.5],[47.5,127.5],[47.5,128.3]]),'community-activity');
+ assert.ok(Math.abs(walk(court,[[27,95]])[1])<.02);
+
+ const station=walk([123,0,158],[[123,122]]);
+ assert.equal(station[1],transitPad.height);
+ visible(walk(station,[[136,122],[136,117.75]]),'transit-dispatch');
+ visible(walk(station,[[143.5,122],[143.5,125.95]]),'transit-luggage');
+ visible(walk(station,[[160.2,122],[160.2,120.5]]),'transit-catering');
+ assert.ok(Math.abs(walk(station,[[123,95]])[1])<.02);
+ const raid=createRaid('south-cases',42,map);
+ for(const {id} of southInteractions) assert.ok(raid.containers.has(id),id);
+ for(const enemy of map.enemies.filter(enemy=>['community-infected','transit-infected'].includes(enemy.id))){
+   assert.equal(map.bodyClear(enemy.position,.36,1.8),true,enemy.id);
+   assert.equal(map.groundHeight(enemy.position,.36),enemy.position[1],enemy.id);
+ }
 });
 
 test('the main research building has an accessible second floor and a separate B1 projection', () => {

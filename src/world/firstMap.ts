@@ -11,6 +11,7 @@ import { coldChainPad, northTerrace } from './terrainPlan.ts';
 import { districtPoint, servicePosition } from './layout.ts';
 import { regularExits, spawnPoints } from './raidPlan.ts';
 import { labLift, labLocalY } from './researchPlan.ts';
+import { communityPad, residentialPad, transitPad } from './southPlan.ts';
 
 const botPosts: readonly Vec3[] = [[20, labLocalY, -31.2], [9.7, labLocalY, -35.6], [-4, labLocalY, -32]];
 function placeEnemies(seed: number): EnemySpawn[] {
@@ -25,6 +26,8 @@ function placeEnemies(seed: number): EnemySpawn[] {
     ...infected.map((position, index): EnemySpawn => ({ id: 'infected-' + (index + 1), position: districtPoint(index < 3 ? 'wharf' : index < 6 ? 'warehouse' : index < 8 ? 'plant' : 'research', position), yaw: Math.PI, kind: 'infected' })),
     ...[[ -78,0,-25],[90,0,-54],[83,0,-175],[7,0,-129]].map((position,index): EnemySpawn => ({id:'district-infected-'+index,position:position as unknown as Vec3,yaw:Math.PI,kind:'infected'})),
     { id: 'lab-security', position: districtPoint('research', botPosts[post]), yaw: Math.PI, kind: 'security-bot' },
+    { id: 'community-infected', position: [43.5,communityPad.height,122.8], yaw: Math.PI, kind: 'infected' },
+    { id: 'transit-infected', position: [144.6,transitPad.height,120.8], yaw: Math.PI, kind: 'infected' },
     ...supplySites.filter(site => site.risk === '高').flatMap(site => [-1, 1].map((side): EnemySpawn => ({
       id: `${site.id}-guard-${side}`, position: [site.x + side * 6, 0, site.z + 9], yaw: Math.PI, kind: 'infected',
     }))),
@@ -70,7 +73,9 @@ export function createFirstMap(seed: number, environment = createEnvironment()):
     ...queries, scene, doors, spawnPoints, exits, updateExitLights,
     regions: [
       { id: 'north-terrace', label: '北部高地 · 海关与气象站', center: [-134,northTerrace.height,-186], radius: 53 },
-      { id: 'residential-row', label: '港务家属区', center: [-135,0,134.5], radius: 27 },
+      { id: 'residential-row', label: '港务家属区', center: [-135,residentialPad.height,134.5], radius: 24 },
+      { id: 'community-center', label: '社区救护中心', center: [40,communityPad.height,126], radius: 20 },
+      { id: 'transit-center', label: '交通站', center: [139,transitPad.height,122], radius: 23 },
       { id: 'lab', label: '地下实验室 · 高风险', center: districtPoint('research', [9, labLocalY, -31]), radius: 21 },
       { id: 'plant', label: '03 处理厂区', center: districtPoint('plant', [41, 0, -5]), radius: 45 },
       { id: 'research', label: '04 生化研究设施', center: districtPoint('research', [20.5, 0, -23]), radius: 50 },

@@ -4,6 +4,7 @@ import {createFirstMap} from '../src/world/firstMap.ts';
 import {northTerrace,terrainHeight,civicInteractions,houses} from '../src/world/terrainPlan.ts';
 import {findInteraction} from '../src/player/controller.ts';
 import {createRaid} from '../src/raid/raid.ts';
+import {residentialPad} from '../src/world/southPlan.ts';
 
 const map=createFirstMap(42),radius=.36,height=1.8;
 function walk(start,points){let p=start;for(const [x,z] of points){const n=Math.max(1,Math.ceil(Math.hypot(x-p[0],z-p[2])/.08)),dx=(x-p[0])/n,dz=(z-p[2])/n;for(let i=0;i<n;i++)p=map.moveBody(p,dx,-.012,dz,radius,height);assert.ok(Math.hypot(x-p[0],z-p[2])<.09,`blocked: ${p} → ${[x,z]}`);}return p;}
@@ -30,9 +31,10 @@ test('north customs hall and observation station have real entrance, search furn
 
 test('each attached residence has a distinct accessible first and second floor',()=>{
   for(const [i,{z}] of houses.entries()){
-    const lower=walk([-122,0,z],[[-133.8,z]]);inspect(lower,`residential-${i}-ground`);
-    const top=walk(lower,[[-128.7,z],[-128.7,z-3],[-143,z-3],[-143,z],[-139,z]]);assert.ok(Math.abs(top[1]-3.2)<.05);inspect(top,`residential-${i}-upper`);
-    const back=walk(top,[[-143,z],[-143,z-3],[-128.7,z-3],[-128.7,z],[-122,z]]);assert.ok(Math.abs(back[1])<.05);
+    const y=residentialPad.height;
+    const lower=walk([-122,y,z],[[-133.8,z]]);inspect(lower,`residential-${i}-ground`);
+    const top=walk(lower,[[-128.7,z],[-128.7,z-3],[-143,z-3],[-143,z],[-139,z]]);assert.ok(Math.abs(top[1]-y-3.2)<.05);inspect(top,`residential-${i}-upper`);
+    const back=walk(top,[[-143,z],[-143,z-3],[-128.7,z-3],[-128.7,z],[-122,z]]);assert.ok(Math.abs(back[1]-y)<.05);
   }
 });
 

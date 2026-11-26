@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import {residentialPad} from '../src/world/southPlan.ts';
 import {mkdir,readFile,writeFile} from 'node:fs/promises';
 import path from 'node:path';
 import {chromium} from 'playwright';
@@ -33,8 +34,8 @@ try{
   await pose([-188,4.1,22],Math.PI/2,0);await screenshot('15-upper-hall');
   await pose([-115,0,-107],0,.02);await screenshot('16-north-slope');await page.keyboard.down('w');await tick(875);await page.keyboard.up('w');await tick(8);const terrace=await state();assert.ok(terrace.feet[2]<-166&&Math.abs(terrace.feet[1]-8)<.08,JSON.stringify(terrace.feet));checks.push({terrace:terrace.feet});await screenshot('17-north-highland');
   await pose([-124,8,-179],Math.PI/2,0);await screenshot('18-customs-hall');
-  await pose([-108,1.8,134.5],Math.PI/2,.06);await screenshot('19-residential-row');
-  await pose([-129,0,134.5],Math.PI/2,0);await screenshot('20-residential-interior');
+  await pose([-108,residentialPad.height+1.8,134.5],Math.PI/2,.06);await screenshot('19-residential-row');
+  await pose([-129,residentialPad.height,134.5],Math.PI/2,0);await screenshot('20-residential-interior');
   await pose([-88,20,-133],.63,-.26);await screenshot('21-north-terrace-overview');
   assert.deepEqual(errors,[]);await writeFile(path.join(output,'report.json'),JSON.stringify({checks,errors},null,2));console.log('Harbor/Civic browser: bridges, three decks, grade and scene views passed.');
 }finally{await browser.close();}

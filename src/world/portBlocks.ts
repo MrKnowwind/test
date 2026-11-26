@@ -13,7 +13,7 @@ export const shopSide=(index:number)=>index%2?1:-1;
 type Lot = readonly [number,number,number,number,number];
 // Surveyed build envelopes in metres. Their centres have clearance from service roads,
 // existing structures, encounter spawns and the complete approach to each supply point.
-export const portBlocks: readonly Lot[] = [
+const surveyedLots: readonly Lot[] = [
   [-18,82,12,11,3],[-38,80,16,10,4],[-18,61,14,14,2],[-22,41,19,11,5],
   [18,74,12,10,3],[38,78,16,14,3],[37,113,14,11,4],[43,132,19,10,2],
   [-65,134,12,14,5],[-87,132,16,11,3],[-132,72,14,10,3],
@@ -28,6 +28,9 @@ export const portBlocks: readonly Lot[] = [
   [14,170,12,14,3],[-42,170,16,11,3],[128,131,14,10,4],[151,133,19,14,2],
   [188,82,12,11,5],[202,40,16,10,3],[201,13,14,14,3],
 ];
+// Authored landmarks occupy these former street blocks. Keep the other room IDs stable.
+const replacedLots = new Set([6,7,43,44]);
+export const portBlocks = surveyedLots.flatMap((lot,index) => replacedLots.has(index) ? [] : [[...lot,index] as const]);
 
 export function arcadeWidth(index: number) {
   return index % 3 === 2 ? 4.8 : 4;
@@ -43,7 +46,7 @@ export function* buildPortBlocks(root:THREE.Group,m:Materials,occupied:readonly 
   const canopyGeometry=new THREE.IcosahedronGeometry(1,0);
   const foliage=enamel(0x438e83), newGrowth=enamel(0x87c39b);
   const frontage=createFrontage(root,m);
-  for (const [index,[x,z,w,d,levels]] of portBlocks.entries()) {
+  for (const [visited,[x,z,w,d,levels,index]] of portBlocks.entries()) {
     const type=tenantType(index,x,z), accent=z < -75?violet:type===1?warm:blue;
     const arcade=4.1, height=levels*2.95, roof=arcade+height;
     // One occupied shop and one service core flank the covered lane.
@@ -156,7 +159,7 @@ export function* buildPortBlocks(root:THREE.Group,m:Materials,occupied:readonly 
       const collector=box(root,blue,w*.68,.19,d*.67,x,roof+1.74,z-.03*d,.045);
       collector.rotation.x=-Math.atan2(3.06,d*.63);
     }
-    if ((index + 1) % 6 === 0) yield (index + 1) / portBlocks.length;
+    if ((visited + 1) % 6 === 0) yield (visited + 1) / portBlocks.length;
   }
   return rooms;
 }

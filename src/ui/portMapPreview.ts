@@ -8,6 +8,7 @@ import { mapBounds, mapViewBounds, dock, lab } from '../world/worldQueries.ts';
 import {gangways,harborBuildings,shipOutline} from '../world/harborPlan.ts';
 import {civicBuildings,terrainSections} from '../world/terrainPlan.ts';
 import { labLift, researchBuilding } from '../world/researchPlan.ts';
+import { southBuildings } from '../world/southPlan.ts';
 
 export function renderPortMapPreviews() {
   for(const canvas of document.querySelectorAll<HTMLCanvasElement>('.port-map')){
@@ -31,7 +32,7 @@ export function renderPortMapPreviews() {
     for(const r of roads)rect(r.x1,r.z1,r.x2,r.z2,'#6f8887');
     for(const [px,pz,w,d] of [...portBlocks,...freightHalls])rect(px-w/2,pz-d/2,px+w/2,pz+d/2,'#adc0b7','#d2ddd72e');
     for(const r of harborBuildings)rect(r.minX,r.minZ,r.maxX,r.maxZ,'#5c9b9b','#c7dfd8');
-    for(const r of [...civicBuildings,...districtBuildings,researchBuilding])rect(r.minX,r.minZ,r.maxX,r.maxZ,'#a7b5be','#d2e2d5');
+    for(const r of [...civicBuildings,...districtBuildings,researchBuilding,...southBuildings])rect(r.minX,r.minZ,r.maxX,r.maxZ,'#a7b5be','#d2e2d5');
     c.strokeStyle='#c0aacb';c.setLineDash([2,2]);
     c.strokeRect(x(lab.minX),z(lab.minZ),(lab.maxX-lab.minX)*scale,(lab.maxZ-lab.minZ)*scale);
     c.setLineDash([]);

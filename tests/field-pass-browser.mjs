@@ -5,6 +5,7 @@ import { chromium } from 'playwright';
 import { movement as speeds } from '../src/player/controller.ts';
 import { districtRoutes } from './fixtures/district-routes.mjs';
 import { lab, labLift, researchPad, researchUpperY } from '../src/world/researchPlan.ts';
+import { communityPad, residentialPad, transitPad } from '../src/world/southPlan.ts';
 
 const root = path.resolve(process.argv[2] ?? 'dist');
 const output = path.resolve(process.argv[3] ?? 'test-results/field-pass');
@@ -53,7 +54,7 @@ await page.addInitScript(fixedRoutes => {
     }
     painting = true;
   };
-}, cases.has('research'));
+}, cases.has('research') || cases.has('south'));
 const tick = (n=2, paint=false) => page.evaluate(([n,paint]) => window.advanceRaid(n,paint),[n,paint]);
 const state = () => page.evaluate(() => {
   const {feet,stance,climb,eye,countdown,result,flags,weapon,locked,backpack,items,spawn,fov,speed,grounded,health} = window.raidQA.state();
@@ -296,46 +297,46 @@ async function routes() {
   }
 }
 
+async function walkRoute(points) {
+  for (const [x,z] of points) {
+    const {feet}=await state();
+    await pose(feet,Math.atan2(feet[0]-x,feet[2]-z));
+    await page.keyboard.down('Shift');
+    await page.keyboard.down('w');
+    try {
+      const progress=await page.evaluate(([x,z])=>{
+        let feet=raidQA.state().feet;
+        const distance=()=>Math.hypot(feet[0]-x,feet[2]-z);
+        const frames=Math.ceil(distance()/.3)+60;
+        let stuck=0;
+        for(let i=0;i<frames && stuck<10 && distance()>.21;i++){
+          const before=distance();
+          advanceRaid(1,false,before>2?100:1000/60);
+          feet=raidQA.state().feet;
+          stuck=before-distance()<.002?stuck+1:0;
+        }
+        return {feet,distance:distance()};
+      },[x,z]);
+      assert.ok(progress.distance<=.21,JSON.stringify({goal:[x,z],...progress}));
+    } finally {
+      await page.keyboard.up('w');
+      await page.keyboard.up('Shift');
+      await tick();
+    }
+  }
+}
+const height = async target => assert.ok(Math.abs((await state()).feet[1]-target)<.05);
+async function aim(id) {
+  const target=await page.evaluate(id=>raidQA.state().interactions.find(item=>item.id===id).position,id);
+  const {feet,eye}=await state();
+  const [dx,dy,dz]=target.map((value,i)=>value-eye[i]);
+  await pose(feet,Math.atan2(-dx,-dz),Math.atan2(dy,Math.hypot(dx,dz)));
+  await tick();
+}
+
 async function research() {
   await start(42);
   await practice();
-  async function walkRoute(points) {
-    for (const [x,z] of points) {
-      const {feet}=await state();
-      await pose(feet,Math.atan2(feet[0]-x,feet[2]-z));
-      await page.keyboard.down('Shift');
-      await page.keyboard.down('w');
-      try {
-        const progress=await page.evaluate(([x,z])=>{
-          let feet=raidQA.state().feet;
-          const distance=()=>Math.hypot(feet[0]-x,feet[2]-z);
-          const frames=Math.ceil(distance()/.3)+60;
-          let stuck=0;
-          for(let i=0;i<frames && stuck<10 && distance()>.21;i++){
-            const before=distance();
-            advanceRaid(1,false,before>2?100:1000/60);
-            feet=raidQA.state().feet;
-            stuck=before-distance()<.002?stuck+1:0;
-          }
-          return {feet,distance:distance()};
-        },[x,z]);
-        assert.ok(progress.distance<=.21,JSON.stringify({goal:[x,z],...progress}));
-      } finally {
-        await page.keyboard.up('w');
-        await page.keyboard.up('Shift');
-        await tick();
-      }
-    }
-  }
-  const height = async target => assert.ok(Math.abs((await state()).feet[1]-target)<.05);
-  const aim = async id => {
-    const target=await page.evaluate(id=>raidQA.state().interactions.find(item=>item.id===id).position,id);
-    const {feet,eye}=await state();
-    const [dx,dy,dz]=target.map((value,i)=>value-eye[i]);
-    await pose(feet,Math.atan2(-dx,-dz),Math.atan2(dy,Math.hypot(dx,dz)));
-    await tick();
-  };
-
   await pose([40.5,0,-68],0,.06);
   await capture('01-research-south-approach');
   assert.equal(await page.locator('#floor').textContent(),'科研园');
@@ -380,8 +381,72 @@ async function research() {
   report.research = {surface:researchPad.height, upper:researchUpperY, below:lab.y,
     checked:['south straight approach','north stairs in both directions','1F and 2F','2F search','B1 ramp both directions','B1 power to freight lift']};
 }
+
+async function south() {
+  async function search(id) {
+    await aim(id);
+    await press('e');
+    const seconds=await page.evaluate(item=>raidQA.state().containers.find(c=>c.id===item)
+      .entries.reduce((total,entry)=>total+entry.duration,0),id);
+    await tick(Math.ceil((seconds+.3)*60));
+    await page.locator('.source-item.revealed').first().waitFor({timeout:10000});
+    assert.ok(await page.evaluate(item=>raidQA.state().searched.includes(item),id),id);
+    await closeBag();
+  }
+  await start(5);
+  assert.equal((await state()).spawn.id,'S-C');
+  await practice();
+  await walkRoute([[123,133.8],[123,122]]);
+  await height(transitPad.height);
+  await pose((await state()).feet,-Math.PI/2,.04);
+  await capture('01-south-transfer-court');
+  assert.equal(await page.locator('#floor').textContent(),'交通站与餐饮广场');
+  await walkRoute([[136,122],[136,117.75]]);
+  await search('transit-dispatch');
+  await walkRoute([[136,122],[160.2,122],[160.2,120.5]]);
+  await aim('transit-catering');
+  await capture('02-south-catering');
+  await search('transit-catering');
+  await walkRoute([[160.2,122],[123,122],[123,95],[27,95],[27,122.15]]);
+  await height(communityPad.height);
+  await pose((await state()).feet,-Math.PI/2,.07);
+  await capture('03-south-community-plaza');
+  assert.equal(await page.locator('#floor').textContent(),'社区救护与活动中心');
+  await walkRoute([[45.4,122.15]]);
+  await search('community-medical');
+  await walkRoute([[27,122.15],[27,155],[26,155],[26,171]]);
+  await height(0);
+  await tick(315);
+  assert.match(await page.locator('#prompt').textContent(),/本局未开放/);
+  assert.equal((await state()).result,undefined);
+
+  await walkRoute([[26,155],[-122.7,155],[-122.7,147.8],[-122.7,134.5]]);
+  await height(residentialPad.height);
+  await pose((await state()).feet,Math.PI/2,.04);
+  await capture('04-south-residential-porches');
+  assert.equal(await page.locator('#floor').textContent(),'港务家属区');
+  await walkRoute([[-128.7,134.5],[-128.7,131.5],[-143,131.5],[-143,134.5],[-139,134.5]]);
+  await height(residentialPad.height+3.2);
+  await aim('residential-1-upper');
+  await capture('05-south-residential-upper');
+  await search('residential-1-upper');
+  await walkRoute([[-143,134.5],[-143,131.5],[-128.7,131.5],[-128.7,134.5],[-122.7,134.5],[-122.7,95]]);
+  await height(0);
+
+  await start(0);
+  assert.equal((await state()).spawn.id,'N-D');
+  await practice();
+  await pose([123,0,155],Math.PI/2);
+  await walkRoute([[26,155],[26,171]]);
+  await tick(315);
+  assert.equal((await state()).result?.exitId,'highway');
+  report.south = {residential:residentialPad.height, community:communityPad.height, transit:transitPad.height,
+    searched:['transit-dispatch','transit-catering','community-medical','residential-1-upper'],
+    checked:['S-C to transit and cafeteria','transit to community','south exit locked for S-C',
+      'residential stairs and upper floor','north raid extracts through south highway']};
+}
 try {
-  for(const [name,fn] of Object.entries({districts,bags,movement,exits,service,routes,controls,feel,research})){
+  for(const [name,fn] of Object.entries({districts,bags,movement,exits,service,routes,controls,feel,research,south})){
     if(cases.has(name)){await fn();console.log(name+' passed');}
   }
   assert.deepEqual(errors,[]);

@@ -3,11 +3,14 @@ import { box } from './detail/geometry.ts';
 import { siteApproaches } from './supplySites.ts';
 import { enamel } from './detail/materialLibrary.ts';
 import { gradeHeight, terrainSectionAt, terrainSections, houses } from './terrainPlan.ts';
+import { communityApproach, residentialApproach, transitNorth, transitSouth } from './southPlan.ts';
 
 type Rect = { x1: number; x2: number; z1: number; z2: number };
 function rectangle(x: number, z: number, w: number, d: number): Rect {
   return { x1: x-w/2, x2: x+w/2, z1:z-d/2, z2:z+d/2 };
 }
+const fromFootprint = (bounds:{minX:number; maxX:number; minZ:number; maxZ:number}): Rect =>
+  ({x1:bounds.minX,x2:bounds.maxX,z1:bounds.minZ,z2:bounds.maxZ});
 
 // Through roads and spurs share this plan with the player's map.
 export const roads = [
@@ -29,7 +32,8 @@ const walkLines = [...siteApproaches.map(route=>route.points), freightWalk, [[-7
 export const footpaths = [...walkLines.flatMap(points => points.slice(1).map(([x,z],i)=>{
   const [lastX,lastZ]=points[i];
   return rectangle((lastX+x)/2,(lastZ+z)/2,Math.abs(x-lastX)+walkWidth,Math.abs(z-lastZ)+walkWidth);
-})),...houses.map(h=>rectangle(-123,h.z,7,3.2))];
+})),...houses.map(h=>rectangle(-123.85,h.z,4.3,3.2)),
+  ...[residentialApproach, communityApproach, transitNorth, transitSouth].map(fromFootprint)];
 
 function overlaps(a: Rect, b: Rect) {
   return a.x1 < b.x2 && a.x2 > b.x1 && a.z1 < b.z2 && a.z2 > b.z1;
@@ -47,7 +51,12 @@ export function buildRoads(root: THREE.Group, asphalt: THREE.Material) {
   const paint = enamel(0xbad5df);
   const split = (first: number, last: number, cuts: number[]) =>
     [...new Set([first, ...cuts.filter(value => value > first && value < last), last])].sort((a,b)=>a-b);
+  const stairCutouts = terrainSections.filter(t=>t.finishInset).map(fromFootprint);
   function surface(r: Rect, y: number, material: THREE.Material) {
+    const patches=stairCutouts.reduce((pieces,cut)=>pieces.flatMap(p=>subtract(p,cut)),[r]);
+    for(const patch of patches) pavement(patch,y,material);
+  }
+  function pavement(r: Rect, y: number, material: THREE.Material) {
     const grades = terrainSections.filter(p => overlaps(r, { x1:p.minX, x2:p.maxX, z1:p.minZ, z2:p.maxZ }));
     if (!grades.length) {
       box(root,material,r.x2-r.x1,.012,r.z2-r.z1,(r.x1+r.x2)/2,y,(r.z1+r.z2)/2);
