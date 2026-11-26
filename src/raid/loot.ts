@@ -107,6 +107,9 @@ export function caseProfile(id: string, item: ItemId): Profile {
       };
     case 'lab-research':
       return { kind: 'carrier', tag: 'research', bonus: true };
+    case 'observation-intake':
+    case 'annex-archive-files':
+      return { kind: 'files', tag: 'electronics' };
     case 'triage-tools':
     case 'depot-tools':
       return { kind: 'locker', tag: 'medical', bags: ['daypack', 'sling'], chance: 0.8 };

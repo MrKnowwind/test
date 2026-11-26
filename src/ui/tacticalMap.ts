@@ -4,6 +4,8 @@ import {gangways,harborBuildings,harborFloor,shipEnvelope,shipOutline,isShip} fr
 import { civicBuildings,terrainSections } from '../world/terrainPlan.ts';
 import { districtBuildings } from '../world/districtSites.ts';
 import { isLabLevel, researchBuilding, researchBuildingFloor } from '../world/researchPlan.ts';
+import { annexWalk, researchAnnexBuildings } from '../world/researchAnnexPlan.ts';
+import { landOutline } from '../world/landPlan.ts';
 import { southBuildings } from '../world/southPlan.ts';
 import { marketBuildings } from '../world/marketPlan.ts';
 import { innBuilding, innFloor, innStair } from '../world/innPlan.ts';
@@ -13,7 +15,19 @@ import { arcadeWidth, portBlocks, shopSide } from '../world/portBlocks.ts';
 import { freightHalls, hasGallery } from '../world/upperRoutes.ts';
 import { roads, footpaths } from '../world/roads.ts';
 
-const publicBuildings=[...civicBuildings,...districtBuildings,researchBuilding,...southBuildings,...marketBuildings,innBuilding];
+const publicBuildings=[...civicBuildings,...districtBuildings,researchBuilding,...researchAnnexBuildings,...southBuildings,...marketBuildings,innBuilding];
+function fillLand(context: CanvasRenderingContext2D, project: (x: number, z: number) => number[], color: string) {
+  context.beginPath();
+  landOutline.forEach(([x, z], i) => {
+    const [px, pz] = project(x, z);
+    if (i === 0) context.moveTo(px, pz);
+    else context.lineTo(px, pz);
+  });
+  context.closePath();
+  context.fillStyle = color;
+  context.fill();
+}
+
 function upperBuildingAt(position: Vec3) {
   if (innFloor(position)==='2F') return 'inn';
   if (researchBuildingFloor(position)==='2F') return 'research';
@@ -53,13 +67,13 @@ export function createTacticalMap() {
         radar.fillStyle = color; radar.fillRect(x, y, w, h);
         if (stroke) { radar.strokeStyle = stroke; radar.strokeRect(x, y, w, h); }
       }
-      radar.fillStyle = underground ? '#141e2a' : '#1d2b30';
+      radar.fillStyle = underground ? '#141e2a' : '#1a4255';
       radar.fillRect(0, 0, mini.width, mini.height);
       if (underground) {
         rect(lab.minX, lab.minZ, lab.maxX, lab.maxZ, '#304457', '#709497');
         rect(ramp.minX, ramp.minZ, ramp.maxX, ramp.maxZ, '#53666b');
       } else {
-        rect(mapViewBounds.minX-200,mapBounds.minZ,mapBounds.minX,mapBounds.maxZ,'#1a4255');
+        fillLand(radar, point, '#1d2b30');
         for(const t of terrainSections)rect(t.minX,t.minZ,t.maxX,t.maxZ,t.northY===t.southY?'#405b5a':'#344b4a');
         for (const road of roads) rect(road.x1, road.z1, road.x2, road.z2, '#4b5d5e');
         for (const path of footpaths) rect(path.x1, path.z1, path.x2, path.z2, '#394b4d');
@@ -69,6 +83,7 @@ export function createTacticalMap() {
           rect(x - w / 2, z - d / 2, x + w / 2, z + d / 2, '#2c3e43', '#708386');
         for(const r of harborBuildings)rect(r.minX,r.minZ,r.maxX,r.maxZ,'#387174','#91beb9');
         for(const r of publicBuildings)rect(r.minX,r.minZ,r.maxX,r.maxZ,'#445669','#a1bcbb');
+        rect(annexWalk.minX, annexWalk.minZ, annexWalk.maxX, annexWalk.maxZ, '#7798a5');
         for(const r of gangways)rect(r.minX,r.minZ,r.maxX,r.maxZ,'#6a9d9b');
         radar.beginPath();shipOutline.forEach(([x,z],i)=>{const p=point(x,z);i?radar.lineTo(p[0],p[1]):radar.moveTo(p[0],p[1]);});radar.closePath();radar.fillStyle='#5f8587';radar.fill();radar.strokeStyle='#c9e5d9';radar.stroke();
       }
@@ -102,10 +117,9 @@ export function createTacticalMap() {
       lastDraw = now;
       ctx.fillStyle = '#e8efe8';
       ctx.fillRect(0, 0, 900, 750);
-      ctx.fillStyle = '#d3e0de';
+      ctx.fillStyle = '#a0c7d0';
       ctx.fillRect(80, 85, 740, 580);
-      const [seaLeft,seaTop]=project(mapViewBounds.minX,mapBounds.minZ),[shore,seaBottom]=project(mapBounds.minX,mapBounds.maxZ);
-      ctx.fillStyle='#a0c7d0';ctx.fillRect(seaLeft,seaTop,shore-seaLeft,seaBottom-seaTop);
+      fillLand(ctx, project, '#d3e0de');
       for(const t of terrainSections){
         const [tx,tz]=project(t.minX,t.minZ),[ex,end]=project(t.maxX,t.maxZ);
         const grade=ctx.createLinearGradient(tx,tz,tx,end);
@@ -162,6 +176,8 @@ export function createTacticalMap() {
       }
       for(const [x,z,w,d] of freightHalls)stairMark(x+w/2-1.5,z-d/2+1.2);
       for(const r of [...harborBuildings,...gangways,...publicBuildings]){const [x,z]=project(r.minX,r.minZ),[a,b]=project(r.maxX,r.maxZ);ctx.fillStyle='#6ca7aa';ctx.fillRect(x,z,a-x,b-z);ctx.strokeStyle='#39777e';ctx.strokeRect(x,z,a-x,b-z);}
+      const [bridgeX,bridgeZ]=project(annexWalk.minX,annexWalk.minZ),[bridgeRight,bridgeBottom]=project(annexWalk.maxX,annexWalk.maxZ);
+      ctx.fillStyle='#607e90';ctx.fillRect(bridgeX,bridgeZ,bridgeRight-bridgeX,bridgeBottom-bridgeZ);
       stairMark(innStair.x,innStair.bottomZ);
       ctx.beginPath();shipOutline.forEach(([x,z],i)=>{const p=project(x,z);i?ctx.lineTo(p[0],p[1]):ctx.moveTo(p[0],p[1]);});ctx.closePath();ctx.fillStyle='#6ca7aa';ctx.fill();ctx.strokeStyle='#39777e';ctx.stroke();
       const [shipX,shipZ]=project((shipEnvelope.minX+shipEnvelope.maxX)/2,(shipEnvelope.minZ+shipEnvelope.maxZ)/2);

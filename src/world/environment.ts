@@ -19,7 +19,7 @@ import {
 import { addDistrictDetails, addPortHorizon } from './districtDetails.ts';
 import { buildHarbor } from './harbor.ts';
 import { harborInteractions,openContainerPlans } from './harborPlan.ts';
-import { northTerrace,terrainHeight,civicInteractions,gradeHeight,newTerrainSections } from './terrainPlan.ts';
+import { northTerrace,terrainHeight,civicInteractions,gradeHeight,newTerrainSections,tidalWalk } from './terrainPlan.ts';
 import { buildCivicDistrict,buildNorthTerrace } from './civicDistrict.ts';
 import { districtOffsets, districtPoint, districtForInteraction, type District } from './layout.ts';
 import { buildDistrictSites, districtInteractions } from './districtSites.ts';
@@ -32,6 +32,10 @@ import { marketInteractions } from './marketPlan.ts';
 import { buildMarketDistrict } from './marketDistrict.ts';
 import { innInteractions } from './innPlan.ts';
 import { buildInn } from './inn.ts';
+import { researchAnnexInteractions } from './researchAnnexPlan.ts';
+import { buildResearchAnnex } from './researchAnnex.ts';
+import { landBounds } from './landPlan.ts';
+import { landBank, landSurface } from './landSurface.ts';
 
 const v = (p: Vec3) => new THREE.Vector3(...p);
 
@@ -52,6 +56,7 @@ export const mapInteractions: readonly MapInteraction[] = [
   ...civicInteractions,
   ...districtInteractions,
   ...researchInteractions,
+  ...researchAnnexInteractions,
   ...southInteractions,
   ...marketInteractions,
   ...innInteractions,
@@ -59,7 +64,6 @@ export const mapInteractions: readonly MapInteraction[] = [
   ...localInteractions.map(target => ({ ...target, position: districtPoint(districtForInteraction(target.id), target.position) })),
   { id: 'plant-workshop', label: '厂区维修箱', kind: 'loot', item: 'salvage', quantity: 2, position: [83.6,1.12,-47.7] },
   { id: 'research-office', label: '研究后勤箱', kind: 'loot', item: 'medkit', quantity: 1, position: [1,1.12,-122.7] },
-  { id: 'quarantine-samples', label: '隔离保存柜', kind: 'loot', item: 'research-sample', quantity: 1, position: [78.2,1.12,-167.7] },
   { id: 'transit-tools', label: '转运仓工具箱', kind: 'loot', item: 'salvage', quantity: 2, position: [-84,1.12,-12.7] },
   { id: 'workshop-supplies', label: '工棚应急箱', kind: 'loot', item: 'medkit', quantity: 1, position: [-42,1.12,2.3] },
   { id: 'evac-daypack', label: '基础小包', kind: 'loose', item: 'daypack', quantity: 1, position: [-24, .18, 140.75] },
@@ -228,30 +232,44 @@ function* environmentSteps() {
     });
   }
   const ground = [dock, dockRamp, northTerrace, researchPad, ...newTerrainSections]
-    .reduce(cutOut, [{ minX: -172, maxX: 228, minZ: -220, maxZ: 180 }] as readonly Footprint[]);
-  for (const r of ground) slab(r.minX, r.maxX, r.minZ, r.maxZ, 0, groundMaterial);
+    .reduce(cutOut, [landBounds] as readonly Footprint[]);
+  const terrain = landSurface(ground);
+  tileByPosition(terrain, 3);
+  mesh(allStatic, terrain, groundMaterial).castShadow = true;
+  const bank = landBank();
+  tileByPosition(bank, 3);
+  mesh(allStatic, bank, enamel(0x617a87));
+  for (const r of ground)
+    solids.push({ min: [r.minX, -.36, r.minZ], max: [r.maxX, 0, r.maxZ], floor: true, walkSurface: true, landFloor: true });
   buildNorthTerrace(allStatic,m,solids);
   const fill = enamel(0x89988c);
+  const ridgeFill = paving(0x82958c), tideFill = paving(0x9aa89b);
   for (const section of newTerrainSections) {
     const { minX, maxX, minZ, maxZ, northY, southY } = section;
     const finishOffset = section.finishInset ?? 0;
+    const baseY = Math.min(-.36, northY - .36, southY - .36);
     const geometry = new THREE.BoxGeometry(maxX - minX, 1, maxZ - minZ);
     geometry.translate((minX + maxX) / 2, 0, (minZ + maxZ) / 2);
     const positions = geometry.getAttribute('position');
     for (let i = 0; i < positions.count; i++) {
-      positions.setY(i, positions.getY(i) > 0 ? gradeHeight(section, positions.getZ(i)) - finishOffset : -.36);
+      positions.setY(i, positions.getY(i) > 0 ? gradeHeight(section, positions.getZ(i)) - finishOffset : baseY);
     }
     geometry.computeVertexNormals();
     tileByPosition(geometry, 3);
-    mesh(allStatic, geometry, fill).castShadow = true;
+    mesh(allStatic, geometry, section.finish === 'ridge' ? ridgeFill : section.finish === 'tidal' ? tideFill : fill).castShadow = true;
     if (northY === southY) {
-      solids.push({ min: [minX, -.36, minZ], max: [maxX, northY, maxZ],
+      solids.push({ min: [minX, baseY, minZ], max: [maxX, northY, maxZ],
         floor: true, walkSurface: true, surface: 'concrete' });
     } else {
-      solids.push({ min: [minX, -.36 - Math.max(northY, southY), minZ], max: [maxX, 0, maxZ],
+      solids.push({ min: [minX, baseY - Math.max(northY, southY), minZ], max: [maxX, 0, maxZ],
         floor: true, walkSurface: true, surface: 'concrete',
         slope: { axis: 2, start: minZ, height: northY, gradient: (southY - northY) / (maxZ - minZ) } });
     }
+  }
+  for (const x of [tidalWalk.minX, tidalWalk.maxX]) {
+    const center = (tidalWalk.minZ + tidalWalk.maxZ) / 2;
+    solid([x, tidalWalk.height / 2, center], [.24, -tidalWalk.height, tidalWalk.maxZ - tidalWalk.minZ], m.concrete);
+    box(allStatic, m.zinc, .36, .08, tidalWalk.maxZ - tidalWalk.minZ, x, .04, center);
   }
   const foundation = cutOut(cutOut([researchPad], lab), ramp);
   for (const r of foundation) {
@@ -819,6 +837,7 @@ function* environmentSteps() {
   buildSouthDistrict(staticRoot,m,solids,solid);
   buildMarketDistrict(staticRoot,m,solid);
   buildInn(staticRoot,m,solids,solid);
+  buildResearchAnnex(staticRoot,m,solids,solid);
   addPortHorizon(allStatic, m);
   for(const interaction of mapInteractions) addPickup(interaction);
 

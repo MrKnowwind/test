@@ -14,6 +14,7 @@ import { labLift, labLocalY } from './researchPlan.ts';
 import { communityPad, residentialPad, transitPad } from './southPlan.ts';
 import { parkingPad, pharmacyPad } from './marketPlan.ts';
 import { innPad } from './innPlan.ts';
+import { archivePad, observationPad } from './researchAnnexPlan.ts';
 
 const botPosts: readonly Vec3[] = [[20, labLocalY, -31.2], [9.7, labLocalY, -35.6], [-4, labLocalY, -32]];
 function placeEnemies(seed: number): EnemySpawn[] {
@@ -26,11 +27,13 @@ function placeEnemies(seed: number): EnemySpawn[] {
   const post = ((mixed ^ mixed >>> 16) >>> 0) % botPosts.length;
   return [
     ...infected.map((position, index): EnemySpawn => ({ id: 'infected-' + (index + 1), position: districtPoint(index < 3 ? 'wharf' : index < 6 ? 'warehouse' : index < 8 ? 'plant' : 'research', position), yaw: Math.PI, kind: 'infected' })),
-    ...[[ -78,0,-25],[90,0,-54],[83,0,-175],[7,0,-129]].map((position,index): EnemySpawn => ({id:'district-infected-'+index,position:position as unknown as Vec3,yaw:Math.PI,kind:'infected'})),
+    ...([[-78,0,-25],[90,0,-54],[87,observationPad.height,-142.3],[7,0,-129]] as const)
+      .map((position,index): EnemySpawn => ({id:'district-infected-'+index,position,yaw:Math.PI,kind:'infected'})),
     { id: 'lab-security', position: districtPoint('research', botPosts[post]), yaw: Math.PI, kind: 'security-bot' },
     { id: 'community-infected', position: [43.5,communityPad.height,122.8], yaw: Math.PI, kind: 'infected' },
     { id: 'transit-infected', position: [144.6,transitPad.height,120.8], yaw: Math.PI, kind: 'infected' },
     { id: 'inn-infected', position: [91.8,innPad.height,127.2], yaw: -Math.PI/2, kind: 'infected' },
+    { id: 'annex-archive-infected', position: [201.6,archivePad.height,-150.8], yaw: Math.PI / 2, kind: 'infected' },
     ...supplySites.filter(site => site.risk === '高').flatMap(site => [-1, 1].map((side): EnemySpawn => ({
       id: `${site.id}-guard-${side}`, position: [site.x + side * 6, 0, site.z + 9], yaw: Math.PI, kind: 'infected',
     }))),
@@ -86,6 +89,8 @@ export function createFirstMap(seed: number, environment = createEnvironment()):
       { id: 'lab', label: '地下实验室 · 高风险', center: districtPoint('research', [9, labLocalY, -31]), radius: 21 },
       { id: 'plant', label: '03 处理厂区', center: districtPoint('plant', [41, 0, -5]), radius: 45 },
       { id: 'research', label: '04 生化研究设施', center: districtPoint('research', [20.5, 0, -23]), radius: 50 },
+      { id: 'observation', label: '隔离观察设施', center: [83.5,observationPad.height,-141.5], radius: 16 },
+      { id: 'research-archive', label: '科研档案中心', center: [203,archivePad.height,-147], radius: 20 },
       { id: 'wharf', label: '01 货运码头', center: districtPoint('wharf', [-45, -.8, -5]), radius: 50 },
       { id: 'warehouse', label: '02 物流仓储', center: [-4, 0, 8], radius: 50 },
       { id: 'cold-chain', label: '冷链仓库', center: [38, coldChainPad.height, 35], radius: 20 },

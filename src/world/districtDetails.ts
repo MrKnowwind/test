@@ -124,12 +124,12 @@ export function addDistrictDetails(root: THREE.Group, m: Materials, solid: Solid
 /** Visual-only world beyond the walkable boundary. No downloaded maps or models. */
 export function addPortHorizon(root: THREE.Group,m: Materials) {
   const ocean = new THREE.MeshStandardMaterial({ color:0x46a8b5, metalness:.32, roughness:.32 });
-  const water = new THREE.PlaneGeometry(900,1800,100,150);
+  const water = new THREE.PlaneGeometry(1400,1800,140,150);
   water.rotateX(-Math.PI/2);
   const p=water.getAttribute('position');
   for(let i=0;i<p.count;i++) p.setY(i,Math.sin(p.getX(i)*.12+p.getZ(i)*.17)*.13+Math.sin(p.getZ(i)*.43)*.055);
-  water.computeVertexNormals();mesh(root,water,ocean,-622,-2.1,-30);
-  for(let z=-220;z<180;z+=8) {
+  water.computeVertexNormals();mesh(root,water,ocean,-250,-2.1,-30);
+  for(let z=-64;z<=56;z+=8) {
     if([-48,0].some(g=>Math.abs(z-g)<6))continue;
     box(root,m.concrete,2.3,1.4,7.6,-171,-.7,z,.08);
     cylinder(root,m.steel,.19,.8,-167,.4,z,12);

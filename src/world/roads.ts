@@ -2,10 +2,11 @@ import * as THREE from 'three';
 import { box } from './detail/geometry.ts';
 import { siteApproaches } from './supplySites.ts';
 import { enamel } from './detail/materialLibrary.ts';
-import { gradeHeight, terrainSectionAt, terrainSections, houses } from './terrainPlan.ts';
+import { gradeHeight, terrainSectionAt, terrainSections, houses, tidalWalk } from './terrainPlan.ts';
 import { communityApproach, residentialApproach, transitNorth, transitSouth } from './southPlan.ts';
 import { parkingNorth, parkingSouth, pharmacyNorth, pharmacySouth } from './marketPlan.ts';
 import { innNorth, innSouth } from './innPlan.ts';
+import { annexApproaches, ridgeTrail } from './researchAnnexPlan.ts';
 
 type Rect = { x1: number; x2: number; z1: number; z2: number };
 function rectangle(x: number, z: number, w: number, d: number): Rect {
@@ -24,7 +25,7 @@ export const roads = [
   [-115,-186,10,50],[-123.5,-179,19,6],[-122,-204,14,6],
   [26,163,8,26],[26,-206,8,21],[54.5,-196,241,4],[57,-175,4,46],
   [38,35,6,70],[-73,-203,44,6],[-65,-199.5,6,9],[175,-182,8,44],[153,-203,44,6],[197.5,-135,45,6],
-  [-151,88,7,16],[204,88.5,8,19],
+  [-151,88,7,16],[204,88.5,8,19],[185,-203,20,6],[195,-200.5,9,5],
 ].map(([x,z,w,d])=>rectangle(x,z,w,d));
 
 const walkWidth = 3.4;
@@ -37,7 +38,8 @@ export const footpaths = [...walkLines.flatMap(points => points.slice(1).map(([x
   return rectangle((lastX+x)/2,(lastZ+z)/2,Math.abs(x-lastX)+walkWidth,Math.abs(z-lastZ)+walkWidth);
 })),...houses.map(h=>rectangle(-123.85,h.z,4.3,3.2)),
   ...[residentialApproach, communityApproach, transitNorth, transitSouth,
-    pharmacyNorth, pharmacySouth, parkingNorth, parkingSouth, innNorth, innSouth].map(fromFootprint)];
+    pharmacyNorth, pharmacySouth, parkingNorth, parkingSouth, innNorth, innSouth,
+    ...annexApproaches, {...ridgeTrail, minX:214.35,maxX:217.65}, tidalWalk].map(fromFootprint)];
 
 function overlaps(a: Rect, b: Rect) {
   return a.x1 < b.x2 && a.x2 > b.x1 && a.z1 < b.z2 && a.z2 > b.z1;

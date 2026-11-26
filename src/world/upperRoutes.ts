@@ -9,7 +9,7 @@ export const galleryHeight=4.62;
 export const hasGallery=(w:number,d:number)=>w>=14 && d>=11;
 export const freightHalls=[
   [-4,8,24,26,0],[-78,3,32,40,1],[90,-32,32,36,2],
-  [7,-113,30,24,4],[83,-156,24,28,5],[-45,63,22,16,6],
+  [7,-113,30,24,4],[-45,63,22,16,6],
 ] as const;
 
 export function upperRoutes(root:THREE.Group,m:Materials,solid:Builder,solids:Solid[]){

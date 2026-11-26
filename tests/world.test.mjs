@@ -4,7 +4,7 @@ import { createFirstMap } from '../src/world/firstMap.ts';
 import { districtPoint as at } from '../src/world/layout.ts';
 import { lab, rampHeight } from '../src/world/worldQueries.ts';
 import { supplySites } from '../src/world/supplySites.ts';
-import { Box3, Group, Vector3 } from 'three';
+import { Box3, Group, Raycaster, Vector3 } from 'three';
 import { addSearchContainers } from '../src/app/containers.ts';
 import { findInteraction } from '../src/player/controller.ts';
 import { createRaid } from '../src/raid/raid.ts';
@@ -14,6 +14,8 @@ import { isLabLevel, labLift, researchPad, researchBuildingFloor, researchUpperY
 import { communityPad, residentialPad, southInteractions, transitPad } from '../src/world/southPlan.ts';
 import { marketArea, marketInteractions, parkingPad, pharmacyPad } from '../src/world/marketPlan.ts';
 import { innArea, innDoorX, innFloor, innInteractions, innPad, innStair, innUpperY } from '../src/world/innPlan.ts';
+import { archivePad, observationPad, researchAnnexArea, researchAnnexInteractions, ridgeCrest } from '../src/world/researchAnnexPlan.ts';
+import { tidalWalk } from '../src/world/terrainPlan.ts';
 
 const map = createFirstMap(42);
 const radius=.36, height=1.8;
@@ -222,13 +224,72 @@ test('the dense transfer sample keeps both loading doors, the workshop and its l
 
 
 test('expanded plant and research interiors keep north/south doors and resource worktables reachable',()=>{
- for(const [x,z,d] of [[90,-32,36],[120,-76,30],[7,-113,24],[83,-156,28]])
+ for(const [x,z,d] of [[90,-32,36],[120,-76,30],[7,-113,24]])
   walk([x,0,z+d/2+3],[[x,z],[x,z-d/2-3]]);
  visible([83.6,0,-46.3],'plant-workshop');
  visible([1,0,-121.3],'research-office');
- visible([78.2,0,-166.3],'quarantine-samples');
  const edge=map.moveGrounded([227,0,20],5,0,radius,height);
  assert.ok(edge[0]<=228);
+});
+
+test('the northern observation and archive facilities connect to the road and each other on foot', () => {
+  const observation = walk([80,0,-196], [[80,-149],[80,-142.3]]);
+  assert.equal(observation[1], observationPad.height);
+  assert.equal(researchAnnexArea(observation), '隔离观察设施');
+  assert.equal(researchAnnexArea([80,0,-142.3]), undefined);
+  visible(walk(observation, [[80,-140.9],[75.3,-140.9]]), 'observation-intake');
+  for (const [x, id] of [[84,'observation-medical'],[93,'quarantine-samples']])
+    visible(walk(observation, [[x,-142.3],[x,-137.1]]), id);
+
+  const archive = walk(observation, [[80,-150.1],[195,-150.1]]);
+  assert.equal(archive[1], archivePad.height);
+  assert.equal(researchAnnexArea(archive), '科研档案中心');
+  visible(walk(archive, [[193,-150.1],[193,-142.1]]), 'annex-archive-files');
+  visible(walk(archive, [[195,-151.5],[207,-151.5],[207,-150.2]]), 'annex-archive-reading');
+  visible(walk(archive, [[195,-151.5],[217.4,-151.5],[217.4,-142.8]]), 'annex-archive-server');
+  const road = walk(archive, [[195,-151.5],[223.8,-151.5],[223.8,-156.1],[195,-156.1],[195,-198]]);
+  assert.equal(road[1], 0);
+  assert.equal(walk(road, [[195,-150.1],[80,-150.1],[80,-196]])[1], 0);
+  for (const target of researchAnnexInteractions) {
+    assert.equal(map.interactions.filter(item => item.id === target.id).length, 1);
+    assert.ok(!isLabLevel(target.position));
+  }
+  for (const id of ['district-infected-2', 'annex-archive-infected']) {
+    const { position } = map.enemies.find(enemy => enemy.id === id);
+    assert.equal(map.groundHeight(position, radius), position[1]);
+    assert.ok(map.bodyClear(position, radius, height), id);
+  }
+});
+
+test('the playable coastline, tidal walkway and ridge have matching render and collision heights', () => {
+  const high = walk([195,0,-198], [[195,-156.1],[216,-156.1],[216,-217.8]]);
+  assert.equal(high[1], ridgeCrest.height);
+  assert.equal(researchAnnexArea(high), '东北山脊');
+  assert.equal(walk(high, [[216,-156.1],[195,-156.1],[195,-198]])[1], 0);
+
+  const low = walk([-160.5,0,62], [[-160.5,77]]);
+  assert.equal(low[1], tidalWalk.height);
+  assert.equal(high[1] - low[1], 22.5);
+  assert.equal(walk(low, [[-160.5,93]])[1], 0);
+  assert.equal(walk([-160.5,0,93], [[-160.5,62]])[1], 0);
+  assert.equal(map.groundHeight([-171, 1, -204], radius), null);
+  assert.equal(map.groundHeight([226, 1, 65], radius), null);
+  assert.equal(map.groundHeight([214, 1, 173], radius), null);
+  assert.equal(map.blockedDistance([-171,2,-204],[0,-1,0],3), null);
+  assert.equal(map.bodyClear([-171,0,-204], radius, height), false);
+  assert.equal(map.groundHeight([-162,0,-205], radius), 0);
+  const edge = map.moveGrounded([-162,0,-205], -15, 0, radius, height);
+  assert.ok(edge[0] > -165 && edge[0] < -164.4, 'the capsule stops against the actual shoreline');
+
+  map.scene.updateMatrixWorld(true);
+  function renderedFloor([x, y, z]) {
+    const ray = new Raycaster(new Vector3(x,y + 3,z), new Vector3(0,-1,0), 0, 3.1);
+    return ray.intersectObject(map.scene, true)[0]?.point.y;
+  }
+  for (const feet of [high, low, [-162,0,-204]]) {
+    assert.ok(Math.abs(renderedFloor(feet) - feet[1]) < .05, 'rendered floor at ' + feet);
+  }
+  assert.equal(renderedFloor([-171,0,-204]), undefined);
 });
 
 test('districts retain alternate approaches from the opposite side of the road network',()=>{

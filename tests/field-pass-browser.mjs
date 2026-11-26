@@ -8,6 +8,8 @@ import { lab, labLift, researchPad, researchUpperY } from '../src/world/research
 import { communityPad, residentialPad, transitPad } from '../src/world/southPlan.ts';
 import { parkingPad, pharmacyPad } from '../src/world/marketPlan.ts';
 import { innDoorX, innPad, innStair, innUpperY } from '../src/world/innPlan.ts';
+import { archivePad, observationPad, ridgeCrest } from '../src/world/researchAnnexPlan.ts';
+import { tidalWalk } from '../src/world/terrainPlan.ts';
 
 const root = path.resolve(process.argv[2] ?? 'dist');
 const output = path.resolve(process.argv[3] ?? 'test-results/field-pass');
@@ -56,7 +58,7 @@ await page.addInitScript(fixedRoutes => {
     }
     painting = true;
   };
-}, ['research','south','market','inn'].some(name=>cases.has(name)));
+}, ['research','south','market','inn','annex','terrain'].some(name=>cases.has(name)));
 const tick = (n=2, paint=false) => page.evaluate(([n,paint]) => window.advanceRaid(n,paint),[n,paint]);
 const state = () => page.evaluate(() => {
   const {feet,stance,climb,eye,countdown,result,flags,weapon,locked,backpack,items,spawn,fov,speed,grounded,health} = window.raidQA.state();
@@ -533,8 +535,64 @@ async function inn() {
     searched:['inn-reception','inn-linen','inn-crew','inn-twin','inn-corner'],
     checked:['south approach','north approach','stairs both ways','minimap level','three guest rooms']};
 }
+async function annex() {
+  await start(1);
+  assert.equal((await state()).spawn.id, 'N-C');
+  await practice();
+  await walkRoute([[141,-196],[80,-196],[80,-150.1],[80,-142.3]]);
+  await height(observationPad.height);
+  assert.equal(await page.locator('#floor').textContent(), '隔离观察设施');
+  await walkRoute([[80,-140.9],[75.3,-140.9]]);
+  await aim('observation-intake');
+  await capture('01-observation-corridor');
+  await searchCase('observation-intake');
+  await walkRoute([[80,-142.3]]);
+  for (const [x,id] of [[84,'observation-medical'],[93,'quarantine-samples']]) {
+    await walkRoute([[x,-142.3],[x,-137.1]]);
+    await searchCase(id);
+    await walkRoute([[x,-142.3]]);
+  }
+  await walkRoute([[80,-142.3],[80,-150.1],[104,-150.1]]);
+  await pose((await state()).feet, -Math.PI / 2, .08);
+  await capture('02-research-bridge');
+  await walkRoute([[195,-150.1]]);
+  await height(archivePad.height);
+  assert.equal(await page.locator('#floor').textContent(), '科研档案中心');
+  await walkRoute([[193,-150.1],[193,-142.1]]);
+  await aim('annex-archive-files');
+  await capture('03-archive-stacks');
+  await searchCase('annex-archive-files');
+  await walkRoute([[193,-151.5],[207,-151.5],[207,-150.2]]);
+  await searchCase('annex-archive-reading');
+  await walkRoute([[207,-151.5],[217.4,-151.5],[217.4,-142.8]]);
+  await aim('annex-archive-server');
+  await capture('04-archive-server-room');
+  await searchCase('annex-archive-server');
+  await walkRoute([[217.4,-151.5],[223.8,-151.5],[223.8,-156.1],[216,-156.1],[216,-217.4]]);
+  await height(ridgeCrest.height);
+  assert.equal(await page.locator('#floor').textContent(), '东北山脊');
+  await pose((await state()).feet, Math.PI, -.11);
+  await capture('05-ridge-overlook');
+  await walkRoute([[216,-156.1],[195,-156.1],[195,-198.5]]);
+  await height(0);
+  report.annex = { spawn: 'N-C', elevation: archivePad.height, summit: ridgeCrest.height, searched: 6, bridge: true, returnedToRoad: true };
+}
+async function terrain() {
+  await start(3);
+  assert.equal((await state()).spawn.id, 'S-A');
+  await practice();
+  await walkRoute([[-151,63],[-160.5,63],[-160.5,78]]);
+  await height(tidalWalk.height);
+  await capture('06-tidal-walk');
+  await walkRoute([[-160.5,93],[-151,93]]);
+  await height(0);
+  await press('m');
+  assert.ok(await page.locator('#tactical-map').isVisible());
+  await capture('07-land-outline');
+  report.terrain = { spawn: 'S-A', tidal: tidalWalk.height, returnedToRoad: true };
+}
 try {
-  for(const [name,fn] of Object.entries({districts,bags,movement,exits,service,routes,controls,feel,research,south,market,inn})){
+  for(const [name,fn] of Object.entries({districts,bags,movement,exits,service,routes,controls,feel,research,south,market,inn,annex,terrain})){
     if(cases.has(name)){await fn();console.log(name+' passed');}
   }
   assert.deepEqual(errors,[]);

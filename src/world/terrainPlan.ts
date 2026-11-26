@@ -3,16 +3,19 @@ import { researchApproach, researchPad, researchSteps } from './researchPlan.ts'
 import { residentialPad, southGrades } from './southPlan.ts';
 import { marketGrades } from './marketPlan.ts';
 import { innGrades } from './innPlan.ts';
+import { annexGrades, archivePad, ridgeCrest, ridgeTrail } from './researchAnnexPlan.ts';
 
 // World Y=0 is the original city datum, 2.1 m above the sea.
 export const northTerrace={minX:-160,maxX:-103,minZ:-218,maxZ:-111,crestZ:-166,height:8};
 export const coldChainPad = { minX: 26, maxX: 54, minZ: 0, maxZ: 70, height: 3.6 };
 export const northGatePad = { minX: 22, maxX: 44, minZ: -220, maxZ: -198, height: 1.8 };
+export const tidalWalk = { minX: -164, maxX: -157, minZ: 65, maxZ: 92, height: -1.6 };
 
 type Grade = {
   minX: number; maxX: number; minZ: number; maxZ: number;
   northY: number; southY: number;
   finishInset?: number;
+  finish?: 'ridge' | 'tidal';
 };
 
 export const newTerrainSections: readonly Grade[] = [
@@ -26,6 +29,12 @@ export const newTerrainSections: readonly Grade[] = [
   ...southGrades,
   ...marketGrades,
   ...innGrades,
+  ...annexGrades,
+  { ...ridgeTrail, northY: ridgeCrest.height, southY: archivePad.height, finish: 'ridge' },
+  { ...ridgeCrest, northY: ridgeCrest.height, southY: ridgeCrest.height, finish: 'ridge' },
+  { ...tidalWalk, maxZ: 74, northY: 0, southY: tidalWalk.height, finish: 'tidal' },
+  { ...tidalWalk, minZ: 74, maxZ: 83, northY: tidalWalk.height, southY: tidalWalk.height, finish: 'tidal' },
+  { ...tidalWalk, minZ: 83, northY: tidalWalk.height, southY: 0, finish: 'tidal' },
 ];
 
 export const terrainSections: readonly Grade[] = [

@@ -4,6 +4,7 @@ import type { Ledge, Vec3, WorldQueries } from '../contracts/demo.ts';
 import { offshoreWalkAreas,shipEnvelope } from './harborPlan.ts';
 import { terrainHeight } from './terrainPlan.ts';
 import { isLabLevel, lab, ramp, researchPad } from './researchPlan.ts';
+import { isLandAt, landBounds } from './landPlan.ts';
 export { lab, ramp } from './researchPlan.ts';
 
 export interface Slope {
@@ -18,11 +19,12 @@ export interface Solid {
   max: Vec3;
   floor?: true;
   walkSurface?: true;
+  landFloor?: true;
   surface?: 'metal' | 'concrete';
   slope?: Slope;
 }
 
-export const mapBounds = { minX: -172, maxX: 228, minZ: -220, maxZ: 180 };
+export const mapBounds = landBounds;
 // Render extent includes the vessel; movement does not gain a rectangular ocean floor.
 export const mapViewBounds={...mapBounds,minX:shipEnvelope.minX};
 export const factory = { ...districtRect('plant', { minX: 30, maxX: 51, minZ: -16, maxZ: 4 }), y: 3.2 };
@@ -42,11 +44,11 @@ export const rampHeight = (z: number) => slopeHeight(rampSlope, 0, z);
 function inside(rect: { minX: number; maxX: number; minZ: number; maxZ: number }, x: number, z: number) {
   return x >= rect.minX && x <= rect.maxX && z >= rect.minZ && z <= rect.maxZ;
 }
-function playable(x:number,z:number){return inside(mapBounds,x,z)||offshoreWalkAreas.some(area=>inside(area,x,z));}
+function playable(x:number,z:number){return isLandAt(x,z)||offshoreWalkAreas.some(area=>inside(area,x,z));}
 function playableFootprint(x:number,z:number,radius:number){return [-radius,radius].every(dx=>[-radius,radius].every(dz=>playable(x+dx,z+dz)));}
 
 function floorAt(x: number, y: number, z: number) {
-  if (!inside(mapBounds, x, z)) return null;
+  if (!isLandAt(x, z)) return null;
   if (inside(ramp, x, z)) return rampHeight(z);
   if (isLabLevel([x, y, z])) return lab.y;
   const terrain=terrainHeight(x,z);
@@ -96,6 +98,7 @@ function rayHit(solid: Solid, origin: Vec3, direction: Vec3, limit: number) {
     leave = Math.min(leave, Math.max(a, b));
     if (entry > leave) return null;
   }
+  if (solid.landFloor && !isLandAt(origin[0] + entry * direction[0], origin[2] + entry * direction[2])) return null;
   return entry;
 }
 
@@ -114,6 +117,7 @@ export function createWorldQueries(solids: readonly Solid[]): WorldQueries {
   const nearby=(x:number,z:number,r:number)=>r<=margin ? cells.get(cell(x)+','+cell(z))??empty : solids;
   function groundHeight(from: Vec3, radius: number) {
     const [x, y, z] = from;
+    if (!playable(x,z)) return null;
     let ground = floorAt(x, y, z);
     if (ground !== null && ground > y + .13) ground = null;
     for (const solid of nearby(x,z,radius)) {
