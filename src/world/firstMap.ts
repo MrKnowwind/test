@@ -6,9 +6,10 @@ import { loosePoints } from './loosePoints.ts';
 import { createShopDoors } from './shopDoors.ts';
 import { roll } from '../raid/loot.ts';
 import { supplySites } from './supplySites.ts';
-import { northTerrace } from './terrainPlan.ts';
+import { coldChainPad, northTerrace } from './terrainPlan.ts';
 
-import { districtPoint, highwayPosition, servicePosition } from './layout.ts';
+import { districtPoint, servicePosition } from './layout.ts';
+import { regularExits, spawnPoints } from './raidPlan.ts';
 
 const botPosts: readonly Vec3[] = [[20, lab.y, -31.2], [9.7, lab.y, -35.6], [-4, lab.y, -32]];
 function placeEnemies(seed: number): EnemySpawn[] {
@@ -34,11 +35,6 @@ export function createFirstMap(seed: number, environment = createEnvironment()):
   const doors=createShopDoors(scene,solids,rooms.doors);
   const queries=createWorldQueries(solids);
   const loose=loosePoints(seed,mapInteractions,p=>queries.blockedDistance(p,[0,-1,0],3));
-  const spawnPoints = [
-      { id: 'south-loading', position: [-24, 0, 143], yaw: -.35 },
-      { id: 'warehouse-alley', position: [149, 0, 83], yaw: .38 },
-      { id: 'scrap-shelter', position: [-138, -.8, 24], yaw: .37 },
-  ] satisfies FirstMap['spawnPoints'];
   // Spread five indoor encounters over the map, away from every insertion point.
   const indoor:EnemySpawn[]=[];
   const candidates=rooms.occupants.filter(e=>spawnPoints.every(s=>Math.hypot(s.position[0]-e.position[0],s.position[2]-e.position[2])>20));
@@ -48,7 +44,7 @@ export function createFirstMap(seed: number, environment = createEnvironment()):
     if(indoor.length===5)break;
   }
   const exits: ExitZone[] = [
-      { id: 'highway', label: '公路出口', position: highwayPosition, radius: 2.2, requirements: [] },
+      ...regularExits,
       { id: 'service-passage', label: '维修通道', position: servicePosition, radius: 2,
         requirements: [{ kind: 'item', id: 'service-card' }] },
       { id: 'lab-lift', remote: { flag: 'lab-power', seconds: 12 }, label: '实验室货梯', position: districtPoint('research', [-4.6, lab.y, -25]), radius: 1.85,
@@ -79,6 +75,8 @@ export function createFirstMap(seed: number, environment = createEnvironment()):
       { id: 'research', label: '04 生化研究设施', center: districtPoint('research', [20.5, 0, -23]), radius: 50 },
       { id: 'wharf', label: '01 货运码头', center: districtPoint('wharf', [-45, -.8, -5]), radius: 50 },
       { id: 'warehouse', label: '02 物流仓储', center: [-4, 0, 8], radius: 50 },
+      { id: 'cold-chain', label: '冷链仓库', center: [38, coldChainPad.height, 35], radius: 20 },
+      { id: 'switchgear', label: '备件配电仓', center: [120, 0, -76], radius: 20 },
       { id: 'approach', label: '05 南侧公路', center: [-4, 0, 125], radius: 260 },
     ],
     interactions: [...mapInteractions,...loose,...rooms.cases,...doors.targets],

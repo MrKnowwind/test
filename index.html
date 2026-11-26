@@ -87,7 +87,7 @@
               <div class="merchant-side"><span class="eyebrow">港务补给站</span><h2>后勤商人</h2><canvas id="merchant-portrait" width="300" height="210" aria-label="港务补给机器人"></canvas><button type="button" data-outpost="buy" aria-pressed="true">购买补给</button><button type="button" data-outpost="sell" aria-pressed="false">出售物资</button><button type="button" data-outpost="exchange" aria-pressed="false">物资兑换 / 维护</button><label>商品分类 <select id="merchant-category"><option value="">全部分类</option></select></label></div>
               <div class="merchant-stock"><section id="buy-pane" aria-label="购买"><header class="section-heading">补给商品</header><div id="buy-stock" class="trade-grid"></div></section><section id="sell-pane" aria-label="出售" hidden><header class="section-heading">回收报价 <time id="market-refresh"></time></header><div id="market-stock" class="trade-grid"></div></section><section id="exchange-pane" hidden><header class="section-heading">物资兑换</header><div id="exchange-stock" class="trade-grid"></div><header class="section-heading">护甲维护</header><div id="repair-stock" class="trade-grid"></div></section></div>
             </section>
-            <section id="tasks-pane" class="outpost-pane briefing-pane" aria-label="任务" hidden><h2>行动简报</h2><div class="brief-card"><h3>公路撤离</h3><p>抵达南侧公路出口并停留至撤离完成。</p></div><div class="brief-card"><h3>维修通道</h3><p>搜寻仓储值班室，取得维修卡后前往维修通道。</p></div><div class="brief-card"><h3>实验室货梯</h3><p>探索地下设施，呼叫货梯并在离站时进入梯内。</p></div><p class="muted">行动目标会在局内随探索进度更新。</p></section>
+            <section id="tasks-pane" class="outpost-pane briefing-pane" aria-label="任务" hidden><h2>行动简报</h2><div class="brief-card"><h3>常规撤离</h3><p>北侧部署时走南部公路，南侧部署时走北部检查口。抵达后在撤离圈内停留 5 秒。</p></div><div class="brief-card"><h3>维修通道</h3><p>搜寻仓储值班室，取得维修卡后前往维修通道。</p></div><div class="brief-card"><h3>实验室货梯</h3><p>探索地下设施，呼叫货梯并在离站时进入梯内。</p></div><p class="muted">行动目标会在局内随探索进度更新。</p></section>
             <section id="base-pane" class="outpost-pane briefing-pane" aria-label="基地" hidden><h2>港务据点</h2><div class="brief-card"><h3>储物室</h3><p id="base-capacity"></p><button type="button" id="base-expand">扩建仓库</button> <button type="button" data-outpost="prepare">打开仓库</button></div><div class="brief-card"><h3>补给处</h3><p>购买、回收、兑换与维护。</p><button type="button" data-outpost="exchange">前往商人</button></div><div class="brief-card history-card"><h3>最近出击记录</h3><div id="raid-history"></div></div></section>
           </div>
           <section id="creative-panel" aria-label="开发者创造模式" hidden>
@@ -110,7 +110,7 @@
       </section>
       <dialog id="map-dialog" aria-labelledby="map-dialog-title">
         <header><h2 id="map-dialog-title">选择行动地图</h2><button id="map-close" aria-label="关闭选图">×</button></header>
-        <div class="map-selection"><canvas class="port-map" width="420" height="420" aria-label="盐港地图"></canvas><div><p class="eyebrow">SALTLINE / 可用地图</p><h2>盐港隔离区</h2><p>单人 PvE · 400 × 400 m</p><p>货运码头、物流仓储、处理厂区、研究设施与地下实验室。</p><p>随机部署 · 三处撤离口</p><button id="map-select" type="button">选择盐港隔离区</button></div></div>
+        <div class="map-selection"><canvas class="port-map" width="420" height="420" aria-label="盐港地图"></canvas><div><p class="eyebrow">SALTLINE / 可用地图</p><h2>盐港隔离区</h2><p>单人 PvE · 400 × 400 m 陆地</p><p>货运码头、物流仓储、处理厂区、研究设施与地下实验室。</p><p>随机部署于八处入口之一。常规撤离口位于部署侧的对面。</p><button id="map-select" type="button">选择盐港隔离区</button></div></div>
       </dialog>
       <dialog id="settings-dialog" aria-labelledby="settings-title">
         <header><h2 id="settings-title">设置</h2><button type="button" id="settings-close" autofocus aria-label="关闭设置">×</button></header>

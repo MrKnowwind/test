@@ -19,9 +19,11 @@ import {
 import { addDistrictDetails, addPortHorizon } from './districtDetails.ts';
 import { buildHarbor } from './harbor.ts';
 import { harborInteractions,openContainerPlans } from './harborPlan.ts';
-import { northTerrace,terrainHeight,civicInteractions } from './terrainPlan.ts';
+import { northTerrace,terrainHeight,civicInteractions,gradeHeight,newTerrainSections,coldChainPad,northGatePad } from './terrainPlan.ts';
 import { buildCivicDistrict,buildNorthTerrace } from './civicDistrict.ts';
 import { districtOffsets, districtPoint, districtForInteraction, type District } from './layout.ts';
+import { buildDistrictSites, districtInteractions } from './districtSites.ts';
+import { regularExits } from './raidPlan.ts';
 
 const v = (p: Vec3) => new THREE.Vector3(...p);
 
@@ -40,6 +42,7 @@ const localInteractions: readonly MapInteraction[] = [
 export const mapInteractions: readonly MapInteraction[] = [
   ...harborInteractions,
   ...civicInteractions,
+  ...districtInteractions,
   ...siteInteractions,
   ...localInteractions.map(target => ({ ...target, position: districtPoint(districtForInteraction(target.id), target.position) })),
   { id: 'plant-workshop', label: '厂区维修箱', kind: 'loot', item: 'salvage', quantity: 2, position: [83.6,1.12,-47.7] },
@@ -199,7 +202,7 @@ function* environmentSteps() {
 
   // Subtract the lower quay and descent apertures from the continuous ground slab.
   let ground = [{ minX: -172, maxX: 228, minZ: -220, maxZ: 180 }];
-  for (const cut of [dock, dockRamp, ramp, northTerrace]) {
+  for (const cut of [dock, dockRamp, ramp, northTerrace, coldChainPad, northGatePad]) {
     ground = ground.flatMap(r => {
       const x1 = Math.max(r.minX, cut.minX), x2 = Math.min(r.maxX, cut.maxX);
       const z1 = Math.max(r.minZ, cut.minZ), z2 = Math.min(r.maxZ, cut.maxZ);
@@ -213,6 +216,27 @@ function* environmentSteps() {
   }
   for (const r of ground) slab(r.minX, r.maxX, r.minZ, r.maxZ, 0, groundMaterial);
   buildNorthTerrace(allStatic,m,solids);
+  const fill = enamel(0x89988c);
+  for (const section of newTerrainSections) {
+    const { minX, maxX, minZ, maxZ, northY, southY } = section;
+    const geometry = new THREE.BoxGeometry(maxX - minX, 1, maxZ - minZ);
+    geometry.translate((minX + maxX) / 2, 0, (minZ + maxZ) / 2);
+    const positions = geometry.getAttribute('position');
+    for (let i = 0; i < positions.count; i++) {
+      positions.setY(i, positions.getY(i) > 0 ? gradeHeight(section, positions.getZ(i)) : -.36);
+    }
+    geometry.computeVertexNormals();
+    tileByPosition(geometry, 3);
+    mesh(allStatic, geometry, fill).castShadow = true;
+    if (northY === southY) {
+      solids.push({ min: [minX, -.36, minZ], max: [maxX, northY, maxZ],
+        floor: true, walkSurface: true, surface: 'concrete' });
+    } else {
+      solids.push({ min: [minX, -.36 - Math.max(northY, southY), minZ], max: [maxX, 0, maxZ],
+        floor: true, walkSurface: true, surface: 'concrete',
+        slope: { axis: 2, start: minZ, height: northY, gradient: (southY - northY) / (maxZ - minZ) } });
+    }
+  }
   slab(dock.minX, dock.maxX, dock.minZ, dock.maxZ, dock.y, m.concrete);
   for (const z of [dock.minZ,dock.maxZ]) {
     solid([(dock.minX+dock.maxX)/2,dock.y/2,z],[dock.maxX-dock.minX,-dock.y,.08],m.concrete,0);
@@ -582,9 +606,29 @@ function* environmentSteps() {
   // Main road and two parallel approaches; roads stay clear for navigation and AI.
   district();
   buildRoads(staticRoot, m.asphalt);
-  // Physical gateway frame; location and requirements are displayed by the HUD/map.
-  for(const x of [-154,-148]) post(x,0,144.7,4);
-  beam([-154,4,144.7],[-148,4,144.7],.2);
+  // Terminal lay-bys lead into the extraction rings from the public road.
+  // Canopies, lane paint and crash barriers identify the spaces without nameboards.
+  for (const exit of regularExits) {
+    const [x, y, z] = exit.position;
+    const north = exit.id === 'north-gate';
+    const direction = north ? -1 : 1;
+    const roofZ = z + direction * 1.2;
+    const tint = north ? enamel(0x68849a) : enamel(0xca9162);
+    for (const side of [-1, 1]) {
+      const px = x + side * 3.35;
+      for (const dz of [-1.15, 1.15]) {
+        solid([px, y + .3, roofZ + dz], [.79, .6, .81], m.concrete, .08);
+        post(px, y + .3, roofZ + dz, 3.28);
+      }
+      box(staticRoot, tint, .64, .37, 3.28, px, y + 3.43, roofZ, .04);
+      box(staticRoot, yellow, .12, .018, 2.5, x + side * 2.74, y + .042, z);
+    }
+    solid([x, y + 3.68, roofZ], [7.6, .28, north ? 3.6 : 2.9], tint, .035);
+    box(staticRoot, emissive(0xc8efdf,.38), 4.9, .072, .18, x, y + 3.502, roofZ);
+    solid([x, y + .5, z + direction * 4.5], [8.6, 1, .52], m.concrete, .07);
+    for (const dx of [-3, -1.5, 0, 1.5, 3])
+      box(staticRoot, yellow, .61, .14, .06, x + dx, y + .76, z + direction * 4.21);
+  }
   truck(-8.2,138,0,'medical'); truck(140,77,0,'cells');
   for(const [x,z] of [[-19,31],[7,29],[128,-20],[27,-126]]) drum(x,0,z);
   district('wharf'); truck(-48.2,22,dock.y,'freight'); district();
@@ -611,7 +655,7 @@ function* environmentSteps() {
     box(staticRoot,m.steel,2.9,.3,2.9,x,19.5,-60,.04);
   }
   const modules = addDistrictDetails(allStatic, m, solid);
-  // Apply the same built-space vocabulary to the process and research districts.
+  buildDistrictSites(staticRoot, m, solid);
   for(const [x,z,w,d] of freightHalls.slice(2)) {
     modules.shed(x,z,w,d);
     modules.rack(x-w*.3,z,Math.round(x));
@@ -739,7 +783,7 @@ function* environmentSteps() {
     block=blocks.next();
   }
   const rooms=block.value;
-  freightHalls.forEach(([x,z,w,d],i)=>upper.warehouse(x,z,w,d,i,rooms.cases));
+  for (const [x,z,w,d,index] of freightHalls) upper.warehouse(x,z,w,d,index,rooms.cases);
   buildStreetCourts(staticRoot,m,solid);
   buildCivicDistrict(allStatic,m,solids);
   addPortHorizon(allStatic, m);

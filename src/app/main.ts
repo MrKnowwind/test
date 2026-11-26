@@ -638,7 +638,7 @@ async function startGame() {
         Math.hypot(b.center[0] - player.feet[0], b.center[2] - player.feet[2]))[0];
     map.updateExitLights(exit => raid.exitStatus(exit).kind);
     const shipLabel=isShip(player.feet)?'海湾号 · '+harborFloor(player.feet):player.feet[0]<-172?'登船连桥':undefined;
-    view.updateHud(frame, raid.spawn.id, underground, shipLabel??region?.label,run.treatment.pose, ammoTime > 0);
+    view.updateHud(frame, raid.spawn.label ?? raid.spawn.id, underground, shipLabel??region?.label,run.treatment.pose, ammoTime > 0);
     const now=performance.now();
     if(phase === 'raid' && now>=run.nextSurvey){
       run.nextSurvey=now+250;

@@ -1,12 +1,40 @@
 import type { MapInteraction, Vec3 } from '../contracts/demo.ts';
 
-// 3.5C first constructed terrace. World Y=0 is the surviving legacy city,
-// not the sea; other district platforms are migrated in subsequent slices.
+// World Y=0 is the original city datum, 2.1 m above the sea.
 export const northTerrace={minX:-160,maxX:-103,minZ:-218,maxZ:-111,crestZ:-166,height:8};
-export function terrainHeight(x:number,z:number):number|null{
-  const p=northTerrace;
-  if(x<p.minX||x>p.maxX||z<p.minZ||z>p.maxZ)return null;
-  return p.height*Math.min(1,(p.maxZ-z)/(p.maxZ-p.crestZ));
+export const coldChainPad = { minX: 26, maxX: 54, minZ: 0, maxZ: 70, height: 3.6 };
+export const northGatePad = { minX: 22, maxX: 44, minZ: -220, maxZ: -198, height: 1.8 };
+
+type Grade = {
+  minX: number; maxX: number; minZ: number; maxZ: number;
+  northY: number; southY: number;
+};
+
+export const newTerrainSections: readonly Grade[] = [
+  { ...coldChainPad, maxZ: 22, northY: 0, southY: coldChainPad.height },
+  { ...coldChainPad, minZ: 22, maxZ: 48, northY: coldChainPad.height, southY: coldChainPad.height },
+  { ...coldChainPad, minZ: 48, northY: coldChainPad.height, southY: 0 },
+  { ...northGatePad, maxZ: -209, northY: northGatePad.height, southY: northGatePad.height },
+  { ...northGatePad, minZ: -209, northY: northGatePad.height, southY: 0 },
+];
+
+export const terrainSections: readonly Grade[] = [
+  { ...northTerrace, maxZ: northTerrace.crestZ, northY: northTerrace.height, southY: northTerrace.height },
+  { ...northTerrace, minZ: northTerrace.crestZ, northY: northTerrace.height, southY: 0 },
+  ...newTerrainSections,
+];
+
+export function terrainSectionAt(x: number, z: number) {
+  return terrainSections.find(p => x >= p.minX && x <= p.maxX && z >= p.minZ && z <= p.maxZ);
+}
+
+export function gradeHeight(p: Grade, z: number) {
+  return p.northY + (p.southY - p.northY) * (z - p.minZ) / (p.maxZ - p.minZ);
+}
+
+export function terrainHeight(x: number, z: number) {
+  const section = terrainSectionAt(x, z);
+  return section ? gradeHeight(section, z) : null;
 }
 export const civicBuildings=[
   {id:'north-customs',label:'北部海关检查厅',minX:-153,maxX:-127,minZ:-190,maxZ:-168},

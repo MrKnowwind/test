@@ -1,7 +1,8 @@
 import { supplySites } from '../world/supplySites.ts';
 import { lab, mapBounds, mapViewBounds, ramp } from '../world/worldQueries.ts';
 import {gangways,harborBuildings,harborFloor,shipEnvelope,shipOutline,isShip} from '../world/harborPlan.ts';
-import { civicBuildings,northTerrace } from '../world/terrainPlan.ts';
+import { civicBuildings,terrainSections } from '../world/terrainPlan.ts';
+import { districtBuildings } from '../world/districtSites.ts';
 import type { ExitZone, FirstMap, Vec3 } from '../contracts/demo.ts';
 
 import { arcadeWidth, portBlocks, shopSide } from '../world/portBlocks.ts';
@@ -47,7 +48,7 @@ export function createTacticalMap() {
         rect(ramp.minX, ramp.minZ, ramp.maxX, ramp.maxZ, '#53666b');
       } else {
         rect(mapViewBounds.minX-200,mapBounds.minZ,mapBounds.minX,mapBounds.maxZ,'#1a4255');
-        const t=northTerrace;rect(t.minX,t.minZ,t.maxX,t.crestZ,'#405b5a','#638882');rect(t.minX,t.crestZ,t.maxX,t.maxZ,'#344b4a');
+        for(const t of terrainSections)rect(t.minX,t.minZ,t.maxX,t.maxZ,t.northY===t.southY?'#405b5a':'#344b4a');
         for (const road of roads) rect(road.x1, road.z1, road.x2, road.z2, '#4b5d5e');
         for (const path of footpaths) rect(path.x1, path.z1, path.x2, path.z2, '#394b4d');
         for (const [x, z, w, d] of portBlocks)
@@ -55,7 +56,7 @@ export function createTacticalMap() {
         for (const [x, z, w, d] of freightHalls)
           rect(x - w / 2, z - d / 2, x + w / 2, z + d / 2, '#2c3e43', '#708386');
         for(const r of harborBuildings)rect(r.minX,r.minZ,r.maxX,r.maxZ,'#387174','#91beb9');
-        for(const r of civicBuildings)rect(r.minX,r.minZ,r.maxX,r.maxZ,'#445669','#a1bcbb');
+        for(const r of [...civicBuildings,...districtBuildings])rect(r.minX,r.minZ,r.maxX,r.maxZ,'#445669','#a1bcbb');
         for(const r of gangways)rect(r.minX,r.minZ,r.maxX,r.maxZ,'#6a9d9b');
         radar.beginPath();shipOutline.forEach(([x,z],i)=>{const p=point(x,z);i?radar.lineTo(p[0],p[1]):radar.moveTo(p[0],p[1]);});radar.closePath();radar.fillStyle='#5f8587';radar.fill();radar.strokeStyle='#c9e5d9';radar.stroke();
       }
@@ -92,8 +93,13 @@ export function createTacticalMap() {
       ctx.fillRect(80, 85, 740, 580);
       const [seaLeft,seaTop]=project(mapViewBounds.minX,mapBounds.minZ),[shore,seaBottom]=project(mapBounds.minX,mapBounds.maxZ);
       ctx.fillStyle='#a0c7d0';ctx.fillRect(seaLeft,seaTop,shore-seaLeft,seaBottom-seaTop);
-      const t=northTerrace;const [tx,tz]=project(t.minX,t.minZ),[ex,crest]=project(t.maxX,t.crestZ),[,end]=project(t.maxX,t.maxZ);
-      ctx.fillStyle='#b1c8b4';ctx.fillRect(tx,tz,ex-tx,crest-tz);const grade=ctx.createLinearGradient(tx,crest,tx,end);grade.addColorStop(0,'#b1c8b4');grade.addColorStop(1,'#d3e0de');ctx.fillStyle=grade;ctx.fillRect(tx,crest,ex-tx,end-crest);
+      for(const t of terrainSections){
+        const [tx,tz]=project(t.minX,t.minZ),[ex,end]=project(t.maxX,t.maxZ);
+        const grade=ctx.createLinearGradient(tx,tz,tx,end);
+        grade.addColorStop(0,t.northY?'#b1c8b4':'#d3e0de');
+        grade.addColorStop(1,t.southY?'#b1c8b4':'#d3e0de');
+        ctx.fillStyle=grade;ctx.fillRect(tx,tz,ex-tx,end-tz);
+      }
       ctx.fillStyle = '#253e59';
       ctx.fillRect(0, 0, 900, 64);
       ctx.fillStyle = '#83dacd';
@@ -142,7 +148,7 @@ export function createTacticalMap() {
         if(hasGallery(w,d))stairMark(x-shopSide(index)*(w/2-(w-arcadeWidth(index))/4),z+d/2);
       }
       for(const [x,z,w,d] of freightHalls)stairMark(x+w/2-1.5,z-d/2+1.2);
-      for(const r of [...harborBuildings,...gangways,...civicBuildings]){const [x,z]=project(r.minX,r.minZ),[a,b]=project(r.maxX,r.maxZ);ctx.fillStyle='#6ca7aa';ctx.fillRect(x,z,a-x,b-z);ctx.strokeStyle='#39777e';ctx.strokeRect(x,z,a-x,b-z);}
+      for(const r of [...harborBuildings,...gangways,...civicBuildings,...districtBuildings]){const [x,z]=project(r.minX,r.minZ),[a,b]=project(r.maxX,r.maxZ);ctx.fillStyle='#6ca7aa';ctx.fillRect(x,z,a-x,b-z);ctx.strokeStyle='#39777e';ctx.strokeRect(x,z,a-x,b-z);}
       ctx.beginPath();shipOutline.forEach(([x,z],i)=>{const p=project(x,z);i?ctx.lineTo(p[0],p[1]):ctx.moveTo(p[0],p[1]);});ctx.closePath();ctx.fillStyle='#6ca7aa';ctx.fill();ctx.strokeStyle='#39777e';ctx.stroke();
       const [shipX,shipZ]=project((shipEnvelope.minX+shipEnvelope.maxX)/2,(shipEnvelope.minZ+shipEnvelope.maxZ)/2);
       ctx.save();ctx.translate(shipX,shipZ);ctx.rotate(-Math.PI/2);ctx.fillStyle='#244958';ctx.font='bold 12px sans-serif';ctx.textAlign='center';ctx.fillText('海湾号邮轮',0,4);ctx.restore();

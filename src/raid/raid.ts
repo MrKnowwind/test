@@ -106,6 +106,7 @@ export function createRaid(runId: string, seed: number, map: RaidMap, plan: Load
   const exitAt = (feet: Vec3) => map.exits.find((exit) => contains(exit, feet));
 
   function blockedReason(exit: ExitZone) {
+    if (exit.openForSpawnSide && exit.openForSpawnSide !== spawn.side) return '本局未开放';
     for (const requirement of exit.requirements) {
       if (requirement.kind === 'item' && !backpack.entries.some(entry => entry.item === requirement.id && entry.quantity > 0)) return '维修卡未携带';
       if (requirement.kind === 'flag' && !flags.has(requirement.id)) return '需要开启实验室配电柜';

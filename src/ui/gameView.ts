@@ -5,9 +5,6 @@ import { itemSpecs } from '../raid/catalog.ts';
 import type { Settlement } from '../raid/warehouse.ts';
 import { itemIcon } from './itemArt.ts';
 
-const spawnNames: Record<string, string> = {
-  'south-loading': '南侧卸货口', 'warehouse-alley': '仓库外巷', 'scrap-shelter': '废车棚',
-};
 export const itemName = (item: ItemId) => itemSpecs[item].name;
 const byId = <T extends HTMLElement = HTMLElement>(id: string) => document.getElementById(id) as T;
 
@@ -71,9 +68,9 @@ export function createGameView() {
         return article;
       }));
     },
-    updateHud(frame: CombatFrame, spawnId: string, underground: boolean, region?: string, treatment?:TreatmentPose, inspectAmmo = false) {
+    updateHud(frame: CombatFrame, spawnLabel: string, underground: boolean, region?: string, treatment?:TreatmentPose, inspectAmmo = false) {
       label(floor, underground ? '地下实验室 · B1' : (region ?? '盐港隔离区').replace(/^\d+ /, ''));
-      label(spawn, frame.creative ? '创造模式' : spawnNames[spawnId] ?? spawnId);
+      label(spawn, frame.creative ? '创造模式' : spawnLabel);
       label(health, frame.creative ? '∞' : String(frame.health));
       bar.style.width = frame.health + '%';
       const shield=frame.shield,shieldHud=byId('shield-hud');shieldHud.hidden=!shield;

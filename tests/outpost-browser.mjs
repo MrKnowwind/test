@@ -235,7 +235,8 @@ try {
   await page.keyboard.up('c'); await tick();
   assert.equal((await state()).stance, 'stand');
 
-  const road = (await state()).exits.find(e => e.id === 'highway');
+  const deployed = await state();
+  const road = deployed.exits.find(e => e.openForSpawnSide === deployed.spawn.side);
   await pose(road.position, 0);
   await tick(315, true);
   assert.equal((await state()).result.outcome, 'extracted');

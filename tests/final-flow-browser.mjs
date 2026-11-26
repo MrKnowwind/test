@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { chromium } from 'playwright';
-import {createRaid} from '../src/raid/raid.ts';
+import {districtRoutes} from './fixtures/district-routes.mjs';
 const dir='test-results/next-pass-flow';await mkdir(dir,{recursive:true});
 const browser=await chromium.launch({channel:'chrome'}),report={errors:[],checks:[],routes:[]};
 try {
@@ -11,26 +11,20 @@ try {
  const pose=(feet,yaw=0,pitch=0)=>page.evaluate(p=>window.raidQA.pose(p.feet,p.yaw,p.pitch),{feet,yaw,pitch});
  const enter=async()=>{await page.locator('#primary').click();await page.waitForFunction(()=>window.raidQA.state().locked);};
  const fresh=async(seed=42)=>{await page.goto('http://127.0.0.1:4173/?qa=1&seed='+seed);await page.locator('#primary:not([disabled])').waitFor();await enter();};
- const routeSeeds=new Map();
- const spawns=['south-loading','warehouse-alley','scrap-shelter'].map(id=>({id,position:[0,0,0],yaw:0}));
- for(let seed=0;seed<32;seed++) {const id=createRaid('seed',seed,{spawnPoints:spawns,interactions:[],exits:[]}).spawn.id;if(!routeSeeds.has(id))routeSeeds.set(id,seed);}
- const routes={
-  'warehouse-alley':[[149,95],[-151,95],[-151,145]],
-  'scrap-shelter':[[-129,24],[-129,27],[-120,27],[-120,95],[-151,95],[-151,145]],
- };
- for(const [id,route] of Object.entries(routes)) {
-  await fresh(routeSeeds.get(id));assert.equal((await state()).spawn.id,id);
-  const record={spawn:id,seed:routeSeeds.get(id),points:[]};
-  for(const [x,z] of route) {
+ for(const {id,seed,waypoints} of districtRoutes.filter(route=>route.id==='N-C'||route.id==='S-C')) {
+  await fresh(seed);assert.equal((await state()).spawn.id,id);
+  const record={spawn:id,seed,points:[]};
+  for(const [x,z] of waypoints) {
    const feet=(await state()).feet;await pose(feet,Math.atan2(feet[0]-x,feet[2]-z));
    await page.keyboard.down('Shift');await page.keyboard.down('w');
    await page.waitForFunction(({x,z})=>{const p=window.raidQA.state().feet;return Math.hypot(p[0]-x,p[2]-z)<.5;},{x,z},{timeout:60000});
    await page.keyboard.up('w');await page.keyboard.up('Shift');record.points.push((await state()).feet);
   }
   await page.waitForFunction(()=>window.raidQA.state().result?.outcome==='extracted');
+  assert.equal((await state()).result.exitId,id==='N-C'?'highway':'north-gate');
   report.routes.push(record);
  }
- report.checks.push('East and wharf spawns: full real movement to highway and successful extraction; only turning uses pose');
+ report.checks.push('North and south spawns reach their opposite extracts using W/Shift; pose only turns the camera');
  await fresh();report.bundle=await page.locator('script[type=module]').getAttribute('src');
  await pose([15.4,-5.4,-155]);
  await page.waitForFunction(()=>document.querySelector('#prompt').textContent.includes('配电'));

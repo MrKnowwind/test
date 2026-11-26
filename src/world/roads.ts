@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { box } from './detail/geometry.ts';
 import { siteApproaches } from './supplySites.ts';
 import { enamel } from './detail/materialLibrary.ts';
-import { northTerrace,terrainHeight,houses } from './terrainPlan.ts';
+import { gradeHeight, terrainSectionAt, terrainSections, houses } from './terrainPlan.ts';
 
 type Rect = { x1: number; x2: number; z1: number; z2: number };
 function rectangle(x: number, z: number, w: number, d: number): Rect {
@@ -17,6 +17,9 @@ export const roads = [
   [50,-120,19,7],[162,-60,26,7],
   [-78,41,8,26],[-72,-52,82,6],[-55,-109,6,110],[-5,-93,120,6],
   [-115,-186,10,50],[-123.5,-179,19,6],[-122,-204,14,6],
+  [26,163,8,26],[26,-206,8,21],[54.5,-196,241,4],[57,-175,4,46],
+  [38,35,6,70],[-73,-203,44,6],[-65,-199.5,6,9],[175,-182,8,44],[153,-203,44,6],[197.5,-135,45,6],
+  [-151,88,7,16],[204,88.5,8,19],
 ].map(([x,z,w,d])=>rectangle(x,z,w,d));
 
 const walkWidth = 3.4;
@@ -42,15 +45,23 @@ function subtract(a: Rect, b: Rect) {
 
 export function buildRoads(root: THREE.Group, asphalt: THREE.Material) {
   const paint = enamel(0xbad5df);
+  const split = (first: number, last: number, cuts: number[]) =>
+    [...new Set([first, ...cuts.filter(value => value > first && value < last), last])].sort((a,b)=>a-b);
   function surface(r: Rect, y: number, material: THREE.Material) {
-    // Split at the real grading boundaries so pavement never floats, clips or
-    // changes the road centreline when crossing onto the new hill.
-    const t=northTerrace, xs=[r.x1,...[t.minX,t.maxX].filter(x=>x>r.x1&&x<r.x2),r.x2],zs=[r.z1,...[t.minZ,t.crestZ,t.maxZ].filter(z=>z>r.z1&&z<r.z2),r.z2];
+    const grades = terrainSections.filter(p => overlaps(r, { x1:p.minX, x2:p.maxX, z1:p.minZ, z2:p.maxZ }));
+    if (!grades.length) {
+      box(root,material,r.x2-r.x1,.012,r.z2-r.z1,(r.x1+r.x2)/2,y,(r.z1+r.z2)/2);
+      return;
+    }
+    const xs=split(r.x1,r.x2,grades.flatMap(p=>[p.minX,p.maxX]));
+    const zs=split(r.z1,r.z2,grades.flatMap(p=>[p.minZ,p.maxZ]));
     for(let i=1;i<xs.length;i++)for(let j=1;j<zs.length;j++){
       const x=(xs[i-1]+xs[i])/2,z=(zs[j-1]+zs[j])/2,w=xs[i]-xs[i-1],d=zs[j]-zs[j-1];
-      if(terrainHeight(x,z)===null){box(root,material,w,.012,d,x,y,z);continue;}
+      const section=terrainSectionAt(x,z);
+      if(!section){box(root,material,w,.012,d,x,y,z);continue;}
       const geo=new THREE.BoxGeometry(w,.012,d);geo.translate(x,y,z);const p=geo.getAttribute('position');
-      for(let k=0;k<p.count;k++)p.setY(k,p.getY(k)+(terrainHeight(p.getX(k),p.getZ(k))??0));geo.computeVertexNormals();root.add(new THREE.Mesh(geo,material));
+      for(let k=0;k<p.count;k++)p.setY(k,p.getY(k)+gradeHeight(section,p.getZ(k)));
+      geo.computeVertexNormals();root.add(new THREE.Mesh(geo,material));
     }
   }
   const walkway = enamel(0x8299ab);

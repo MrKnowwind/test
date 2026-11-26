@@ -5,9 +5,12 @@ export type EnemyKind = 'infected' | 'security-bot';
 import type { ItemId } from '../raid/catalog.ts';
 export type { ItemId } from '../raid/catalog.ts';
 export type FlagId = 'lab-power';
+export type SpawnSide = 'north' | 'south';
 
 export interface SpawnPoint {
   id: string;
+  label?: string;
+  side?: SpawnSide;
   position: Vec3;
   yaw: number;
 }
@@ -26,6 +29,7 @@ export interface ExitZone {
   position: Vec3;
   radius: number;
   requirements: readonly ExitRequirement[];
+  openForSpawnSide?: SpawnSide;
   remote?: { flag: FlagId; seconds: number };
 }
 

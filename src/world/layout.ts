@@ -14,5 +14,4 @@ export function districtRect(district: District, rect: { minX: number; maxX: num
 }
 export const districtForInteraction = (id: string): District => id.startsWith('lab-') ? 'research'
   : id.startsWith('factory-') ? 'plant' : ['yard-medkit', 'yard-salvage'].includes(id) ? 'wharf' : 'warehouse';
-export const highwayPosition: Vec3 = [-151, 0, 145];
 export const servicePosition: Vec3 = [189, 0, -90];

@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { createFirstMap } from '../src/world/firstMap.ts';
-import { districtPoint as at, highwayPosition } from '../src/world/layout.ts';
+import { districtPoint as at } from '../src/world/layout.ts';
 import { lab, rampHeight } from '../src/world/worldQueries.ts';
 import { supplySites } from '../src/world/supplySites.ts';
 import { Box3, Group, Vector3 } from 'three';
@@ -9,6 +9,7 @@ import { addSearchContainers } from '../src/app/containers.ts';
 import { findInteraction } from '../src/player/controller.ts';
 import { createRaid } from '../src/raid/raid.ts';
 import { itemSpecs, packs } from '../src/raid/catalog.ts';
+import { districtRoutes } from './fixtures/district-routes.mjs';
 
 const map = createFirstMap(42);
 const radius=.36, height=1.8;
@@ -78,17 +79,29 @@ function visible(feet,id){
  assert.ok(map.scene.getObjectByName(id),id+' has no pickup model');
 }
 
-test('the full map has five connected districts and every ground spawn has a highway route',()=>{
- assert.ok(map.regions.length>=5);
- const routes={
-  'south-loading':[[-24,155],[-151,155],[-151,145]],
-  'warehouse-alley':[[149,95],[-151,95],[-151,145]],
-  'scrap-shelter':[[-129,24],[-129,27],[-120,27],[-120,95],[-151,95],[-151,145]],
- };
- for(const spawn of map.spawnPoints){
-  const feet=walk(spawn.position,routes[spawn.id]);
-  assert.equal(feet[1],0);
-  assert.ok(Math.hypot(feet[0]-highwayPosition[0],feet[2]-highwayPosition[2])<map.exits[0].radius);
+test('eight safe spawns can all walk to their one open, opposite-side extraction',()=>{
+ assert.equal(map.spawnPoints.length,8);
+ for(const {id,seed,waypoints} of districtRoutes){
+  const raid=createRaid('route-'+id,seed,map);
+  assert.equal(raid.spawn.id,id);
+  assert.equal(map.bodyClear(raid.spawn.position,radius,height),true);
+  assert.equal(map.groundHeight(raid.spawn.position,radius),raid.spawn.position[1]);
+  const open=map.exits.filter(exit=>raid.exitStatus(exit).kind==='ready');
+  assert.deepEqual(open.map(exit=>exit.id),[id[0]==='N'?'highway':'north-gate']);
+  const [exit]=open;
+  const closed=map.exits.find(other=>other.openForSpawnSide&&other!==exit);
+  assert.equal(raid.exitStatus(closed).label,'本局未开放');
+  assert.equal(raid.update(6,closed.position,100),'本局未开放');
+  assert.equal(raid.countdown,undefined);
+  assert.equal(raid.result,undefined);
+  assert.equal(raid.exitStatus(map.exits.find(exit=>exit.id==='service-passage')).label,'维修卡未携带');
+  assert.equal(raid.exitStatus(map.exits.find(exit=>exit.id==='lab-lift')).label,'需要开启实验室配电柜');
+  const feet=walk(raid.spawn.position,waypoints);
+  assert.ok(Math.abs(feet[1]-exit.position[1])<.001);
+  raid.update(1,feet,100);
+  assert.equal(raid.countdown.exit.id,exit.id);
+  raid.update(4,feet,100);
+  assert.equal(raid.result.exitId,exit.id);
  }
 });
 
@@ -164,7 +177,8 @@ test('seeded mechanical posts remain underground and all initial spawns have bre
 
 
 test('the district plan spans 400m with two surface approaches to each major district', () => {
- assert.ok(Math.abs(map.exits[0].position[0] - map.exits[1].position[0]) > 300);
+ const [south,north]=map.exits.filter(exit=>exit.openForSpawnSide);
+ assert.equal(south.position[2]-north.position[2],383);
  const routes = [
   [[-24,0,143],[[-24,95],[-115,95],[-115,27],[-129,27]]],
   [[-24,0,143],[[-24,95],[-4,95],[-4,32],[-4,18]]],
@@ -172,6 +186,25 @@ test('the district plan spans 400m with two surface approaches to each major dis
   [[-24,0,143],[[-24,95],[60,95],[60,-120],[40.5,-120],[40.5,-132]]],
  ];
  for (const [start, route] of routes) walk(start, route);
+});
+
+test('cold chain and switchgear buildings have clear entrances and reachable supported search points',()=>{
+ const cold=walk([38,0,0],[[38,23],[38,35]]);
+ assert.equal(cold[1],3.6);
+ for (const [feet,id] of [
+  [walk(cold,[[38,43],[34.3,43]]),'cold-chain-intake'],
+  [walk(cold,[[38,31.6],[32,31.6],[32,30.7]]),'cold-chain-medical'],
+  [walk(cold,[[38,32],[42,32]]),'cold-chain-calibration'],
+ ]) visible(feet,id);
+ assert.ok(Math.abs(walk(cold,[[38,70]])[1])<.001);
+ assert.ok(Math.abs(walk([38,0,70],[[38,0]])[1])<.001);
+ const plant=walk([120,0,-57],[[120,-76]]);
+ for (const [feet,id] of [
+  [walk(plant,[[110.6,-76]]),'switchgear-diagnostics'],
+  [walk(plant,[[120,-65],[129.2,-65]]),'switchgear-spares'],
+  [walk(plant,[[120,-83],[127.5,-83]]),'switchgear-tools'],
+ ]) visible(feet,id);
+ walk(plant,[[120,-94]]);
 });
 
 
@@ -288,17 +321,18 @@ test('freight mezzanines and shop balconies allow a round trip on foot to their 
     const side=shopSide(i),sx=x-side*(w/2-(w-arcadeWidth(i))/4),landing=z-d/2+1.05,deskZ=z-.1*d;
     visit('gallery-'+i,[[sx,z+d/2+.65],[sx,landing],[x,landing],[x,deskZ],[x+side*(w/2-2.26),deskZ]],galleryHeight);
   });
-  freightHalls.forEach(([x,z,w,d],i)=>{
+  freightHalls.forEach(([x,z,w,d,i])=>{
     const sx=x+w/2-1.5,low=z-d/2+1.2,bridge=z+d/2-2.1;
     visit('freight-loft-'+i,[[sx,low-.70],[sx,low+7.8],[sx,bridge],[x-w/2+3.38,bridge]],3.12);
   });
 });
 
-test('the playable body crosses the wharf, factory and B1 ramp seams in both directions',async()=>{
+test('the playable body crosses port, B1 and new district ramp seams in both directions',async()=>{
   const {PerspectiveCamera}=await import('three');
   const {createPlayer}=await import('../src/player/controller.ts');
   for(const [start,end] of [
     [[-135,-.8,27],[-120,0,27]], [[140.5,0,-16],[140.5,3.2,-34]], [[40.5,0,-130],[40.5,-5.4,-155]],
+    [[26,0,-196],[26,1.8,-212]], [[38,0,0],[38,3.6,35]], [[38,0,70],[38,3.6,35]],
   ]){
     const player=createPlayer(new PerspectiveCamera(),map,{id:'seam',position:start,yaw:0});
     for(const to of [end,start]){

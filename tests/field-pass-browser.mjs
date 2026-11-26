@@ -3,6 +3,7 @@ import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { chromium } from 'playwright';
 import { movement as speeds } from '../src/player/controller.ts';
+import { districtRoutes } from './fixtures/district-routes.mjs';
 
 const root = path.resolve(process.argv[2] ?? 'dist');
 const output = path.resolve(process.argv[3] ?? 'test-results/field-pass');
@@ -96,7 +97,7 @@ async function districts() {
   const views=[
     ['wharf',[-127,0,26],.85,.12],['warehouse-front',[-4,0,39],0,.12],
     ['warehouse-table',[-9,0,3.2],.52,-.11],['plant',[140.5,0,-10],0,.14],
-    ['research',[40.5,0,-120],0,.06],['exit',[-151,0,150],0,-.15],
+    ['research',[40.5,0,-120],0,.06],['exit',[26,0,164],Math.PI,-.15],
   ];
   for(const [name,p,y,t] of views){await pose(p,y,t);await tick(12);await capture(name);}
   report.viewpoints=views;
@@ -196,8 +197,8 @@ async function feel() {
 }
 async function exits() {
   // Isolate exit timing and floor checks from the revised PvE pressure.
-  await start();await practice();await pose([-151,0,145]);await tick(72);
-  assert.ok((await state()).countdown.remaining<4);await pose([-146,0,145]);await tick();assert.ok(!(await state()).countdown);
+  await start(2);await practice();await pose([26,0,171]);await tick(72);
+  assert.ok((await state()).countdown.remaining<4);await pose([26,0,166]);await tick();assert.ok(!(await state()).countdown);
   await pose([189,0,-90]);await tick();assert.ok(!(await state()).countdown);
   await pose([15.4,-5.4,-155]);await tick();assert.ok(!(await state()).countdown);
   await pose([16,-5.4,-166.7],0,-.16);await press('e');assert.ok((await state()).flags.includes('lab-power'));
@@ -258,9 +259,9 @@ async function controls() {
 async function routes() {
   report.routes = [];
   const paths = [
-    {seed:2, spawn:'south-loading', name:'南侧外围至公路', points:[[-24,155],[-151,155],[-151,145]]},
-    {seed:0, spawn:'warehouse-alley', name:'东侧至仓储卡位和维修口', points:[[149,95],[-4,95],[-4,18],[-10,18],[-10,15],[-9,14],[-10,15],[-10,18],[-4,18],[-4,95],[175,95],[175,-90],[189,-90]]},
-    {seed:5, spawn:'scrap-shelter', name:'西侧码头经仓储至厂区平台', points:[[-129,24],[-129,27],[-120,27],[-4,27],[-4,15],[-4,27],[-4,95],[149,95],[149,-16],[140.5,-16],[140.5,-34]]},
+    {seed:2, spawn:'N-A', name:'西北台地至南部公路', points:districtRoutes[0].waypoints},
+    {seed:0, start:[149,0,83], name:'东侧至仓储卡位和维修口', points:[[149,95],[-4,95],[-4,18],[-10,18],[-10,15],[-9,14],[-10,15],[-10,18],[-4,18],[-4,95],[175,95],[175,-90],[189,-90]]},
+    {seed:5, start:[-138,-.8,24], name:'西侧码头经仓储至厂区平台', points:[[-129,24],[-129,27],[-120,27],[-4,27],[-4,15],[-4,27],[-4,95],[149,95],[149,-16],[140.5,-16],[140.5,-34]]},
     {seed:32, start:[40.5,0,-130], name:'研究坡道至样本柜、配电柜和货梯', points:[[40.5,-159],[27.2,-159],[27.2,-167.4],[27.2,-159],[16,-159],[16,-167.6],[16,-159],[15.4,-155]]},
   ];
   for (const route of paths) {
