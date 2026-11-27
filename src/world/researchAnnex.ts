@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import type { Vec3 } from '../contracts/demo.ts';
-import { box, mesh, strut } from './detail/geometry.ts';
+import { box, cylinder, mesh, strut } from './detail/geometry.ts';
 import { emissive, enamel, type Materials } from './detail/materialLibrary.ts';
 import {
   annexApproaches, annexWalk, archiveBuilding, archiveDoorX, archivePad, archiveStackEast, archiveStackRoof, archiveStair, archiveUpperY,
@@ -124,13 +124,14 @@ export function buildResearchAnnex(root: THREE.Group, m: Materials, solids: Soli
   wallZ(az1, archiveStackEast, ax2, .93, 1.68, pane);
   wallZ(az1, archiveStackEast, ax2, 2.61, .99, slate);
   for (const x of [201, 205.1, 209.2, 213.3, 217.4, 221.3])
-    wallZ(az1, x, x + .13, .9, 1.75, bronze);
+    box(root,bronze,.13,1.75,.28,x+.065,y+1.775,az1);
   wallX(ax2, az1, -152.9, 0, 3.60, slate);
   wallX(ax2, -150.1, az2, 0, 3.60, slate);
   wallX(ax2, -152.9, -150.1, 2.51, 1.09, slate);
   wallX(archiveStackEast, az1, az2, 3.60, roof - 3.60, slate);
   solid([192.8, y + roof, -146.25], [16.2, .27, 18.15], slate, .05);
-  solid([211.45, y + 3.62, -146.25], [21.32, .24, 17.99], m.steel, .042);
+  const roofWest = archiveStackEast + .025, roofEast = ax2 + .11;
+  solid([(roofWest+roofEast)/2, y + 3.62, -146.25], [roofEast-roofWest, .24, 17.99], m.steel, .042);
   box(root, slate, 14.5, .20, 2.2, 192.85, y + roof + .57, -145.3, .06);
   for (const z of [-146.41, -144.19])
     box(root, jade, 14.45, .42, .075, 192.85, y + roof + .29, z);
@@ -205,6 +206,20 @@ export function buildResearchAnnex(root: THREE.Group, m: Materials, solids: Soli
   box(root, m.ceramic, 2.26, .036, .99, 193.4, archiveUpperY + .88, -140.24, .012);
   for (const dx of [-.55, .12, .56])
     box(root, jade, .073, .018, .74, 193.4 + dx, archiveUpperY + .905, -140.24);
+  // Staged review files and the separate drawing-room flat-file cabinet occupy the perimeter.
+  for (const [x,z,width,depth] of [[186.05,-151.59,1.19,2.07],[196.64,-139.29,1.23,1.12]]) {
+    solid([x,archiveUpperY+.98,z],[width,1.96,depth],slate,.045);
+    for (const level of [.41,.99,1.56]) {
+      box(root,m.zinc,.079,.10,depth-.16,x+width/2+.021,archiveUpperY+level,z,.018);
+      box(root,bronze,.039,.075,.35,x+width/2+.077,archiveUpperY+level+.018,z,.012);
+    }
+  }
+  for (const z of [-140.56,-140.26,-139.97]) {
+    const roll=cylinder(root,m.ceramic,.065,.51,192.52,archiveUpperY+.99,z,10);
+    roll.rotation.z=Math.PI/2;
+    const band=cylinder(root,bronze,.071,.038,192.60,archiveUpperY+.99,z,10);
+    band.rotation.z=Math.PI/2;
+  }
   for (const [x, z] of [[190.7, -152.1], [191.1, -144.2], [196.1, -151.5]])
     fixture(x, z, 2.35, upper + 2.85, 0xd2eff3);
 

@@ -50,6 +50,21 @@ export function strut(parent: THREE.Object3D, material: THREE.Material, a: THREE
   return beam;
 }
 
+/** Continuous pitched roof skin with one ridge and a single fascia at each end. */
+export function gableRoof(parent:THREE.Object3D, material:THREE.Material, width:number, depth:number,
+  rise:number, thickness:number, x:number, y:number, z:number) {
+  const half=width/2, section=new THREE.Shape();
+  section.moveTo(-half,0);
+  section.lineTo(0,rise);
+  section.lineTo(half,0);
+  section.lineTo(half,-thickness);
+  section.lineTo(0,rise-thickness);
+  section.lineTo(-half,-thickness);
+  section.closePath();
+  const geometry=new THREE.ExtrudeGeometry(section,{depth,bevelEnabled:false});
+  return mesh(parent,geometry,material,x,y,z-depth/2);
+}
+
 export function cable(parent: THREE.Object3D, material: THREE.Material, points: [number, number, number][], radius = .02) {
   const path = new THREE.CatmullRomCurve3(points.map(p => new THREE.Vector3(...p)));
   return mesh(parent, new THREE.TubeGeometry(path, points.length * 6, radius, 6), material);

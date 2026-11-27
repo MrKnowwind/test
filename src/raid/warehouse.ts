@@ -12,7 +12,7 @@ const accountKey = 'wasteland-raid.market.v1';
 export const startingCredits = 600;
 export const marketInterval = 5 * 60 * 1000;
 export const shopItems = storable.filter(item =>
-  ['weapon', 'carry', 'medical', 'ammo','protection'].includes(itemSpecs[item].tag));
+  !('art' in itemSpecs[item]) && ['weapon', 'carry', 'medical', 'ammo','protection'].includes(itemSpecs[item].tag));
 export const exchanges = [
   {id:'cell',needs:{coil:1,terminal:1},reward:'shield-cell',quantity:3},
   {id:'armor',needs:{salvage:1,seals:1},reward:'shield-white',quantity:1},

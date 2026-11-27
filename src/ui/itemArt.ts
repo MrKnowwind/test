@@ -1,5 +1,7 @@
 import { drawFieldGear } from './fieldGearArt.ts';
 import type { ItemId } from '../contracts/demo.ts';
+import { itemSpecs } from '../raid/catalog.ts';
+import { drawLootGoods } from './lootArt.ts';
 
 type Icon = ItemId | 'pistol' | 'knife';
 const cache = new Map<Icon, HTMLCanvasElement>();
@@ -29,7 +31,10 @@ export function itemIcon(id: Icon) {
     c.fillStyle=pigment;c.fill(path);
     if(outline) {c.strokeStyle=ink;c.lineWidth=2.6;c.stroke(path);}
   }
-  if(id==='medkit') {
+  const spec = itemSpecs[id];
+  if ('art' in spec) {
+    drawLootGoods(shape,id,spec.art);
+  } else if(id==='medkit') {
     shape('M20 20V14Q20 9 26 9H38Q45 9 45 14V20H39V16H26V20Z','#8fd8d0',true);
     shape('M7 23L14 18H52L58 23V47L51 54H13L7 48Z','#ff8b77',true);
     shape('M9 39L18 43H48L56 38V46L50 51H14L9 47Z','#b7485d');

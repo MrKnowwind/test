@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { createRaid } from '../src/raid/raid.ts';
 import { createWarehouse } from '../src/raid/warehouse.ts';
+import { defaultLoadout } from '../src/raid/loadout.ts';
 
 const spawns = [
   { id: 'south', position: [0, 0, 3], yaw: 0 },
@@ -161,6 +162,35 @@ test('selling extracted stock credits once and persists after reopening the ware
   assert.deepEqual(reopened.read(), {});
   assert.equal(reopened.credits(), before + quote);
   assert.equal(await reopened.sell('salvage'), false);
+});
+
+test('a new tagged trade good can be looted, extracted, reloaded, carried and sold alongside old stock',async()=>{
+  const data=new Map();
+  const storage={
+    get length(){return data.size;},
+    key:index=>[...data.keys()][index]??null,
+    getItem:key=>data.get(key)??null,
+    setItem:(key,value)=>data.set(key,value),
+  };
+  const warehouse=createWarehouse(()=>storage,()=>0);
+  assert.ok(warehouse.commit({runId:'old',outcome:'extracted',exitId:'road',items:{salvage:1}}));
+  const raid=createRaid('new',9,{
+    ...map,
+    interactions:[{id:'lab-research',label:'样品保存柜',kind:'loot',item:'research-sample',quantity:1,position:[0,0,1]}],
+  });
+  raid.searchContainer('lab-research',30);
+  const entry=raid.containers.get('lab-research').entries.find(entry=>entry.item==='spectral-master');
+  assert.ok(raid.takeContainerItem('lab-research',entry.id));
+  raid.update(0,[0,0,0],100,true);
+  raid.update(5,[0,0,0],100);
+  assert.ok(warehouse.commit(raid.result));
+  const reopened=createWarehouse(()=>storage,()=>0);
+  assert.deepEqual(reopened.read(),{salvage:1,'spectral-master':1});
+  assert.ok(reopened.preview({...defaultLoadout,cargo:{'spectral-master':1}}).entries.some(entry=>entry.item==='spectral-master'));
+  const balance=reopened.credits(), price=reopened.price('spectral-master');
+  assert.ok(await reopened.sell('spectral-master'));
+  assert.equal(reopened.credits(),balance+price);
+  assert.deepEqual(reopened.read(),{salvage:1});
 });
 
 test('discarding the required card cancels an active conditional extraction', () => {

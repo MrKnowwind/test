@@ -166,6 +166,22 @@ test('planted street islands are clear of road lanes and grounded on continuous 
   }
 });
 
+test('repaired room junctions render a single exposed face at each formerly overlapping surface',()=>{
+  map.scene.updateMatrixWorld(true);
+  for(const [label,point,axis,side] of [
+    ['shop wall',[-71.7764,3.1157,116.88],2,-1],
+    ['archive partition',[200.79,11.7684,-146.0449],0,-1],
+    ['ship stair post',[-190.3125,4.7933,-72.9875],0,1],
+    ['sorting ceiling',[-81.2496,6.32,8.5506],1,-1],
+    ['gable fascia',[-22.6642,4.3709,58.5567],2,1],
+  ]){
+    const origin=new Vector3(...point).setComponent(axis,point[axis]+side*.098);
+    const direction=new Vector3().setComponent(axis,-side);
+    const hits=new Raycaster(origin,direction,0,.14).intersectObject(map.scene,true);
+    assert.equal(hits.filter(hit=>Math.abs(hit.distance-.098)<.00025).length,1,label);
+  }
+});
+
 test('the logistics buildings separate sorting, office records and outdoor vehicle transfer',()=>{
   const intake=walk([-78,0,-22],[[-78,-11.4],[-84,-11.4]]);
   visible(intake,'transit-tools');

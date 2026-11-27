@@ -18,6 +18,7 @@ export function buildWorksites(root: THREE.Group, m: Materials, solids: Solid[],
   const glass = new THREE.MeshStandardMaterial({ color: 0x8ad0df, transparent: true, opacity: .24, depthWrite: false, roughness: .29 });
   const indicator = emissive(0xa4eed7, .55);
   const liquid = new THREE.MeshStandardMaterial({ color: 0x3b8886, roughness: .23, metalness: .26 });
+  const railPosts = new Set<string>();
 
   function wallX(x: number, z1: number, z2: number, bottom: number, top: number, material: THREE.Material) {
     solid([x, (bottom + top) / 2, (z1 + z2) / 2], [.24, top - bottom, z2 - z1], material, .014);
@@ -48,7 +49,13 @@ export function buildWorksites(root: THREE.Group, m: Materials, solids: Solid[],
     solid([(x1 + x2) / 2, base + .53, (z1 + z2) / 2],
       [Math.abs(x2 - x1) + .07, 1.06, Math.abs(z2 - z1) + .07], glass, .009);
     box(root, m.zinc, Math.abs(x2 - x1) + .13, .09, Math.abs(z2 - z1) + .13, (x1 + x2) / 2, base + 1.08, (z1 + z2) / 2);
-    for (let i = 0; i <= lines; i++) box(root, m.steel, .10, 1.04, .10, x1 + (x2 - x1) * i / lines, base + .54, z1 + (z2 - z1) * i / lines);
+    for (let i = 0; i <= lines; i++) {
+      const x=x1+(x2-x1)*i/lines, z=z1+(z2-z1)*i/lines;
+      const key=[x,base,z].map(n=>n.toFixed(4)).join('/');
+      if(railPosts.has(key))continue;
+      railPosts.add(key);
+      box(root,m.steel,.10,1.04,.10,x,base+.54,z);
+    }
   }
   function stair({ x, footZ, topZ, width, rise }: typeof officeStair, finish = m.zinc) {
     const run = topZ - footZ;
@@ -96,8 +103,8 @@ export function buildWorksites(root: THREE.Group, m: Materials, solids: Solid[],
       portalZ(z, west, east, -78, 7.8, 6.35, 4.45, teal);
       box(root, amber, 9.3, .23, 2.52, -78, 4.64, z + Math.sign(z - 3) * .78, .048);
     }
+    solid([-78,6.45,1.7],[32.55,.26,41.16],m.steel,.027);
     for (const z of [-12, 1.7, 15.4]) {
-      solid([-78, 6.45, z], [32.55, .26, 13.76], m.steel, .027);
       const roof = box(root, teal, 33, .18, 14.2, -78, 7.45, z, .024);
       roof.rotation.x = -.12;
       box(root, glass, 31.5, 1.25, .24, -78, 7.06, z + 6.82, .022);
@@ -163,6 +170,17 @@ export function buildWorksites(root: THREE.Group, m: Materials, solids: Solid[],
     }
     table(5.8, -10.6, 3.1, 1.10, 0, teal);
     table(5.3, -22.45, 2.6, 1.02, 0, blue);
+    box(root,slate,.46,.34,.14,6.91,1.25,-10.89,.035);
+    box(root,indicator,.34,.17,.018,6.91,1.27,-10.811,.013);
+    for (const [x,z] of [[4.31,-10.83],[4.64,-22.73],[4.98,-22.8]]) {
+      box(root,cream,.24,.037,.19,x,1.098,z,.015);
+      box(root,blue,.19,.024,.15,x,1.128,z,.011);
+    }
+    solid([20.65,.42,-15.9],[.67,.84,2.88],m.timber,.047);
+    for (const z of [-16.98,-15.91,-14.86]) {
+      box(root,cream,.42,.24,.53,20.65,.965,z,.045);
+      box(root,teal,.26,.061,.032,20.65,1.011,z+.271,.01);
+    }
     for (const z of [-23.5, -19.1]) {
       solid([3.46, 1.12, z], [1.05, 2.24, 1.9], blue, .045);
       for (const y of [.42, 1.03, 1.70]) box(root, cream, .06, .20, 1.65, 4.01, y, z);
@@ -183,6 +201,10 @@ export function buildWorksites(root: THREE.Group, m: Materials, solids: Solid[],
     table(8.35, -22.5, 2.78, 1.21, upper, blue);
     screen(8.35, upper + 1.45, -22.94, 1.43);
     table(5.85, -12.15, 2.62, 1.02, upper, teal);
+    box(root,slate,.55,.21,.29,6.69,upper+1.184,-12.38,.048);
+    cylinder(root,cream,.087,.13,5.11,upper+1.15,-12.24,12);
+    for (const z of [-17.83,-18.65,-19.47])
+      box(root,blue,.64,.16,.67,4.13,upper+.795,z,.044);
     wallZ(-16.30, west + .13, 7.17, upper, 6.28, cream);
     wallZ(-16.30, 9.53, 17.10, upper, upper + .79, blue);
     wallZ(-16.30, 9.53, 17.10, upper + .79, upper + 2.45, glass);

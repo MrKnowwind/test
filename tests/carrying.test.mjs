@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { createBackpack } from '../src/raid/backpack.ts';
-import { packs } from '../src/raid/catalog.ts';
+import { itemSpecs, packs } from '../src/raid/catalog.ts';
 import { createContainerSearch } from '../src/raid/containerSearch.ts';
 import { drawLoose, tier, tiers } from '../src/raid/loot.ts';
 import { createRaid } from '../src/raid/raid.ts';
@@ -52,6 +52,31 @@ test('seeded cases are independent of map iteration and emergency stocks remain 
   );
   for (const [id, b] of boxes)
     if (!id.startsWith('lab-')) assert.ok(!b.entries.some((e) => e.item === 'research-sample'));
+});
+
+test('container labels match seeded drops across six qualities, with independent rolls allowing repeats',()=>{
+  const ids=['inn-reception','inn-twin','market-kitchen','market-hardware','pharmacy-cold','lab-research',
+    'harbor-dispatch-kit','annex-archive-chart','depot-stock'];
+  const sources=mapInteractions.filter(t=>ids.includes(t.id));
+  assert.equal(sources.length,ids.length);
+  const grades=new Set(), discovered=new Set();
+  for(let seed=0;seed<128;seed++){
+    for(const [id,{contents,entries}] of createContainerSearch(seed,sources).containers){
+      assert.ok(entries.length,id);
+      for(const entry of entries){
+        const spec=itemSpecs[entry.item];
+        assert.ok(contents.tags.includes(spec.tag),[id,entry.item]);
+        grades.add(spec.rank);
+        if('art' in spec) discovered.add(entry.item);
+      }
+    }
+  }
+  assert.deepEqual([...grades].sort(),[0,1,2,3,4,5]);
+  assert.ok(discovered.size>=35,discovered.size);
+  const cases=createContainerSearch(5,sources).containers;
+  assert.deepEqual(cases.get('market-kitchen').contents.tags,['provisions']);
+  assert.equal(cases.get('inn-reception').entries.filter(e=>e.item==='sewing-roll').length,2);
+  assert.ok(createContainerSearch(9,sources).containers.get('lab-research').entries.some(e=>e.item==='spectral-master'));
 });
 
 test('seven independent pack layouts, side pockets and rotated long cargo', () => {

@@ -71,8 +71,7 @@
             </section>
             <section id="prepare-pane" class="outpost-pane" aria-label="仓库" hidden>
               <div class="prepare-side"><header class="section-heading">人物与装备 <button id="reset-loadout" type="button">基础配发</button></header>
-                <div class="equipment-preview"><canvas class="outpost-operator" aria-label="出击队员，拖动旋转" tabindex="0"></canvas><div id="equipment-slots" aria-label="装备槽"></div></div>
-                <div id="weapon-slots" aria-label="武器槽"></div>
+                <section class="gear-arrangement"><div class="gear-top equipment-preview"><canvas class="outpost-operator" aria-label="出击队员，拖动旋转" tabindex="0"></canvas><div id="equipment-slots" class="gear-wearable-grid" aria-label="装备槽"></div></div><div id="weapon-slots" class="gear-weapon-grid" aria-label="武器槽"></div></section>
                 <details class="prepare-config"><summary>精确配置装备与数量</summary><div id="prepare-slots"></div></details><div id="prepare-grid" aria-label="随身空间与背包"></div>
               </div>
               <div class="stash-side"><header class="section-heading"><span>仓库 <small id="stash-count"></small></span><button id="stash-sort" type="button">自动整理</button></header>

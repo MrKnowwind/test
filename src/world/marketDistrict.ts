@@ -64,8 +64,11 @@ export function buildMarketDistrict(root:THREE.Group,m:Materials,solid:Builder) 
     }
     const roof=box(root,i===1?m.steel:tint,width+.32,.23,depth+.4,x,h+.1,z,.05);
     roof.rotation.x=i===1?.045:0;
-    const awning=box(root,tint,width+.32,.18,i===2?2.65:1.78,x,h-.54,maxZ+.77,.05);
-    awning.rotation.x=i===2?.13:0;
+    const canopyDepth=i===2?2.65:1.78, tilt=i===2?.13:0;
+    const projectedHalfDepth=(canopyDepth*Math.cos(tilt)+.18*Math.sin(tilt))/2;
+    // Fasten to the exterior wall face. The previous back face could coincide with the room-side wall.
+    const awning=box(root,tint,width+.32,.18,canopyDepth,x,h-.54,maxZ+.08+projectedHalfDepth,.05);
+    awning.rotation.x=tilt;
     box(root,i===2?amber:mint,width-.8,.055,.19,x,h-.68,maxZ+.42);
     box(root,i===1?m.concrete:sidewalk,width-.3,.025,depth-.3,x,.015,z);
     light(x,h-.22,z,i===2?0xffd6a3:0xb7e7f8);

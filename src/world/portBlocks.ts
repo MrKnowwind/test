@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import type { Vec3 } from '../contracts/demo.ts';
-import { box, cylinder, mesh } from './detail/geometry.ts';
+import { box, cylinder, gableRoof, mesh } from './detail/geometry.ts';
 import { emissive, enamel, type Materials } from './detail/materialLibrary.ts';
 import { streetLots, type DistrictName, type Fixture, type Roof, type Side, type StreetLot } from './portLots.ts';
 import { buildRoomFixture, doorHeight, doorWidth, roomCase, type BuildSolid, type FixtureSite, type ShopRooms } from './shopRooms.ts';
@@ -159,14 +159,12 @@ export function* buildPortBlocks(root:THREE.Group,m:Materials,solid:BuildSolid) 
         solid([cell.x,h+.13,cell.z],[cellW,.26,cellD],accent,.01);
         const width=cellW-.22,depth=cellD-.22;
         if(roof==='gable') {
-          for(const side of [-1,1]){
-            const piece=box(root,accent,width*.57,.14,depth,cell.x+side*width*.245,h+.62,cell.z,.02);
-            piece.rotation.z=-side*.27;
-          }
+          gableRoof(root,accent,width,depth,width*.5*Math.tan(.27),.14,cell.x,h+.33,cell.z).castShadow=true;
         } else if(roof==='sawtooth') {
           const panel=box(root,m.steel,width*1.04,.16,depth,cell.x,h+.79,cell.z,.03);
           panel.rotation.z=-.26;
-          box(root,glass,.12,.74,depth,cell.x-width*.46,h+.58,cell.z);
+          // The glazing is held between the end caps rather than sharing the roof end plane.
+          box(root,glass,.12,.74,depth-.12,cell.x-width*.46,h+.58,cell.z);
         } else if(roof==='monitor' && cell.room==='a') {
           box(root,glass,width*.63,.54,depth*.62,cell.x,h+.48,cell.z,.025);
           box(root,m.steel,width*.73,.17,depth*.71,cell.x,h+.83,cell.z,.04);

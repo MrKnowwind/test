@@ -1,4 +1,4 @@
-import { itemSpecs, type Tag, type ItemId, type PackId } from './catalog.ts';
+import { itemSpecs, tagLabels, type Tag, type ItemId, type PackId } from './catalog.ts';
 export type Risk = 'outer' | 'district' | 'high';
 export const tiers: Record<Risk, number[]> = {
   outer: [4025, 3600, 1500, 600, 200, 70, 5],
@@ -20,17 +20,13 @@ export function tier(weights: readonly number[], u: number) {
   }
   return weights.length - 1;
 }
-export const pools: Record<Tag, ItemId[]> = {
-  mechanical: ['coil', 'seals', 'valve', 'turbine', 'salvage', 'wrench'],
-  electronics: ['terminal', 'gauge', 'board', 'servo', 'core'],
-  shipping: ['sealbag', 'manual', 'lens', 'recorder'],
-  research: ['tray', 'calibration', 'spectrum', 'archive', 'research-sample'],
-  ammo: ['pistol-ammo', 'terminal', 'gauge'],
-  medical: ['medkit', 'tray', 'seals', 'healing-injector'],
-  carry: [],
-  weapon: [],
-  protection: [],
-};
+const entries = Object.keys(itemSpecs) as ItemId[];
+export const pools = Object.fromEntries(Object.keys(tagLabels).map(tag => [
+  tag, entries.filter(item => itemSpecs[item].tag === tag && ![
+    'service-card', 'research-sample', 'rail', 'pump',
+  ].includes(item) && !['carry','weapon','protection'].includes(tag)),
+])) as Record<Tag, ItemId[]>;
+
 export function drawLoose(
   seed: number,
   id: string,
@@ -56,78 +52,118 @@ export const caseTypes = {
   carrier: [5, 4, 3, 5],
 } as const;
 export type CaseKind = keyof typeof caseTypes;
-type Profile = {
-  kind: CaseKind;
-  tag: Tag;
-  bags?: PackId[];
+export type CaseContents = { kind: CaseKind; tags: readonly Tag[]; risk?: Risk };
+type Profile = CaseContents & {
+  bags?: readonly PackId[];
   chance?: number;
-  bonus?: boolean;
   task?: ItemId;
-  extra?: ItemId[];
+  extra?: readonly ItemId[];
 };
-export function caseProfile(id: string, item: ItemId): Profile {
-  if(id==='inn-reception')return {kind:'files',tag:'shipping'};
-  if(id==='inn-luggage'||id==='inn-crew')return {kind:'locker',tag:'shipping',bags:['daypack','sling'],chance:.18};
-  if(id==='pharmacy-cold')return {kind:'cold',tag:'medical',extra:['shield-cell']};
-  if(id==='market-hardware')return {kind:'tool',tag:'mechanical'};
-  if(id==='cold-chain-medical')return {kind:'cold',tag:'medical'};
-  if(id==='cold-chain-calibration')return {kind:'panel',tag:'electronics',extra:['calibration']};
-  if(id==='switchgear-tools')return {kind:'tool',tag:'mechanical'};
-  if(id.startsWith('ship-cabin-'))return {kind:'locker',tag:'shipping',bags:['daypack','sling'],chance:.22,extra:item==='medkit'?['medkit']:undefined};
-  if(id==='harbor-cargo-cold')return {kind:'cold',tag:'medical',extra:['calibration']};
-  if(id==='harbor-cargo-tools'||id==='harbor-repair-tools')return {kind:'tool',tag:'mechanical'};
-  if(id==='harbor-cargo-luggage'||id==='harbor-terminal-luggage'||id==='ship-luggage')return {kind:'crate',tag:'shipping',bags:['school','daypack'],chance:.20};
-  if(id==='ship-medical')return {kind:'medical',tag:'medical'};
-  if(id==='ship-galley'||id==='ship-upper-cafe')return {kind:'cold',tag:'medical'};
-  if(id==='ship-laundry'||id==='ship-bulk-storage'||id==='ship-upper-fitness')return {kind:'tool',tag:'mechanical'};
-  if(id==='ship-theater'||id==='ship-upper-ballroom'||id==='ship-aft-office')return {kind:'panel',tag:'electronics'};
-  if(id.startsWith('ship-')||id.startsWith('residential-'))return {kind:'locker',tag:'shipping',bags:['daypack','sling'],chance:.12};
-  if(id.startsWith('north-observatory-'))return {kind:'panel',tag:'electronics'};
-  if(id.startsWith('north-customs-'))return {kind:'files',tag:'shipping'};
-  if(id==='room-clinic-8')return {kind:'medical',tag:'medical'};
-  switch (id) {
-    case 'triage-stock':
-      return { kind: 'medical', tag: 'medical', task: 'medkit' };
-    case 'depot-stock':
-      return { kind: 'tin', tag: 'ammo', task: 'pistol-ammo' };
-    case 'duty-card':
-      return { kind: 'files', tag: 'shipping', task: 'service-card' };
-    case 'plant-workshop':
-      return { kind: 'panel', tag: 'electronics' };
-    case 'transit-tools':
-      return {
-        kind: 'cage',
-        tag: 'mechanical',
-        extra: ['pump'],
-        bags: ['tube', 'longpack'],
-        chance: 0.42,
-        bonus: true,
-      };
-    case 'lab-research':
-      return { kind: 'carrier', tag: 'research', bonus: true };
-    case 'observation-intake':
-    case 'annex-archive-files':
-      return { kind: 'files', tag: 'electronics' };
-    case 'triage-tools':
-    case 'depot-tools':
-      return { kind: 'locker', tag: 'medical', bags: ['daypack', 'sling'], chance: 0.8 };
-    case 'pump-tools':
-      return { kind: 'tool', tag: 'mechanical', bags: ['repairpack'], chance: 0.85 };
-    case 'customs-tools':
-    case 'relay-tools':
-      return { kind: 'locker', tag: 'shipping', bags: ['alpine'], chance: 0.55 };
-    case 'research-office':
-    case 'workshop-supplies':
-      return { kind: 'locker', tag: 'shipping', bags: ['school'], chance: 0.5 };
-    case 'yard-salvage':
-      return { kind: 'crate', tag: 'shipping', bags: ['longpack', 'tube'], chance: 0.55 };
-  }
-  const tag = itemSpecs[item].tag;
-  if (tag === 'research')
-    return { kind: 'cold', tag: id.startsWith('lab-') ? 'research' : 'electronics', bonus: true };
-  if (tag === 'electronics') return { kind: 'panel', tag };
-  if (tag === 'ammo') return { kind: 'tin', tag };
-  if (tag === 'medical') return { kind: 'medical', tag };
-  if (tag === 'shipping') return { kind: 'drawers', tag };
-  return { kind: 'crate', tag: 'mechanical' };
+export const caseLabels: Record<CaseKind,string> = {
+  tin:'军械箱', medical:'医疗柜', tool:'工具箱', drawers:'储物抽屉', crate:'货运箱',
+  locker:'储物柜', cold:'冷藏柜', panel:'仪器柜', files:'档案柜', cage:'周转笼', carrier:'样品保存柜',
+};
+
+const profiles: Partial<Record<string, Profile>> = {
+  'triage-stock': { kind:'medical', tags:['medical'], risk:'outer', task:'medkit' },
+  'depot-stock': { kind:'tin', tags:['ammo','tactical'], risk:'outer', task:'pistol-ammo' },
+  'duty-card': { kind:'files', tags:['documents','shipping'], task:'service-card' },
+  'plant-workshop': { kind:'panel', tags:['electronics','mechanical'] },
+  'transit-tools': { kind:'cage', tags:['mechanical','shipping'], extra:['pump'], bags:['tube','longpack'], chance:.42 },
+  'lab-research': { kind:'carrier', tags:['research','electronics'], risk:'high' },
+  'lab-medkit': { kind:'medical', tags:['medical','research'], risk:'high' },
+  'triage-tools': { kind:'locker', tags:['medical','personal'], bags:['daypack','sling'], chance:.8, risk:'outer' },
+  'depot-tools': { kind:'locker', tags:['tactical','personal'], bags:['daypack','sling'], chance:.8, risk:'outer' },
+  'pump-tools': { kind:'tool', tags:['mechanical','electronics'], bags:['repairpack'], chance:.85 },
+  'customs-tools': { kind:'locker', tags:['shipping','personal'], bags:['alpine'], chance:.55 },
+  'relay-tools': { kind:'locker', tags:['electronics','tactical'], bags:['alpine'], chance:.55 },
+  'research-office': { kind:'locker', tags:['documents','electronics'], bags:['school'], chance:.5 },
+  'workshop-supplies': { kind:'locker', tags:['mechanical','medical'], bags:['school'], chance:.5 },
+  'yard-salvage': { kind:'crate', tags:['shipping','mechanical'], bags:['longpack','tube'], chance:.55 },
+  'yard-ammo': { kind:'tin', tags:['ammo','tactical'], risk:'outer' },
+  'factory-ammo': { kind:'tin', tags:['ammo','tactical'] },
+  'inn-reception': { kind:'files', tags:['documents','personal'], risk:'outer' },
+  'inn-luggage': { kind:'locker', tags:['personal','documents'], bags:['daypack','sling'], chance:.18, risk:'outer' },
+  'inn-crew': { kind:'locker', tags:['personal','provisions'], bags:['daypack','sling'], chance:.18, risk:'outer' },
+  'inn-linen': { kind:'drawers', tags:['personal','medical'], risk:'outer' },
+  'inn-twin': { kind:'drawers', tags:['personal','provisions'], risk:'outer' },
+  'inn-corner': { kind:'drawers', tags:['documents','personal'], risk:'outer' },
+  'market-convenience': { kind:'drawers', tags:['provisions','personal'], risk:'outer' },
+  'market-kitchen': { kind:'cold', tags:['provisions'], risk:'outer' },
+  'market-hardware': { kind:'tool', tags:['mechanical','electronics'], risk:'outer' },
+  'transit-catering': { kind:'cold', tags:['provisions'], risk:'outer' },
+  'transit-luggage': { kind:'locker', tags:['personal','shipping'], risk:'outer' },
+  'transit-dispatch': { kind:'files', tags:['documents','electronics'] },
+  'community-reception': { kind:'files', tags:['documents','personal'], risk:'outer' },
+  'community-activity': { kind:'locker', tags:['personal','provisions'], risk:'outer' },
+  'pharmacy-cold': { kind:'cold', tags:['medical'] },
+  'pharmacy-treatment': { kind:'medical', tags:['medical'], risk:'district' },
+  'room-clinic-8': { kind:'medical', tags:['medical'], risk:'outer' },
+  'cold-chain-medical': { kind:'cold', tags:['medical'] },
+  'cold-chain-calibration': { kind:'panel', tags:['electronics','research'] },
+  'switchgear-tools': { kind:'tool', tags:['mechanical','electronics'] },
+  'harbor-cargo-cold': { kind:'cold', tags:['medical','provisions','shipping'] },
+  'harbor-cargo-tools': { kind:'tool', tags:['mechanical','shipping'] },
+  'harbor-repair-tools': { kind:'tool', tags:['mechanical','nautical'] },
+  'harbor-cargo-luggage': { kind:'crate', tags:['personal','shipping'], bags:['school','daypack'], chance:.20 },
+  'harbor-terminal-luggage': { kind:'crate', tags:['personal','shipping'], bags:['school','daypack'], chance:.20 },
+  'harbor-dispatch-office': { kind:'files', tags:['documents','nautical'] },
+  'harbor-dispatch-kit': { kind:'tool', tags:['nautical','electronics'] },
+  'ship-luggage': { kind:'crate', tags:['personal','shipping'], bags:['school','daypack'], chance:.20 },
+  'ship-medical': { kind:'medical', tags:['medical'] },
+  'ship-galley': { kind:'cold', tags:['provisions'] },
+  'ship-upper-cafe': { kind:'cold', tags:['provisions','personal'] },
+  'ship-laundry': { kind:'locker', tags:['personal','mechanical'] },
+  'ship-bulk-storage': { kind:'crate', tags:['shipping','provisions'] },
+  'ship-upper-fitness': { kind:'locker', tags:['personal','medical'] },
+  'ship-theater': { kind:'panel', tags:['electronics','personal'] },
+  'ship-upper-ballroom': { kind:'panel', tags:['electronics','documents'] },
+  'ship-aft-office': { kind:'files', tags:['nautical','documents'], risk:'high' },
+  'observation-intake': { kind:'files', tags:['documents','research'] },
+  'quarantine-samples': { kind:'cold', tags:['research','medical'], risk:'high' },
+  'annex-archive-files': { kind:'files', tags:['documents','research'], risk:'high' },
+  'annex-archive-reading': { kind:'files', tags:['documents','research'] },
+  'annex-archive-chart': { kind:'files', tags:['documents','nautical'], risk:'high' },
+  'annex-archive-server': { kind:'panel', tags:['electronics','research'], risk:'high' },
+  'annex-archive-index': { kind:'panel', tags:['electronics','documents'], risk:'high' },
+  'research-intake': { kind:'files', tags:['documents','research'] },
+  'research-bench': { kind:'cold', tags:['research','medical'], risk:'high' },
+  'research-upper': { kind:'panel', tags:['electronics','research'], risk:'high' },
+  'office-archive': { kind:'files', tags:['documents','shipping'] },
+  'sort-dispatch': { kind:'cage', tags:['shipping','documents'] },
+};
+
+const defaultCases = {
+  mechanical:{ kind:'crate', tags:['mechanical','shipping'] },
+  electronics:{ kind:'panel', tags:['electronics'] },
+  shipping:{ kind:'drawers', tags:['shipping','documents'] },
+  research:{ kind:'cold', tags:['research'], risk:'high' },
+  medical:{ kind:'medical', tags:['medical'] },
+  ammo:{ kind:'tin', tags:['ammo','tactical'] },
+  carry:{ kind:'locker', tags:['personal'] },
+  weapon:{ kind:'tin', tags:['ammo','tactical'] },
+  protection:{ kind:'locker', tags:['tactical','protection'] },
+  provisions:{ kind:'cold', tags:['provisions'] },
+  personal:{ kind:'drawers', tags:['personal'] },
+  documents:{ kind:'files', tags:['documents'] },
+  nautical:{ kind:'panel', tags:['nautical','electronics'] },
+  tactical:{ kind:'tin', tags:['ammo','tactical'] },
+} as const satisfies Record<Tag,CaseContents>;
+
+export function caseProfile(id: string, item: ItemId, authored?: CaseContents): Profile {
+  const profile = authored ?? profiles[id];
+  if (profile) return profile;
+  if (id.startsWith('ship-cabin-')) return { kind:'locker', tags:['personal','provisions'], bags:['daypack','sling'], chance:.22 };
+  if (id.startsWith('ship-')) return { kind:'drawers', tags:['personal','nautical','documents'] };
+  if (id.startsWith('residential-')) return { kind:'drawers', tags:['personal','provisions'], bags:['daypack','sling'], chance:.12, risk:'outer' };
+  if (id.startsWith('north-observatory-')) return { kind:'panel', tags:['nautical','electronics'] };
+  if (id.startsWith('north-customs-')) return { kind:'files', tags:['documents','shipping'] };
+  if (id.startsWith('freight-loft-')) return { kind:'crate', tags:['shipping','mechanical','electronics'] };
+  return defaultCases[itemSpecs[item].tag];
 }
+
+export const containerRanks: Record<Risk, readonly number[]> = {
+  outer: [670,230,76,19,4,1],
+  district: [605,249,101,35,8,2],
+  high: [475,265,162,68,24,6],
+};

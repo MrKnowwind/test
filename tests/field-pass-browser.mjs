@@ -62,7 +62,7 @@ await page.addInitScript(fixedRoutes => {
     }
     painting = true;
   };
-}, ['research','south','market','inn','loadout','annex','civic','terrain','street','worksites'].some(name=>cases.has(name)));
+}, ['research','south','market','inn','loadout','interiors','annex','civic','terrain','street','worksites'].some(name=>cases.has(name)));
 const tick = (n=2, paint=false) => page.evaluate(([n,paint]) => window.advanceRaid(n,paint),[n,paint]);
 const state = () => page.evaluate(() => {
   const {feet,stance,climb,eye,countdown,result,flags,weapon,locked,backpack,items,spawn,fov,speed,grounded,health} = window.raidQA.state();
@@ -78,10 +78,12 @@ const capture = async (name, quality=80) => {
   await tick(1,true);
   await page.screenshot({path:path.join(output,name+'.jpg'),quality,timeout:60000});
 };
-async function start(seed=42, liveUI=false) {
+async function start(seed=42, liveUI=false, beforeDeploy) {
   await page.goto('http://127.0.0.1:4173/?qa=1&seed='+seed+(liveUI?'&liveUI=1':''),{timeout:90000});
   await page.locator('#primary:enabled').waitFor({timeout:90000});
-  await quality('balanced');await click('#primary');
+  await quality('balanced');
+  if(beforeDeploy) await beforeDeploy();
+  await click('#primary');
   await page.waitForFunction(()=>raidQA.state().locked,undefined,{polling:10});
   await tick();
 }
@@ -550,7 +552,30 @@ async function inn() {
     checked:['south approach','north approach','stairs both ways','minimap level','three guest rooms']};
 }
 async function loadout() {
-  await start(5);
+  const verifySlotOrder = root => page.locator(root).evaluate(el=>{
+    const get=key=>el.querySelector('[data-gear-slot="'+key+'"]').getBoundingClientRect();
+    const photo=el.querySelector('.gear-top canvas').getBoundingClientRect();
+    const wear=['head','shield','pack'].map(get), weapons=['primary1','primary2','pistol','knife'].map(get);
+    return {
+      squares:[...wear,...weapons].every(r=>Math.abs(r.width-r.height)<1&&r.width>=46),
+      vertical:wear.every((r,i)=>r.left>=photo.right && (!i||r.top>wear[i-1].top)),
+      below:weapons.every(r=>r.top>=photo.bottom),
+      paired:weapons[0].top===weapons[1].top&&weapons[2].top===weapons[3].top&&weapons[0].top<weapons[2].top,
+    };
+  });
+  let warehouse;
+  await start(5,false,async()=>{
+    await page.setViewportSize({width:1440,height:900});
+    await click('.outpost-nav [data-outpost=prepare]');
+    warehouse=await verifySlotOrder('#prepare-pane .gear-arrangement');
+    assert.deepEqual(warehouse,{squares:true,vertical:true,below:true,paired:true});
+    await capture('warehouse-squares');
+    const pistol=page.locator('#weapon-slots [data-gear-slot=pistol]');
+    assert.equal(await pistol.textContent(),'');
+    await pistol.click();
+    assert.match(await page.locator('#stash-detail').textContent(),/港卫 P8/);
+    await page.setViewportSize({width:896,height:504});
+  });
   await practice();
   await pose([innDoorX,0,155],0,-1.03);
   await press('Escape');
@@ -584,12 +609,13 @@ async function loadout() {
     assert.ok(m.portrait.width>=85&&m.portrait.height>90,JSON.stringify({w,m}));
     assert.ok(m.overflow<=1&&m.window.x>=0&&m.window.right<=w,JSON.stringify({w,m}));
   };
-  report.loadout={solo:[],source:[]};
+  report.loadout={warehouse,solo:[],source:[]};
   for(const [w,h] of viewports){
     await page.setViewportSize({width:w,height:h});
     await capture('loadout-solo-'+w);
     const m=await check();
     verify(m,w);
+    assert.deepEqual(await verifySlotOrder('#loadout'),{squares:true,vertical:true,below:true,paired:true});
     assert.equal(m.source.width,0);
     if(w>610) assert.ok(m.gear.width>m.carry.width);
     report.loadout.solo.push({w,gearWidth:m.gear.width,carryWidth:m.carry.width,slotWidth:m.slots[0].width});
@@ -608,6 +634,7 @@ async function loadout() {
   await aim('inn-reception');
   await press('e');
   await page.locator('.bag-container').waitFor({state:'visible'});
+  assert.deepEqual(await page.locator('#container-labels span').allTextContents(),['档案柜','文件档案','生活用品']);
   for(const [w,h] of viewports){
     await page.setViewportSize({width:w,height:h});
     await capture('loadout-source-'+w);
@@ -617,7 +644,56 @@ async function loadout() {
     if(w>920) assert.ok(m.gear.x<m.carry.x&&m.carry.x<m.source.x);
     report.loadout.source.push({w,sourceWidth:m.source.width});
   }
+  await page.setViewportSize({width:1440,height:900});
+  await tick(150);
+  await page.locator('#container-content .source-item.revealed').first().click();
+  assert.ok(['documents','personal'].includes(await page.locator('#selected-item [data-item-tag]').getAttribute('data-item-tag')));
+  assert.ok(await page.locator('#selected-item .loot-quality').textContent());
+  await capture('loot-item-labels');
+  await closeBag();
   report.loadout.stowAndEquip=true;
+}
+async function interiors() {
+  await start(9);
+  await practice();
+  await pose([91.9,innPad.height,129.2],2.03,-.09);
+  await walkRoute([[91.1,128.85]]);
+  await pose((await state()).feet,1.40,-.06);
+  await capture('inn-tea-and-lounge');
+
+  await pose([12.3,0,-8.6]);
+  await walkRoute([[18.7,-8.6],[18.7,-20.72],[8.35,-20.72]]);
+  await height(officeStair.rise);
+  await searchCase('duty-card');
+  await walkRoute([[8.35,-14.05],[5.85,-14.05]]);
+  await aim('office-staff');
+  await capture('office-staff-furnishings');
+
+  await pose([190.35,archiveUpperY,-151.52],0);
+  await capture('archive-review-floor');
+  await walkRoute([[194.4,-151.52],[194.4,-143.6],[187.9,-143.6]]);
+  await aim('annex-archive-chart');
+  await capture('archive-chart-cabinet');
+  await searchCase('annex-archive-chart');
+  await walkRoute([[194.4,-143.6],[194.4,-151.52],[archiveStair.x,-151.52],[archiveStair.x,-139.18],[195,-139.18]]);
+  await height(archivePad.height);
+
+  const source=await page.evaluate(()=>raidQA.state().interactions.find(target=>target.id==='lab-research').position);
+  await pose([source[0],lab.y,source[2]+1.65]);
+  await aim('lab-research');
+  await press('e');
+  const original=await page.evaluate(()=>raidQA.state().containers.find(c=>c.id==='lab-research').entries);
+  await tick(Math.ceil((original.reduce((n,e)=>n+e.duration,0)+.3)*60));
+  const red=page.locator('#container-content').getByRole('button',{name:'绝版光谱标定片',exact:true});
+  await red.waitFor();
+  await red.click();
+  assert.equal(await page.locator('#selected-item [data-item-tag]').getAttribute('data-item-tag'),'research');
+  assert.equal(await page.locator('#selected-item .loot-quality').textContent(),'机密');
+  await capture('b1-red-loot');
+  const take=page.locator('#bag-detail').getByRole('button',{name:'拾取',exact:true});
+  await take.click();
+  assert.ok(await page.evaluate(()=>raidQA.state().backpack.some(entry=>entry.item==='spectral-master')));
+  report.interiors={inn:true,logisticsFloor:officeStair.rise,archiveFloors:[archivePad.height,archiveUpperY],redLoot:'spectral-master'};
 }
 async function annex() {
   await start(1);
@@ -818,7 +894,7 @@ async function worksites() {
   report.worksites={bundle,searched,drainCrossings:2,stairRuns:3};
 }
 try {
-  for(const [name,fn] of Object.entries({districts,bags,movement,exits,service,routes,controls,feel,research,south,market,inn,loadout,annex,civic,terrain,street,worksites})){
+  for(const [name,fn] of Object.entries({districts,bags,movement,exits,service,routes,controls,feel,research,south,market,inn,loadout,interiors,annex,civic,terrain,street,worksites})){
     if(cases.has(name)){await fn();console.log(name+' passed');}
   }
   assert.deepEqual(errors,[]);

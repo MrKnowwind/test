@@ -22,7 +22,11 @@ try{
   await page.locator('.outpost-nav [data-outpost=prepare]').click();await page.locator('#stash-expand').click();await wait(()=>document.querySelector('#stash-capacity').textContent.includes('/ 160 格'));
   const stock=name=>page.locator('#stash-grid').getByRole('button',{name,exact:true});const portrait=page.locator('#prepare-pane .outpost-operator'),before=await portrait.evaluate(c=>c.toDataURL());
   for(const name of ['基础小包','蓝阶能量护甲','矿灯安全帽','护盾充能单元'])await stock(name).click({modifiers:['Shift']});
-  await tick(1,true);assert.notEqual(await portrait.evaluate(c=>c.toDataURL()),before);assert.ok(await portrait.evaluate(c=>c.getContext('2d').getImageData(0,0,c.width,c.height).data.some((x,i)=>i%4===3&&x>0)));assert.equal(await page.locator('[data-gear-slot^=primary]').count(),2);assert.match(await page.locator('[data-gear-slot=shield]').textContent(),/75\/75/);await snap('equipment');
+  await tick(1,true);assert.notEqual(await portrait.evaluate(c=>c.toDataURL()),before);assert.ok(await portrait.evaluate(c=>c.getContext('2d').getImageData(0,0,c.width,c.height).data.some((x,i)=>i%4===3&&x>0)));assert.equal(await page.locator('[data-gear-slot^=primary]').count(),2);
+  const armorSlot=page.locator('#equipment-slots [data-gear-slot=shield]');
+  assert.equal(await armorSlot.textContent(),'');
+  await armorSlot.click();
+  assert.match(await page.locator('#stash-detail').textContent(),/75\/75/);await snap('equipment');
   await page.locator('#primary').click();await wait(()=>raidQA.state().locked);await tick(4,true);assert.equal((await state()).shield.charge,75);assert.equal((await state()).headlamp,true);assert.match(await page.locator('#shield-charge').textContent(),/75\/75/);
   await page.keyboard.press('Tab');await tick(1,true);await page.locator('#backpack-panel').waitFor({state:'visible'});await tick(1,true);
   const helmet=page.locator('#loadout [data-gear-slot=head]');

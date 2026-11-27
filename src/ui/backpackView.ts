@@ -1,4 +1,7 @@
 import { itemIcon } from './itemArt.ts';
+import { equipmentSlot } from './equipmentSlots.ts';
+import { itemLabels } from './itemLabels.ts';
+import { caseLabels } from '../raid/loot.ts';
 import {
   dimensions,
   type BagEntry,
@@ -6,7 +9,7 @@ import {
   type Cargo,
   type createBackpack,
 } from '../raid/backpack.ts';
-import { itemSpecs, isPack, packs, pockets, equipSlot, isShield, shieldCharge, shields, isHead, headDevices, gearLayout, type EquipSlot, type GearSlot, type Section, type ItemId } from '../raid/catalog.ts';
+import { itemSpecs, isPack, packs, pockets, equipSlot, isShield, shieldCharge, shields, isHead, headDevices, tagLabels, qualityLabels, gearLayout, type EquipSlot, type Section, type ItemId } from '../raid/catalog.ts';
 import type { SearchContainer, SearchEntry } from '../raid/containerSearch.ts';
 import type { MapInteraction } from '../contracts/demo.ts';
 type Bag = ReturnType<typeof createBackpack>;
@@ -25,18 +28,14 @@ type Action = {
   equipFrom(id:string,entry:number,slot:EquipSlot):boolean;
 };
 type Selection = { from: 'bag' | 'source' | 'slot'; id: number; entry: Cargo; rotated: boolean };
-const emptyGear: Partial<Record<GearSlot, ItemId>> = { head: 'head-scout', shield: 'shield-white', pack: 'daypack', pistol: 'pistol', knife: 'knife' };
-const gearLabels = Object.fromEntries(gearLayout);
-const raidGearOrder = ['head','shield','primary1','primary2','pistol','knife','pack'] as const;
-
 export function createBackpackView(actions: Action) {
   const panel = document.createElement('section');
   panel.id = 'backpack-panel';
   panel.hidden = true;
   panel.innerHTML = `<div class="bag-window"><header><h2>随身装备</h2><div id="bag-danger" role="status"></div><button id="bag-close" aria-label="关闭背包">×</button></header>
-  <div class="bag-columns"><div class="equipment"><h3>装备</h3><section class="raid-kit"><canvas class="operator-portrait" aria-label="出击队员"></canvas><div id="loadout" aria-label="装备槽"></div></section></div>
+  <div class="bag-columns"><div class="equipment"><h3>装备</h3><section id="loadout" class="gear-arrangement" aria-label="装备槽"><div class="gear-top"><canvas class="operator-portrait" aria-label="出击队员"></canvas><div class="gear-wearable-grid"></div></div><div class="gear-weapon-grid"></div></section></div>
   <div class="carry-column"><h3>携行 <span id="bag-size"></span></h3><div id="carry-grids"></div></div>
-  <div class="bag-container" hidden><h3 id="container-title"></h3><div id="container-content"></div></div></div>
+  <div class="bag-container" hidden><h3 id="container-title"></h3><div id="container-labels" class="loot-labels" hidden></div><div id="container-content"></div></div></div>
   <p id="bag-feedback" role="status"></p>
   <dialog class="swap-preview"><h3>换包</h3><div class="swap-comparison"></div><button value="cancel">返回</button> <button value="confirm">确认装备</button></dialog></div>
   <aside id="drop-zone" aria-label="丢到地面"><strong>↓</strong><span>丢到地面</span></aside>
@@ -222,7 +221,7 @@ export function createBackpackView(actions: Action) {
         '基准 ' + (entry.durability !== undefined ? 30 * entry.durability : spec.price) + ' 券',
         isPack(entry.item) ? '容量 ' + packs[entry.item].reduce((n, section) => n + section.w * section.h, 0) + ' 格' : '',
       ].filter(Boolean).join('　');
-      q('#selected-item').append(name, meta);
+      q('#selected-item').append(name, meta, itemLabels(entry.item));
     }
     detail.style.setProperty('--detail-color', spec.color);
     detail.hidden = false;
@@ -282,8 +281,8 @@ export function createBackpackView(actions: Action) {
       ' * var(--cell));--item-color:' +
       (revealed ? spec.color : '#78909e');
     b.style.setProperty('--icon-cells', String(Math.min(w, h)));
-    b.title = revealed ? spec.name : '未知物品';
-    b.setAttribute('aria-label', b.title);
+    b.title = revealed ? spec.name + ' · ' + tagLabels[spec.tag] + ' · ' + qualityLabels[spec.rank] : '未知物品';
+    b.setAttribute('aria-label', revealed ? spec.name : b.title);
     if (revealed) {
       b.append(itemIcon(e.item));
       if (e.quantity > 1 && spec.tag !== 'ammo') {
@@ -426,6 +425,17 @@ export function createBackpackView(actions: Action) {
     const dest = q('#container-content');
     dest.replaceChildren();
     q('#container-title').textContent = target?.label ?? '物品详情';
+    const labels = q('#container-labels');
+    labels.replaceChildren();
+    labels.hidden = !source?.contents;
+    if (source?.contents) {
+      const {kind,tags} = source.contents;
+      for (const name of [caseLabels[kind],...tags.map(tag=>tagLabels[tag])]) {
+        const chip=document.createElement('span');
+        chip.textContent=name;
+        labels.append(chip);
+      }
+    }
     q('.bag-container').hidden = !target;
     panel.classList.toggle('has-source', !!target);
     if (target?.kind === 'loose' && isPack(target.item)) {
@@ -472,45 +482,40 @@ export function createBackpackView(actions: Action) {
       ' / ' +
       bag.sections.reduce((n, s) => n + s.w * s.h, 0) +
       ' 格';
-    const kit = q('#loadout');
-    kit.replaceChildren();
-    for (const key of raidGearOrder) {
-      const label = gearLabels[key];
+    const wear = q('#loadout .gear-wearable-grid'), weapons = q('#loadout .gear-weapon-grid');
+    wear.replaceChildren();
+    weapons.replaceChildren();
+    for (const [key] of gearLayout) {
+      const primary = key === 'primary1' || key === 'primary2';
+      const cargo = key === 'pack' ? bag.equipped : primary ? undefined : bag.slots[key];
+      const b = equipmentSlot(key,cargo?.item,!!cargo?.issued);
+      (key==='head' || key==='shield' || key==='pack' ? wear : weapons).append(b);
+      if (primary) continue;
+      b.draggable = !!cargo;
       if (key === 'pack') {
-        const pack = bag.equipped;
-        const slot = gearButton(kit, key, label, pack, () => {
-          if (!pack) return;
-          openDetail(slot, pack, true);
+        b.onclick = () => {
+          if (!cargo) return;
+          openDetail(b, cargo, true);
           action('卸下并丢弃', actions.unpack);
           positionDetail();
-        });
-        slot.draggable = !!pack;
-        slot.ondragstart = ev => {
-          if (!pack) return;
+        };
+        b.ondragstart = ev => {
+          if (!cargo) return;
           clearSelection();
           dragging = draggingPack = true;
           ev.dataTransfer?.setData('text/plain','worn-backpack');
         };
         continue;
       }
-      if (key === 'primary1' || key === 'primary2') {
-        gearButton(kit, key, label, undefined, () => {}).disabled = true;
-        continue;
-      }
-      const e = bag.slots[key];
-      const choose = () => { if (e) select({ from: 'slot', entry: e, id: -1, rotated: false }, b); };
-      const b = gearButton(kit, key, label, e, choose);
-      if(e){
-        b.onclick=ev=>{choose();if(ev.shiftKey)quickMove(selected!);};
-      }
-      b.draggable = !!e;
-      b.ondragstart = (ev) => {
+      const choose = () => { if (cargo) select({ from:'slot', entry:cargo, id:-1, rotated:false }, b); };
+      if (cargo) b.onclick = ev=>{choose();if(ev.shiftKey)quickMove(selected!);};
+      b.ondragstart = ev => {
         if(selected?.from!=='slot'||equipSlot(selected.entry.item)!==key)choose();
         dragging = true;
-        ev.dataTransfer?.setData('text/plain', key);
+        ev.dataTransfer?.setData('text/plain',key);
       };
-      b.ondragover = (ev) => ev.preventDefault();
-      b.ondrop = (ev) => {
+      b.ondragover = ev => ev.preventDefault();
+      b.ondrop = ev => {
         ev.preventDefault();
         if (selected && equipSlot(selected.entry.item)===key && (selected.from==='bag'?actions.holster(selected.id):selected.from==='source'&&target?actions.equipFrom(target.id,selected.id,key):false)) {
           clearSelection();
@@ -519,26 +524,6 @@ export function createBackpackView(actions: Action) {
       };
     }
     renderSource();
-  }
-  function gearButton(kit: HTMLElement, key: GearSlot, label: string, entry: Cargo | undefined, choose: () => void) {
-    const slot = button(kit, '', choose);
-    slot.dataset.gearSlot = key;
-    slot.className = 'bag-gear';
-    slot.setAttribute('aria-label', label + ' · ' + (entry ? itemSpecs[entry.item].name : '空'));
-    const icon = entry?.item ?? emptyGear[key];
-    if (icon) {
-      const art = itemIcon(icon);
-      art.setAttribute('aria-hidden', 'true');
-      slot.append(art);
-    } else {
-      const primary = document.createElement('span');
-      primary.className = 'primary-silhouette';
-      primary.setAttribute('aria-hidden','true');
-      slot.append(primary);
-    }
-    if (entry) slot.style.setProperty('--gear-color', itemSpecs[entry.item].color);
-    else slot.classList.add('empty-gear');
-    return slot;
   }
   q('#container-content').ondragover=ev=>{if(dragging && selected?.from==='bag' && source)ev.preventDefault();};
   q('#container-content').ondrop=ev=>{

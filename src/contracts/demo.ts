@@ -3,6 +3,7 @@ export type Vec3 = readonly [x: number, y: number, z: number];
 export type WeaponId = 'knife' | 'pistol' | 'rifle' | 'shotgun';
 export type EnemyKind = 'infected' | 'security-bot';
 import type { ItemId } from '../raid/catalog.ts';
+import type { CaseContents } from '../raid/loot.ts';
 export type { ItemId } from '../raid/catalog.ts';
 export type FlagId = 'lab-power';
 export type SpawnSide = 'north' | 'south';
@@ -34,7 +35,7 @@ export interface ExitZone {
 }
 
 export type MapInteraction = { id: string; label: string; position: Vec3 } & (
-  | { kind: 'loot'; item: ItemId; quantity: number }
+  | { kind: 'loot'; item: ItemId; quantity: number; search?: CaseContents }
   | { kind: 'loose'; item:ItemId; quantity:number }
   | { kind: 'door' }
   | { kind: 'switch'; flag: FlagId }

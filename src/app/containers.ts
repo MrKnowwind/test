@@ -110,7 +110,7 @@ export function addSearchContainers(map: FirstMap & { scene: THREE.Group }) {
     root.name = 'container-' + t.id;
     const original = map.scene.getObjectByName(t.id);
     if (original) original.visible = false;
-    const { kind } = caseProfile(t.id, t.item);
+    const { kind } = caseProfile(t.id, t.item, t.search);
     const h =
       kind === 'files'
         ? 0.63

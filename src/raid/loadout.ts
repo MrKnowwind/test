@@ -4,7 +4,7 @@ import { equipSlot, isShield, itemSpecs, shieldCharge, type ItemId, type PackId,
 export const supplyItems = ['pistol-ammo', 'medkit', 'healing-injector','shield-cell'] as const;
 export type Supply = typeof supplyItems[number];
 export type PreparedPlacement = Placement & { item: ItemId; quantity: number; issued?:number };
-export const isMaterial = (item: ItemId) => ['mechanical','electronics','shipping','research'].includes(itemSpecs[item].tag);
+export const isMaterial = (item: ItemId) => 'art' in itemSpecs[item] || ['mechanical','electronics','shipping','research'].includes(itemSpecs[item].tag);
 export const isCarryCargo = (item:ItemId) => isMaterial(item) || !!equipSlot(item);
 type WeaponSource = 'issued' | 'warehouse';
 export type Loadout = {

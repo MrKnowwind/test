@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import type { Vec3 } from '../contracts/demo.ts';
-import { box, cylinder, mesh, strut } from './detail/geometry.ts';
+import { box, cylinder, gableRoof, mesh, strut } from './detail/geometry.ts';
 import { emissive, enamel, type Materials } from './detail/materialLibrary.ts';
 import { innBuilding, innDoorX, innNorth, innPad, innSouth, innStair, innUpperY } from './innPlan.ts';
 import { gradeHeight } from './terrainPlan.ts';
@@ -162,10 +162,7 @@ export function buildInn(root: THREE.Group, m: Materials, solids: Solid[], solid
     }
   }
   solid([cx,roof-.11,cz],[22.5,.22,23.5],pine,.025);
-  for(const sign of [-1,1]){
-    const pitch=box(root,sign<0?ochre:red,11.85,.23,24.0,cx+sign*5.55,roof+.88,cz,.035);
-    pitch.rotation.z=-sign*.145;
-  }
+  gableRoof(root,red,23.4,24,1.72,.19,cx,roof+.055,cz).castShadow=true;
   box(root,m.steel,.23,.18,24.15,cx,roof+1.76,cz,.035);
   const gable = new THREE.Shape();
   gable.moveTo(x1,roof-.08);
@@ -223,6 +220,12 @@ export function buildInn(root: THREE.Group, m: Materials, solids: Solid[], solid
   cylinder(root,pine,.22,.075,85.44,y+.038,128.28,13);
   cylinder(root,m.zinc,.029,1.58,85.44,y+.82,128.28,10);
   cylinder(root,bulb,.22,.30,85.44,y+1.61,128.28,12);
+  // A self-service tea cabinet belongs beside the lounge seating.
+  solid([85.50,y+.43,126.36],[.74,.86,1.76],pine,.045);
+  box(root,timber,.81,.072,1.84,85.50,y+.881,126.36,.029);
+  cylinder(root,blue,.139,.27,85.42,y+1.05,126.01,12);
+  cylinder(root,m.zinc,.143,.044,85.42,y+1.198,126.01,12);
+  for (const z of [126.37,126.63,126.90]) cylinder(root,cream,.076,.118,85.68,y+.979,z,10);
   fixture(88.3,y,116.7,2.44,1.44,ochre);
   for(const z of [114.8,117.9]){
     solid([85.85,y+.45,z],[1.72,.90,.94],blue,.135);
@@ -315,6 +318,8 @@ export function buildInn(root: THREE.Group, m: Materials, solids: Solid[], solid
     solid([85.40,upper+1.02,z],[1.11,2.04,1.18],blue,.04);
     box(root,m.zinc,.08,.33,.067,85.99,upper+1.20,z+.39,.01);
   }
+  bench(94.25,upper,114.60,2.3);
+  suitcase(94.67,upper+.518,114.61,.64,ochre);
   bed(92.6,115.15,1.14,blue);
   for(const x of [92.02,93.18])for(const z of [114.11,116.16])
     solid([x,upper+.9,z],[.086,1.8,.086],pine);
@@ -326,6 +331,7 @@ export function buildInn(root: THREE.Group, m: Materials, solids: Solid[], solid
   tableLamp(88.22,upper+1.06,124.08);
   bed(87.0,122.35,1.22,pine,true);
   bed(87.0,126.15,1.22,red,true);
+  fabric(87.58,upper+.704,126.14,.47,.98,cream);
   bench(93.72,upper,121.27,2.61);
   suitcase(93.29,upper+.52,121.27,.87,red);
   box(root,ochre,1.43,.06,.104,94.54,upper+1.43,127.69,.013);
@@ -339,6 +345,9 @@ export function buildInn(root: THREE.Group, m: Materials, solids: Solid[], solid
   box(root,cream,.38,.025,.27,88.86,upper+1.05,132.78,.012);
   solid([86.62,upper+.29,132.42],[.71,.54,.68],blue,.065);
   box(root,blue,.14,.41,.66,86.29,upper+.74,132.42,.07);
+  solid([94.80,upper+.94,135.36],[1.41,1.88,.84],pine,.058);
+  for (const x of [94.52,95.08]) box(root,m.zinc,.085,.30,.067,x,upper+1.07,134.913,.018);
+  suitcase(94.69,upper+1.88,135.34,.72,ochre);
   bed(92.2,130.34,1.83,ochre);
   solid([92.4,upper+.34,134.78],[2.4,.68,.96],blue,.11);
   box(root,blue,2.34,.43,.17,92.4,upper+.82,135.15,.10);

@@ -9,6 +9,7 @@ import type {Solid,Slope} from './worldQueries.ts';
 export function buildHarbor(root:THREE.Group,m:Materials,solids:Solid[]){
   const group=new THREE.Group();group.name='harbor-3.5B';root.add(group);
   const white=enamel(0xd8e8df),navy=enamel(0x244858),teal=enamel(0x4d9c9c),blue=enamel(0x416783),glass=enamel(0x7bc8cf),wood=enamel(0xa88063),carpet=enamel(0x567b78),safety=enamel(0xeabe72),light=emissive(0xe5f9e2,.7),coral=enamel(0xd47d65);
+  const railPosts=new Set<string>();
   const b=(x:number,y:number,z:number,w:number,h:number,d:number,mat:THREE.Material,bevel=0)=>box(group,mat,w,h,d,x,y,z,bevel);
   function solid(x:number,y:number,z:number,w:number,h:number,d:number,mat:THREE.Material,bevel=0){const o=b(x,y,z,w,h,d,mat,bevel);o.castShadow=true;solids.push({min:[x-w/2,y-h/2,z-d/2],max:[x+w/2,y+h/2,z+d/2]});return o;}
   function slab(x1:number,x2:number,z1:number,z2:number,y:number,mat=wood){const thickness=.19;const o=b((x1+x2)/2,y-thickness/2,(z1+z2)/2,x2-x1,thickness,z2-z1,mat);o.castShadow=true;solids.push({min:[x1,y-thickness,z1],max:[x2,y,z2],floor:true,walkSurface:true,surface:'metal'});}
@@ -21,7 +22,24 @@ export function buildHarbor(root:THREE.Group,m:Materials,solids:Solid[]){
   const wallZ=(z:number,x1:number,x2:number,base:number,h:number,mat=white)=>{if(x2-x1>.01)solid((x1+x2)/2,base+h/2,z,x2-x1,h,.18,mat);};
   function openingX(x:number,z1:number,z2:number,base:number,h:number,doors:readonly number[],width=1.8,mat=white){let cursor=z1;for(const door of doors){wallX(x,cursor,door-width/2,base,h,mat);solid(x,base+2.35+(h-2.35)/2,door,.18,h-2.35,width,mat);for(const dz of [-width/2,width/2])b(x,base+1.15,door+dz,.24,2.3,.11,teal);cursor=door+width/2;}wallX(x,cursor,z2,base,h,mat);}
   function openingZ(z:number,x1:number,x2:number,base:number,h:number,door:number,width=2.6,mat=white){wallZ(z,x1,door-width/2,base,h,mat);wallZ(z,door+width/2,x2,base,h,mat);solid(door,base+2.35+(h-2.35)/2,z,width,h-2.35,.18,mat);for(const dx of [-width/2,width/2])b(door+dx,base+1.15,z,.12,2.3,.24,teal);}
-  function rail(x1:number,z1:number,x2:number,z2:number,y:number){const len=Math.hypot(x2-x1,z2-z1);if(len<.01)return;const a=new THREE.Vector3(x1,y+1.04,z1),c=new THREE.Vector3(x2,y+1.04,z2);strut(group,m.zinc,a,c,.08);strut(group,teal,a.clone().add(new THREE.Vector3(0,-.42,0)),c.clone().add(new THREE.Vector3(0,-.42,0)),.065);const n=Math.ceil(len/1.85);for(let i=0;i<=n;i++){const t=i/n;b(x1+(x2-x1)*t,y+.52,z1+(z2-z1)*t,.075,1.04,.075,m.zinc);}solids.push({min:[(x1+x2)/2-Math.max(.09,Math.abs(x2-x1))/2,y,(z1+z2)/2-Math.max(.09,Math.abs(z2-z1))/2],max:[(x1+x2)/2+Math.max(.09,Math.abs(x2-x1))/2,y+1.06,(z1+z2)/2+Math.max(.09,Math.abs(z2-z1))/2]});}
+  function rail(x1:number,z1:number,x2:number,z2:number,y:number) {
+    const len=Math.hypot(x2-x1,z2-z1);
+    if(len<.01)return;
+    const a=new THREE.Vector3(x1,y+1.04,z1), c=new THREE.Vector3(x2,y+1.04,z2);
+    strut(group,m.zinc,a,c,.08);
+    const drop=new THREE.Vector3(0,-.42,0);
+    strut(group,teal,a.clone().add(drop),c.clone().add(drop),.065);
+    const n=Math.ceil(len/1.85);
+    for(let i=0;i<=n;i++){
+      const x=x1+(x2-x1)*i/n, z=z1+(z2-z1)*i/n;
+      const key=[x,y,z].map(n=>n.toFixed(4)).join('/');
+      if(railPosts.has(key))continue;
+      railPosts.add(key);
+      b(x,y+.52,z,.075,1.04,.075,m.zinc);
+    }
+    const x=(x1+x2)/2,z=(z1+z2)/2,hx=Math.max(.09,Math.abs(x2-x1))/2,hz=Math.max(.09,Math.abs(z2-z1))/2;
+    solids.push({min:[x-hx,y,z-hz],max:[x+hx,y+1.06,z+hz]});
+  }
   function bench(x:number,y:number,z:number,w=2.0,d=.65,back=true){solid(x,y+.38,z,w,.40,d,navy,.035);b(x,y+.62,z,w+.04,.15,d+.02,carpet,.045);if(back)solid(x,y+.86,z-d*.43,w,.58,.16,teal,.025);}
   function table(x:number,y:number,z:number,w:number,d:number){solid(x,y+.84,z,w,.14,d,wood,.045);for(const dx of [-w*.37,w*.37])for(const dz of [-d*.34,d*.34])solid(x+dx,y+.39,z+dz,.13,.78,.13,navy,.015);}
   function theaterRow(x:number,y:number,z:number){for(let i=-2;i<=2;i++){const zz=z+i*.93;solid(x,y+.29,zz,.77,.58,.82,navy,.05);b(x,y+.62,zz,.73,.16,.79,coral,.055);solid(x+.38,y+.86,zz,.18,.64,.81,coral,.045);b(x,y+.75,zz+.39,.65,.10,.10,navy,.02);}}
