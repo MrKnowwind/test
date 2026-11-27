@@ -2,6 +2,13 @@ import type { MapInteraction, Vec3 } from '../contracts/demo.ts';
 import { southernKerb } from './southPlan.ts';
 
 export const marketCourt = { minX:-78, maxX:-56, minZ:101, maxZ:122 };
+// The south court and west path meet on one edge and share the same paving height.
+export const marketAprons = [
+  { minX:marketCourt.minX, maxX:marketCourt.maxX, minZ:117, maxZ:121 },
+  { minX:-78.575, maxX:-77.325, minZ:101.15, maxZ:117 },
+  { minX:-78.575, maxX:marketCourt.minX, minZ:117, maxZ:118.05 },
+];
+
 export const marketShops = [
   { minX:-77, maxX:-71, minZ:105, maxZ:117, entryX:-74, label:'便利店' },
   { minX:-71, maxX:-64, minZ:106, maxZ:117, entryX:-67.2, label:'五金杂货铺' },

@@ -3,6 +3,7 @@ import {box,cylinder,mesh,strut} from './detail/geometry.ts';
 import {enamel,emissive,type Materials} from './detail/materialLibrary.ts';
 import {northTerrace,terrainHeight,houses,northCustoms,observatory,observatoryUpperY} from './terrainPlan.ts';
 import type {Solid,Slope} from './worldQueries.ts';
+import { roads } from './roads.ts';
 import { residentialPad } from './southPlan.ts';
 
 // Constructed north-west relief and differentiated civic/household buildings.
@@ -20,10 +21,10 @@ export function buildNorthTerrace(root:THREE.Group,m:Materials,solids:Solid[]){
   // Retaining wall caps and articulated facing, grounded against the hillside.
   for(const x of [p.minX,p.maxX])for(let z=p.minZ+2;z<p.maxZ-1;z+=4){
     const h=terrainHeight(x,z)??0;if(h<.3)continue;
-    box(root,face,.22,h,3.96,x,h/2,z,.015);
+    box(root,face,.22,h-.04,3.96,x,(h-.04)/2,z,.015);
     box(root,m.steel,.28,.13,3.93,x,h-.22,z);
   }
-  box(root,m.concrete,w,.48,.35,cx,p.height-.24,p.minZ);
+  box(root,m.concrete,w,.48,.35,cx,p.height-.27,p.minZ);
   const railMat=enamel(0x4e716f);
   // Guard physical crest and steep sides, leaving the southern graded entrance open.
   const rail=(x1:number,z1:number,x2:number,z2:number)=>{
@@ -41,8 +42,26 @@ export function buildNorthTerrace(root:THREE.Group,m:Materials,solids:Solid[]){
   rail(p.minX+.4,p.minZ+.5,p.minX+.4,-119);rail(p.maxX-.4,p.minZ+.5,p.maxX-.4,-119);
   // Graded shoulders follow the same physical surface, and coastal vegetation
   // breaks the large slope into clear visual distances without bending the road.
-  for(const x of [-120.66,-109.34])for(const [a,c] of [[p.minZ,p.crestZ],[p.crestZ,p.maxZ]]){
-    const g=new THREE.BoxGeometry(1.19,.027,c-a);g.translate(x,.018,(a+c)/2);const v=g.getAttribute('position');for(let i=0;i<v.count;i++)v.setY(i,v.getY(i)+(terrainHeight(v.getX(i),v.getZ(i))??0));g.computeVertexNormals();mesh(root,g,m.concrete);
+  for(const x of [-120.66,-109.34]){
+    const width=1.19;
+    const crossings=roads.filter(r=>r.x1<x+width/2&&r.x2>x-width/2);
+    for(const [start,end] of [[p.minZ,p.crestZ],[p.crestZ,p.maxZ]]){
+      const spans=crossings.reduce<[number,number][]>((pieces,{z1,z2})=>pieces.flatMap(([a,b])=>{
+        if(z1>=b||z2<=a)return [[a,b]];
+        const kept:[number,number][]=[];
+        if(z1>a)kept.push([a,z1]);
+        if(z2<b)kept.push([z2,b]);
+        return kept;
+      }),[[start,end]]);
+      for(const [a,b] of spans){
+        const g=new THREE.BoxGeometry(width,.027,b-a);
+        g.translate(x,.018,(a+b)/2);
+        const vertices=g.getAttribute('position');
+        for(let i=0;i<vertices.count;i++)vertices.setY(i,vertices.getY(i)+(terrainHeight(vertices.getX(i),vertices.getZ(i))??0));
+        g.computeVertexNormals();
+        mesh(root,g,m.concrete);
+      }
+    }
   }
   const leaf=enamel(0x517f67),tip=enamel(0x8fb28b),stone=enamel(0x7d9292),foliage=new THREE.IcosahedronGeometry(1,1);
   const tree=(x:number,z:number,h:number)=>{const yy=terrainHeight(x,z)??0;cylinder(root,m.timber,.12,h*.72,x,yy+h*.36,z,9);solids.push({min:[x-.15,yy,z-.15],max:[x+.15,yy+h*.73,z+.15]});for(const [dx,dz,dy,r] of [[0,0,.72,.39],[-.65,.25,.57,.29],[.56,-.24,.84,.28]]){const o=mesh(root,foliage,dy>.8?tip:leaf,x+dx,yy+h*dy,z+dz);o.scale.set(h*r,h*r*.8,h*r*.95);}};
@@ -151,7 +170,7 @@ export function buildCivicDistrict(root:THREE.Group,m:Materials,solids:Solid[]){
     b(-127,2.76,z,2.8,.16,3.8,accent,.05);
     counter(-136,0,z,2.8,.85,accent);
     if(i===0){
-      seat(-130,0,z+2.3,3.1,sage);for(const x of [-131.5,-128.5])b(x,.67,z+2.3,.24,.40,.86,sage,.08);solid(-137,.35,z+2.5,1.8,.7,1.1,wood,.04);b(-137,.72,z+2.5,1.7,.065,1.05,cream,.03);b(-132,.018,z+2.4,5.3,.024,3.3,accent);b(-143.84,1.6,z+.95,.085,1.1,2.05,slate,.045);b(-143.75,1.6,z+.95,.055,.92,1.88,glass,.03);
+      seat(-130,0,z+2.3,3.1,sage);for(const x of [-131.5,-128.5])b(x,.67,z+2.3,.24,.40,.86,sage,.08);solid(-137,.35,z+2.5,1.8,.7,1.1,wood,.04);b(-137,.72,z+2.5,1.7,.065,1.05,cream,.03);b(-132,.041,z+2.4,5.3,.024,3.3,accent);b(-143.84,1.6,z+.95,.085,1.1,2.05,slate,.045);b(-143.75,1.6,z+.95,.055,.92,1.88,glass,.03);
     }else if(i===1){
       counter(-130,0,z+2.65,3.8,1.0,cream);solid(-139,.4,z+2.2,2.0,.8,1.1,wood,.045);b(-130.7,1.015,z+2.65,.70,.065,.53,slate,.04);cylinder(group,m.zinc,.065,.36,-130.7,1.17,z+2.92,12);b(-130.7,1.33,z+2.77,.085,.075,.33,m.zinc,.025);for(const dx of [-.40,.38])cylinder(group,m.rubber,.16,.045,-129.15+dx,1.03,z+2.65,16);
       solid(-133.45,.98,z+3.25,.91,1.96,.92,cream,.07);b(-132.96,1.27,z+3.25,.08,.62,.07,m.zinc,.02);

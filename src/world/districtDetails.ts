@@ -119,7 +119,7 @@ export function addPortHorizon(root: THREE.Group,m: Materials) {
   water.computeVertexNormals();mesh(root,water,ocean,-250,-2.1,-30);
   for(let z=-64;z<=56;z+=8) {
     if([-48,0].some(g=>Math.abs(z-g)<6))continue;
-    box(root,m.concrete,2.3,1.4,7.6,-171,-.7,z,.08);
+    box(root,m.concrete,2.3,1.4,7.6,-171,-.76,z,.08);
     cylinder(root,m.steel,.19,.8,-167,.4,z,12);
   }
   // A cargo hull made by extrusion, with bow, bridge, holds and deck fittings.

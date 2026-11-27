@@ -3,7 +3,7 @@ import type { Vec3 } from '../contracts/demo.ts';
 import { box, cylinder } from './detail/geometry.ts';
 import { emissive, enamel, type Materials } from './detail/materialLibrary.ts';
 import {
-  marketCourt, marketShops, parkingKiosk, parkingNorth, parkingPad, parkingSouth,
+  marketAprons, marketShops, parkingKiosk, parkingNorth, parkingPad, parkingSouth,
   pharmacy, pharmacyNorth, pharmacyPad, pharmacySouth,
 } from './marketPlan.ts';
 
@@ -43,8 +43,8 @@ export function buildMarketDistrict(root:THREE.Group,m:Materials,solid:Builder) 
     box(root,cream,width*.59,.068,.012,x,y+.17,z+.174,.008);
   }
   const sidewalk=enamel(0xb6b39c);
-  box(root,sidewalk,marketCourt.maxX-marketCourt.minX,.035,5,-67,.019,119.5);
-  box(root,sidewalk,1.25,.034,16.9,-77.95,.019,109.6);
+  for(const {minX,maxX,minZ,maxZ} of marketAprons)
+    box(root,sidewalk,maxX-minX,.035,maxZ-minZ,(minX+maxX)/2,.019,(minZ+maxZ)/2);
   for(const [i,shop] of marketShops.entries()){
     const {minX,maxX,minZ,maxZ,entryX}=shop, tint=[green,blue,orange][i], h=[3.65,4.35,3.40][i];
     const width=maxX-minX, depth=maxZ-minZ, x=(minX+maxX)/2,z=(minZ+maxZ)/2;

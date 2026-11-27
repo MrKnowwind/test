@@ -37,7 +37,7 @@ import { buildResearchAnnex } from './researchAnnex.ts';
 import { landBounds } from './landPlan.ts';
 import { landBank, landSurface } from './landSurface.ts';
 import { buildWorksites } from './worksites.ts';
-import { worksiteInteractions } from './worksitePlan.ts';
+import { drainCrossings, worksiteInteractions } from './worksitePlan.ts';
 
 const v = (p: Vec3) => new THREE.Vector3(...p);
 
@@ -231,7 +231,7 @@ function* environmentSteps() {
       ].filter(p => p.maxX > p.minX && p.maxZ > p.minZ);
     });
   }
-  const ground = [dock, dockRamp, northTerrace, researchPad, ...newTerrainSections]
+  const ground = [dock, dockRamp, northTerrace, researchPad, ...newTerrainSections, ...drainCrossings]
     .reduce(cutOut, [landBounds] as readonly Footprint[]);
   const terrain = landSurface(ground);
   tileByPosition(terrain, 3);
@@ -283,10 +283,11 @@ function* environmentSteps() {
   slab(lab.minX, lab.maxX, lab.minZ, lab.maxZ, researchPad.height, m.concrete);
   buildResearchBuilding(allStatic, m, solids, solid);
   slab(dock.minX, dock.maxX, dock.minZ, dock.maxZ, dock.y, m.concrete);
-  for (const z of [dock.minZ,dock.maxZ]) {
-    solid([(dock.minX+dock.maxX)/2,dock.y/2,z],[dock.maxX-dock.minX,-dock.y,.08],m.concrete,0);
+  const dockLip=.08;
+  for (const z of [dock.minZ+dockLip/2,dock.maxZ-dockLip/2]) {
+    solid([(dock.minX+dock.maxX)/2,dock.y/2,z],[dock.maxX-dock.minX,-dock.y,dockLip],m.concrete,0);
   }
-  solid([dock.minX,dock.y/2,(dock.minZ+dock.maxZ)/2],[.08,-dock.y,dock.maxZ-dock.minZ],m.concrete,0);
+  solid([dock.minX+dockLip/2,dock.y/2,(dock.minZ+dock.maxZ)/2],[dockLip,-dock.y,dock.maxZ-dock.minZ-2*dockLip],m.concrete,0);
   slope(dockRamp, dockSlope);
   slope(ramp, rampSlope);
   slab(lab.minX, lab.maxX, lab.minZ, lab.maxZ, lab.y, m.concrete);

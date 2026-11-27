@@ -139,8 +139,9 @@ export function buildWorksites(root: THREE.Group, m: Materials, solids: Solid[],
     handrail(-91, 18.48, -63.72, 18.48, loft);
     handrail(-90.95, 15.25, -90.95, 18.48, loft);
     table(-87, 16.8, 1.94, .76, loft, teal);
+    const supportHeight = loft - .24;
     for (const x of [-90.4, -81.6, -71.7, -64]) for (const z of [15.45, 18.35])
-      solid([x, loft * .5, z], [.19, loft, .22], m.steel);
+      solid([x, supportHeight / 2, z], [.19, supportHeight, .22], m.steel);
   }
 
   // C4: street-level reception and records flank a straight public lobby.
@@ -266,9 +267,9 @@ export function buildWorksites(root: THREE.Group, m: Materials, solids: Solid[],
   {
     const { minX: west, maxX: east, minZ: north, maxZ: south, height } = drainChannel;
     box(root, liquid, east - west - .24, .037, south - north - .21, (west + east) / 2, height + .29, (north + south) / 2);
-    for (const [z, material] of [[north, m.steel], [south, m.concrete]] as const) wallZ(z, west, east, height, 0, material);
+    for (const [z, material] of [[north, m.steel], [south, m.concrete]] as const) wallZ(z, west, east, height, -.04, material);
     for (const x of [west, east]) {
-      wallX(x, north, south, height, 0, m.concrete);
+      wallX(x, north, south, height, -.04, m.concrete);
       handrail(x, north, x, drainCrossings[0].minZ, 0);
       handrail(x, drainCrossings[0].maxZ, x, drainCrossings[1].minZ, 0);
       handrail(x, drainCrossings[1].maxZ, x, south, 0);

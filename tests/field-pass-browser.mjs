@@ -65,7 +65,7 @@ await page.addInitScript(fixedRoutes => {
     }
     painting = true;
   };
-}, ['research','south','market','inn','loadout','interiors','annex','civic','customs-floor','terrain','street','worksites'].some(name=>cases.has(name)));
+}, ['research','south','market','inn','loadout','interiors','annex','civic','customs-floor','floor-finishes','terrain','street','worksites'].some(name=>cases.has(name)));
 const tick = (n=2, paint=false) => page.evaluate(([n,paint]) => window.advanceRaid(n,paint),[n,paint]);
 const state = () => page.evaluate(() => {
   const {feet,stance,climb,eye,countdown,result,flags,weapon,locked,backpack,items,spawn,fov,speed,grounded,health} = window.raidQA.state();
@@ -824,6 +824,38 @@ async function customsFloor() {
   await height(y);
   report['customs-floor'] = {views: standing.length+1, searched: 'north-customs-locker', returnedToRoad: true};
 }
+async function floorFinishes() {
+  await page.setViewportSize({width:1120,height:800});
+  await start(2);
+  await practice();
+  const views=[
+    ['living-room',[-132,3.9,125.9],Math.PI,-.42],
+    ['warehouse-join',[6.4,3.12,14.9],Math.PI,-.46],
+    ['archive-south-wall',[207.6,8.1,-141.6],Math.PI,-.41],
+    ['market-footpath',[-78.1,0,112],Math.PI,-.42],
+    ['harbor-landing',[-165.3,0,-2.7],Math.PI,-.36],
+    ['drain-crossing',[154,0,-38],-Math.PI/2,-.37],
+    ['north-road-spur',[-124.3,8,-178],-Math.PI/2,-.40],
+  ];
+  for(const [name,feet,yaw,pitch] of views){
+    await pose(feet,yaw,pitch);
+    await capture(name,92);
+    await pose([feet[0]+.075,feet[1],feet[2]+.08],yaw+.045,pitch);
+    await capture(name+'-shift',92);
+  }
+  await pose([6.4,3.12,14.9]);
+  await walkRoute([[6.4,18.9],[2.6,18.9],[6.4,18.9],[6.4,14.9]]);
+  await height(3.12);
+  await pose([154,0,-38]);
+  await walkRoute([[171,-38],[171,-26],[154,-26]]);
+  await height(0);
+  await pose([-165.3,0,0]);
+  await walkRoute([[-187.8,0]]);
+  await height(shipLevels.cabin);
+  await walkRoute([[-164.5,0]]);
+  await height(0);
+  report['floor-finishes']={views:views.length*2,walked:['freight mezzanine','drain crossings','gangway']};
+}
 async function terrain() {
   await start(3);
   assert.equal((await state()).spawn.id, 'S-A');
@@ -1060,7 +1092,7 @@ function rgb(hex) {
   return 'rgb('+hex.slice(1).match(/../g).map(n=>parseInt(n,16)).join(', ')+')';
 }
 try {
-  for(const [name,fn] of Object.entries({districts,bags,movement,exits,service,routes,controls,feel,research,south,market,inn,loadout,interiors,annex,civic,'customs-floor':customsFloor,terrain,street,worksites,phase35d})){
+  for(const [name,fn] of Object.entries({districts,bags,movement,exits,service,routes,controls,feel,research,south,market,inn,loadout,interiors,annex,civic,'customs-floor':customsFloor,'floor-finishes':floorFinishes,terrain,street,worksites,phase35d})){
     if(cases.has(name)){await fn();console.log(name+' passed');}
   }
   assert.deepEqual(errors,[]);

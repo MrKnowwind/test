@@ -49,9 +49,13 @@ export function buildHarbor(root:THREE.Group,m:Materials,solids:Solid[]){
   function stripes(x:number,y:number,z:number,w:number,d:number){for(let i=0;i<Math.floor(w/.7);i++)b(x-w/2+.35+i*.7,y+.012,z,.24,.013,d,safety);}
 
   // WEST SHORE. The narrow quay apron is still connected to the legacy 0m land.
-  b(-166, .012,-20,11,.026,116,teal);b(-166,.035,-20,7,.014,116,m.concrete);
+  b(-166,.012,-20,11,.026,116,teal);
+  const landingHalfDepth=1.9, apronTop=.042;
+  // Build the quay strip between the landing pads so the two upper finishes share only an edge.
+  for(const [start,end] of [[-78,-48-landingHalfDepth],[-48+landingHalfDepth,-landingHalfDepth],[landingHalfDepth,38]])
+    b(-166,apronTop-.007,(start+end)/2,7,.014,end-start,m.concrete);
   for(const z of [-56,-40,-27,-14,12,26,42]){cylinder(group,navy,.22,.68,-170.45,.34,z,14);b(-170.45,.68,z,.62,.10,.42,navy,.03);}
-  for(const z of [-48,0]){b(-166,.035,z,7.5,.018,3.8,white);stripes(-166,.045,z,6.5,.35);}
+  for(const z of [-48,0]){b(-166,apronTop-.009,z,7.5,.018,landingHalfDepth*2,white);stripes(-166,apronTop,z,6.5,.35);}
   // Rail only along the shoreline between the two actual gateway apertures.
   for(const [a,c] of [[-78,-50],[-46,-2],[2,18],[36,54]])rail(-171.5,a,-171.5,c,0);
 
@@ -65,7 +69,7 @@ export function buildHarbor(root:THREE.Group,m:Materials,solids:Solid[]){
   for(const x of [-230,-186]){b(x,base-.42,-25.5,.10,.35,135,teal);b(x,base-.09,-25.5,.12,.07,135,white);b(x,base-1.2,-25.5,.12,.23,135,coral);}
   // Two true world-space bridges with physical slopes and railings.
   for(const g of gangways){const slope=(base-0)/(g.minX-g.maxX);incline(g.minX,g.maxX,g.minZ,g.maxZ,0,g.maxX,0,slope,m.zinc);
-    for(let i=1;i<Math.floor((g.maxX-g.minX)/.65);i++){const x=g.maxX-i*.65;b(x,(x-g.maxX)*slope+.013,g.z,.045,.018,2.9,navy);}
+    for(let i=1;i<Math.floor((g.maxX-g.minX)/.65);i++){const x=g.maxX-i*.65,y=(x-g.maxX)*slope;if(y>.065)b(x,y+.013,g.z,.045,.018,2.9,navy);}
     for(const dz of [-1.53,1.53]){const a=new THREE.Vector3(g.minX,base+1.03,g.z+dz),c=new THREE.Vector3(g.maxX,1.03,g.z+dz);strut(group,teal,a,c,.09);strut(group,m.zinc,a.clone().add(new THREE.Vector3(0,-.48,0)),c.clone().add(new THREE.Vector3(0,-.48,0)),.065);for(let x=g.minX;x<=g.maxX;x+=1.8){const y=(x-g.maxX)*slope;b(x,y+.49,g.z+dz,.075,.98,.075,m.zinc);}solids.push({min:[g.minX,.0,g.z+dz-.045],max:[g.maxX,base+1.05,g.z+dz+.045]});}
   }
   // Cabin outer walls, with uninterrupted east-side walking passage and two openings.

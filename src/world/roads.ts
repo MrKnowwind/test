@@ -1,12 +1,12 @@
 import * as THREE from 'three';
-import { box } from './detail/geometry.ts';
+import { box, mesh } from './detail/geometry.ts';
 import { siteApproaches } from './supplySites.ts';
 import { enamel } from './detail/materialLibrary.ts';
 import { gradeHeight, terrainSectionAt, terrainSections, houses, northCustoms, tidalWalk } from './terrainPlan.ts';
 import { communityApproach, residentialApproach, southernArterials, transitNorth, transitSouth } from './southPlan.ts';
-import { parkingNorth, parkingSouth, pharmacyNorth, pharmacySouth } from './marketPlan.ts';
+import { marketAprons, parkingNorth, parkingSouth, pharmacyNorth, pharmacySouth } from './marketPlan.ts';
 import { innNorth, innSouth } from './innPlan.ts';
-import { annexApproaches, ridgeTrail } from './researchAnnexPlan.ts';
+import { annexApproaches, archiveBuilding, ridgeTrail } from './researchAnnexPlan.ts';
 import { controlMain, drainCrossings, logisticsOffice, vehicleCourt } from './worksitePlan.ts';
 
 type Rect = { x1: number; x2: number; z1: number; z2: number };
@@ -68,8 +68,10 @@ export function buildRoads(root: THREE.Group, asphalt: THREE.Material) {
   const split = (first: number, last: number, cuts: number[]) =>
     [...new Set([first, ...cuts.filter(value => value > first && value < last), last])].sort((a,b)=>a-b);
   const stairCutouts = terrainSections.filter(t=>t.finishInset).map(fromFootprint);
+  const pavementCutouts = [...stairCutouts,fromFootprint(archiveBuilding)];
+  const marketPathCutouts = marketAprons.map(fromFootprint);
   function surface(r: Rect, y: number, material: THREE.Material) {
-    const patches=stairCutouts.reduce((pieces,cut)=>pieces.flatMap(p=>subtract(p,cut)),[r]);
+    const patches=pavementCutouts.reduce((pieces,cut)=>pieces.flatMap(p=>subtract(p,cut)),[r]);
     for(const patch of patches) pavement(patch,y,material);
   }
   function pavement(r: Rect, y: number, material: THREE.Material) {
@@ -94,10 +96,15 @@ export function buildRoads(root: THREE.Group, asphalt: THREE.Material) {
   // the long or short edge of a road without laying two top faces at the same height.
   footpaths.forEach((path,i)=>{
     let patches=[path];
-    for(const cut of [...roads,...footpaths.slice(0,i)]) patches=patches.flatMap(r=>subtract(r,cut));
+    for(const cut of [...roads,...marketPathCutouts,...footpaths.slice(0,i)]) patches=patches.flatMap(r=>subtract(r,cut));
     for(const patch of patches) surface(patch,.029,walkway);
   });
   const arrowPaint=enamel(0xe1f5e9);
+  const arrow = new THREE.Shape([
+    new THREE.Vector2(-.44,.25),new THREE.Vector2(0,-.29),new THREE.Vector2(.44,.25),
+    new THREE.Vector2(.33,.33),new THREE.Vector2(0,-.07),new THREE.Vector2(-.33,.33),
+  ]);
+  const arrowGeometry=new THREE.ShapeGeometry(arrow).rotateX(-Math.PI/2);
   for(const {points} of siteApproaches) {
     // Point toward the entrance at the middle of each long approach segment.
     for(let i=1;i<points.length;i++) {
@@ -107,10 +114,7 @@ export function buildRoads(root: THREE.Group, asphalt: THREE.Material) {
       const x=(ax+bx)/2,z=(az+bz)/2;
       if(roads.some(r=>x>r.x1-1 && x<r.x2+1 && z>r.z1-1 && z<r.z2+1)) continue;
       const direction=Math.atan2(bx-ax,bz-az);
-      for(const side of [-1,1]) {
-        const slash=box(root,arrowPaint,.14,.012,.72,x+side*.22*Math.cos(direction),.052,z-side*.22*Math.sin(direction));
-        slash.rotation.y=direction-side*.68;
-      }
+      mesh(root,arrowGeometry,arrowPaint,x,.058,z).rotation.y=direction;
     }
   }
   roads.forEach((road,i)=>{

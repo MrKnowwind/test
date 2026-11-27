@@ -18,6 +18,7 @@ import { archiveFloor, archivePad, archiveStair, archiveUpperY, observationPad, 
 import { houses, observatoryFloor, observatoryUpperY, terrainHeight, tidalWalk } from '../src/world/terrainPlan.ts';
 import { plantedIslands } from '../src/world/arcology.ts';
 import { roads } from '../src/world/roads.ts';
+import { freightHalls } from '../src/world/upperRoutes.ts';
 import { controlStair, drainCrossings, officeStair, sortingStair, worksiteInteractions, worksitePlace } from '../src/world/worksitePlan.ts';
 
 const map = createFirstMap(42);
@@ -179,6 +180,34 @@ test('repaired room junctions render a single exposed face at each formerly over
     const direction=new Vector3().setComponent(axis,-side);
     const hits=new Raycaster(origin,direction,0,.14).intersectObject(map.scene,true);
     assert.equal(hits.filter(hit=>Math.abs(hit.distance-.098)<.00025).length,1,label);
+  }
+});
+
+test('walkable finishes have no competing top face at the audited floor seams',()=>{
+  map.scene.updateMatrixWorld(true);
+  const down=new Vector3(0,-1,0);
+  const probes=[
+    ['residential rug',[-132.88,3.93,127.35]],
+    ['archive south wall',[200.51,8.133,-137.75]],
+    ['market west path',[-78.147,0.036,106.546]],
+    ['market forecourt',[-77.56,0.036,117.875]],
+    ['north terrace spur',[-121.076,8.031,-181.53]],
+    ['north terrace edge',[-155.2,8,-217.89]],
+    ['dock wall',[-144.51,0,-40.026]],
+    ['shoreline cap',[-171.84,0,-21.51]],
+    ['gangway apron',[-165.457,0.044,-.483]],
+    ['drain west bridge seam',[156.825,0,-38.033]],
+    ['drain east bridge seam',[166.175,0,-26.033]],
+    ['sorting mezzanine support',[-90.423,3.24,15.4217]],
+    ...freightHalls.map(([x,z,w,d],i)=>[
+      'freight mezzanine '+i,[x+w/2-1.68,3.134,z+d/2-2.65],
+    ]),
+  ];
+  for(const [label,[x,y,z]] of probes){
+    const hits=new Raycaster(new Vector3(x,y+.07,z),down,0,.16).intersectObject(map.scene,true);
+    assert.ok(hits.length && Math.abs(hits[0].point.y-y)<.045,label+' is covered by its finish');
+    const top=hits[0].point.y;
+    assert.equal(hits.filter(hit=>top-hit.point.y<.0031).length,1,label+' has one exposed face');
   }
 });
 
@@ -517,9 +546,7 @@ test('every new street building has walkable rooms and physically separated sear
   }
 });
 
-test('freight mezzanines allow a round trip on foot to their search cases',async()=>{
-  const {freightHalls}=await import('../src/world/upperRoutes.ts');
-  const {findInteraction}=await import('../src/player/controller.ts');
+test('freight mezzanines allow a round trip on foot to their search cases',()=>{
   function traverse(feet, targets, id){
     for(const [x,z] of targets){
       const steps=Math.ceil(Math.hypot(x-feet[0],z-feet[2])/.07);

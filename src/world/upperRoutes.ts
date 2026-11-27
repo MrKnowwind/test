@@ -44,18 +44,20 @@ export function upperRoutes(root:THREE.Group,m:Materials,solid:Builder,solids:So
       for(let i=0;i<=4;i++)box(root,m.zinc,.06,.89,.06,sx,height*i/4+.44,lowZ+(highZ-lowZ)*i/4);
     }
   }
-  function floor(x:number,z:number,w:number,d:number,top:number){
+  function floor(x:number,z:number,w:number,d:number,top:number,join:'north'|'south'){
     box(root,m.steel,w,.26,d,x,top-.13,z).castShadow=true;
     solids.push({min:[x-w/2,top-.26,z-d/2],max:[x+w/2,top,z+d/2],walkSurface:true,surface:'metal'});
-    box(root,m.zinc,w-.07,.016,d-.07,x,top+.006,z);
+    // Keep the rim on the exposed end and carry the finish right to the shared edge.
+    box(root,m.zinc,w-.07,.016,d-.035,x,top+.006,z+(join==='south'?.0175:-.0175));
   }
   function warehouse(x:number,z:number,w:number,d:number,index:number,cases:MapInteraction[]){
     const y=3.12,sideX=x+w/2-1.5,west=x-w/2+1.75,north=z-d/2,south=z+d/2;
     const low=north+1.2,high=low+6.85,bridge=south-2.1,sideW=2.4;
     stair(sideX,low,high,2.12,y);
-    floor(sideX,(high+bridge)/2,sideW,bridge-high,y);
-    floor((west+sideX)/2,bridge,sideX-west+sideW,2.55,y);
-    railing(sideX-sideW/2,(bridge-1.275+high)/2,y,bridge-1.275-high,false);
+    const bridgeDepth=2.55, join=bridge-bridgeDepth/2;
+    floor(sideX,(high+join)/2,sideW,join-high,y,'south');
+    floor((west+sideX)/2,bridge,sideX-west+sideW,bridgeDepth,y,'north');
+    railing(sideX-sideW/2,(join+high)/2,y,join-high,false);
     railing((west+sideX)/2,bridge+1.23,y,sideX-west+2.34,true);
     railing((west+sideX-2.4)/2,bridge-1.23,y,sideX-west-.03,true);
     for(const px of [west,sideX])for(const pz of [bridge-1.04,bridge+1.04])
