@@ -1,4 +1,5 @@
 import type { MapInteraction, Vec3 } from '../contracts/demo.ts';
+import { southernKerb } from './southPlan.ts';
 
 export const marketCourt = { minX:-78, maxX:-56, minZ:101, maxZ:122 };
 export const marketShops = [
@@ -9,7 +10,7 @@ export const marketShops = [
 
 export const pharmacyPad = { minX:-77, maxX:-58.5, minZ:130, maxZ:146, height:1.6 };
 export const pharmacyNorth = { minX:-70, maxX:-62, minZ:121, maxZ:130, northY:0, southY:pharmacyPad.height };
-export const pharmacySouth = { minX:-70, maxX:-62, minZ:146, maxZ:155, northY:pharmacyPad.height, southY:0 };
+export const pharmacySouth = { minX:-70, maxX:-62, minZ:146, maxZ:southernKerb.south, northY:pharmacyPad.height, southY:0, finishInset:.09 };
 export const pharmacy = { minX:-75.5, maxX:-59.8, minZ:131.1, maxZ:144.5 };
 
 export const parkingPad = { minX:183, maxX:208, minZ:116, maxZ:144, height:2 };

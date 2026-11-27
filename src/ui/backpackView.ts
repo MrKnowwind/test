@@ -6,7 +6,7 @@ import {
   type Cargo,
   type createBackpack,
 } from '../raid/backpack.ts';
-import { itemSpecs, isPack, packs, pockets, equipSlot, isShield, shieldCharge, shields, isHead, headDevices, gearLayout, type EquipSlot, type Section, type ItemId } from '../raid/catalog.ts';
+import { itemSpecs, isPack, packs, pockets, equipSlot, isShield, shieldCharge, shields, isHead, headDevices, gearLayout, type EquipSlot, type GearSlot, type Section, type ItemId } from '../raid/catalog.ts';
 import type { SearchContainer, SearchEntry } from '../raid/containerSearch.ts';
 import type { MapInteraction } from '../contracts/demo.ts';
 type Bag = ReturnType<typeof createBackpack>;
@@ -25,12 +25,16 @@ type Action = {
   equipFrom(id:string,entry:number,slot:EquipSlot):boolean;
 };
 type Selection = { from: 'bag' | 'source' | 'slot'; id: number; entry: Cargo; rotated: boolean };
+const emptyGear: Partial<Record<GearSlot, ItemId>> = { head: 'head-scout', shield: 'shield-white', pack: 'daypack', pistol: 'pistol', knife: 'knife' };
+const gearLabels = Object.fromEntries(gearLayout);
+const raidGearOrder = ['head','shield','primary1','primary2','pistol','knife','pack'] as const;
+
 export function createBackpackView(actions: Action) {
   const panel = document.createElement('section');
   panel.id = 'backpack-panel';
   panel.hidden = true;
   panel.innerHTML = `<div class="bag-window"><header><h2>随身装备</h2><div id="bag-danger" role="status"></div><button id="bag-close" aria-label="关闭背包">×</button></header>
-  <div class="bag-columns"><div class="equipment"><h3>装备</h3><canvas class="operator-portrait"></canvas><div id="loadout"></div></div>
+  <div class="bag-columns"><div class="equipment"><h3>装备</h3><section class="raid-kit"><canvas class="operator-portrait" aria-label="出击队员"></canvas><div id="loadout" aria-label="装备槽"></div></section></div>
   <div class="carry-column"><h3>携行 <span id="bag-size"></span></h3><div id="carry-grids"></div></div>
   <div class="bag-container" hidden><h3 id="container-title"></h3><div id="container-content"></div></div></div>
   <p id="bag-feedback" role="status"></p>
@@ -140,7 +144,7 @@ export function createBackpackView(actions: Action) {
       }
       clearSelection();
       refresh();
-      msg('已装备 ' + itemSpecs[item].name);
+      msg('已装备背包');
     };
     if (!bag.equipped) {
       apply();
@@ -201,26 +205,30 @@ export function createBackpackView(actions: Action) {
     });
     bar.append(controls);
   }
-  function openDetail(at: HTMLElement, entry: Cargo) {
+  function openDetail(at: HTMLElement, entry: Cargo, iconOnly = false) {
     clearSelection();
     anchor = at;
     anchor.classList.add('selected');
-    const spec = itemSpecs[entry.item], name = document.createElement('strong'), meta = document.createElement('small');
-    name.textContent = spec.name;
-    meta.textContent = [
-      spec.w + '×' + spec.h + ' 格', entry.quantity > 1 ? '×' + entry.quantity : '',
-      entry.durability !== undefined ? '剩余 ' + entry.durability + '/3' : '',
-      entry.loaded !== undefined ? '弹匣 ' + entry.loaded : '',
-      isShield(entry.item)?'护盾 '+shieldCharge(entry.item,entry.charge)+'/'+shields[entry.item]:isHead(entry.item)&&headDevices[entry.item]?'前方照明':'',
-      '基准 ' + (entry.durability !== undefined ? 30 * entry.durability : spec.price) + ' 券',
-      isPack(entry.item) ? '容量 ' + packs[entry.item].reduce((n, section) => n + section.w * section.h, 0) + ' 格' : '',
-    ].filter(Boolean).join('　');
-    q('#selected-item').append(itemIcon(entry.item), name, meta);
+    const spec = itemSpecs[entry.item];
+    q('#selected-item').append(itemIcon(entry.item));
+    if (!iconOnly) {
+      const name = document.createElement('strong'), meta = document.createElement('small');
+      name.textContent = spec.name;
+      meta.textContent = [
+        spec.w + '×' + spec.h + ' 格', entry.quantity > 1 ? '×' + entry.quantity : '',
+        entry.durability !== undefined ? '剩余 ' + entry.durability + '/3' : '',
+        entry.loaded !== undefined ? '弹匣 ' + entry.loaded : '',
+        isShield(entry.item)?'护盾 '+shieldCharge(entry.item,entry.charge)+'/'+shields[entry.item]:isHead(entry.item)&&headDevices[entry.item]?'前方照明':'',
+        '基准 ' + (entry.durability !== undefined ? 30 * entry.durability : spec.price) + ' 券',
+        isPack(entry.item) ? '容量 ' + packs[entry.item].reduce((n, section) => n + section.w * section.h, 0) + ' 格' : '',
+      ].filter(Boolean).join('　');
+      q('#selected-item').append(name, meta);
+    }
     detail.style.setProperty('--detail-color', spec.color);
     detail.hidden = false;
   }
   function select(s: Selection, at: HTMLElement) {
-    openDetail(at, s.entry);
+    openDetail(at, s.entry, s.from === 'slot');
     selected = s;
     const bar = q('.bag-actions');
     stackControls(bar,s);
@@ -466,14 +474,33 @@ export function createBackpackView(actions: Action) {
       ' 格';
     const kit = q('#loadout');
     kit.replaceChildren();
-    for (const [key,label] of gearLayout) {
-      if(key==='pack')continue;
-      if(key==='primary1'||key==='primary2'){const empty=document.createElement('div');empty.className='bag-gear empty-primary';empty.textContent=label+' · 未配备';kit.append(empty);continue;}
+    for (const key of raidGearOrder) {
+      const label = gearLabels[key];
+      if (key === 'pack') {
+        const pack = bag.equipped;
+        const slot = gearButton(kit, key, label, pack, () => {
+          if (!pack) return;
+          openDetail(slot, pack, true);
+          action('卸下并丢弃', actions.unpack);
+          positionDetail();
+        });
+        slot.draggable = !!pack;
+        slot.ondragstart = ev => {
+          if (!pack) return;
+          clearSelection();
+          dragging = draggingPack = true;
+          ev.dataTransfer?.setData('text/plain','worn-backpack');
+        };
+        continue;
+      }
+      if (key === 'primary1' || key === 'primary2') {
+        gearButton(kit, key, label, undefined, () => {}).disabled = true;
+        continue;
+      }
       const e = bag.slots[key];
       const choose = () => { if (e) select({ from: 'slot', entry: e, id: -1, rotated: false }, b); };
-      const b = button(kit, label+' · '+(e?itemSpecs[e.item].name+(isShield(e.item)?' '+shieldCharge(e.item,e.charge)+'/'+shields[e.item]:''):'空'), choose);b.dataset.gearSlot=key;b.classList.add('bag-gear');
+      const b = gearButton(kit, key, label, e, choose);
       if(e){
-        b.prepend(itemIcon(e.item));
         b.onclick=ev=>{choose();if(ev.shiftKey)quickMove(selected!);};
       }
       b.draggable = !!e;
@@ -491,20 +518,27 @@ export function createBackpackView(actions: Action) {
         }
       };
     }
-    const packButton=button(kit, bag.equipped ? itemSpecs[bag.equipped.item].name : '背包 · 空', () => {
-      if (!bag.equipped) return;
-      openDetail(packButton, bag.equipped);
-      action('卸下并丢弃', actions.unpack);
-      positionDetail();
-    });
-    if (bag.equipped) packButton.prepend(itemIcon(bag.equipped.item));
-    packButton.draggable=!!bag.equipped;
-    packButton.ondragstart=ev=>{
-      if(!bag.equipped)return;
-      clearSelection();dragging=draggingPack=true;
-      ev.dataTransfer?.setData('text/plain','worn-backpack');
-    };
     renderSource();
+  }
+  function gearButton(kit: HTMLElement, key: GearSlot, label: string, entry: Cargo | undefined, choose: () => void) {
+    const slot = button(kit, '', choose);
+    slot.dataset.gearSlot = key;
+    slot.className = 'bag-gear';
+    slot.setAttribute('aria-label', label + ' · ' + (entry ? itemSpecs[entry.item].name : '空'));
+    const icon = entry?.item ?? emptyGear[key];
+    if (icon) {
+      const art = itemIcon(icon);
+      art.setAttribute('aria-hidden', 'true');
+      slot.append(art);
+    } else {
+      const primary = document.createElement('span');
+      primary.className = 'primary-silhouette';
+      primary.setAttribute('aria-hidden','true');
+      slot.append(primary);
+    }
+    if (entry) slot.style.setProperty('--gear-color', itemSpecs[entry.item].color);
+    else slot.classList.add('empty-gear');
+    return slot;
   }
   q('#container-content').ondragover=ev=>{if(dragging && selected?.from==='bag' && source)ev.preventDefault();};
   q('#container-content').ondrop=ev=>{

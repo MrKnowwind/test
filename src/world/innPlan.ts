@@ -1,11 +1,13 @@
 import type { MapInteraction, Vec3 } from '../contracts/demo.ts';
+import { southernKerb } from './southPlan.ts';
 
 export const innPad = { minX:82, maxX:109, minZ:112, maxZ:138, height:3.1 };
-export const innNorth = { minX:97, maxX:105, minZ:96, maxZ:112, northY:0, southY:innPad.height };
-export const innSouth = { minX:97, maxX:105, minZ:138, maxZ:154, northY:innPad.height, southY:0 };
+export const innDoorX = 100.8;
+const entrance = { minX:innDoorX-3, maxX:innDoorX+3 };
+export const innNorth = { ...entrance, minZ:southernKerb.north, maxZ:innPad.minZ, northY:0, southY:innPad.height };
+export const innSouth = { ...entrance, minZ:innPad.maxZ, maxZ:southernKerb.south, northY:innPad.height, southY:0 };
 export const innBuilding = { minX:84.5, maxX:106.5, minZ:113.5, maxZ:136.5 };
 export const innUpperY = innPad.height + 3.25;
-export const innDoorX = 100.8;
 export const innStair = { x:104.1, width:2.50, bottomZ:127.3, topZ:117.3 };
 export const innGrades = [innNorth, {...innPad,northY:innPad.height,southY:innPad.height}, innSouth];
 

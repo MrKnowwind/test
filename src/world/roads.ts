@@ -3,7 +3,7 @@ import { box } from './detail/geometry.ts';
 import { siteApproaches } from './supplySites.ts';
 import { enamel } from './detail/materialLibrary.ts';
 import { gradeHeight, terrainSectionAt, terrainSections, houses, tidalWalk } from './terrainPlan.ts';
-import { communityApproach, residentialApproach, transitNorth, transitSouth } from './southPlan.ts';
+import { communityApproach, residentialApproach, southernArterials, transitNorth, transitSouth } from './southPlan.ts';
 import { parkingNorth, parkingSouth, pharmacyNorth, pharmacySouth } from './marketPlan.ts';
 import { innNorth, innSouth } from './innPlan.ts';
 import { annexApproaches, ridgeTrail } from './researchAnnexPlan.ts';
@@ -18,7 +18,7 @@ const fromFootprint = (bounds:{minX:number; maxX:number; minZ:number; maxZ:numbe
 
 // Through roads and spurs share this plan with the player's map.
 export const roads = [
-  [10,155,340,12],[20,95,360,10],[-115,-3,10,316],[60,-3,10,316],[175,-3,10,316],
+  southernArterials.south,southernArterials.north,[-115,-3,10,316],[60,-3,10,316],[175,-3,10,316],
   [-24,125,8,60],[-151,121,7,59],[-4,59,9,75],[-66,27,100,9],[-66,-42,100,9],
   [116,-100,130,10],[40.5,-102.5,9,61],[183,-90,25,9],[149,2,10,186],
   [50,-70,21,5],[162,-60,26,7],

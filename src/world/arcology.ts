@@ -4,8 +4,16 @@ import type { Materials } from './detail/materialLibrary.ts';
 import { enamel, emissive } from './detail/materialLibrary.ts';
 import { box, cylinder, mesh, strut, label } from './detail/geometry.ts';
 import { supplySites } from './supplySites.ts';
+import { terrainHeight } from './terrainPlan.ts';
 
 type Solid = (at: Vec3,size: Vec3,material: THREE.Material, bevel?:number)=>THREE.Mesh;
+
+export const plantedIslands = [
+  [-33.5,118,8,0],[-36,146,9,0],[-8,115,10,0],[13,130,10,0],[-71,102.15,10,0],
+  [96,84,12,0],[133,88.25,12,0],[-99,48,9,0],[-38,45,8,0],
+  [28,-123.35,8,1],[50.8,-123.7,6,1],[14,-136,7,1],[76,-128.1,9,1],
+  [-63.6,-157,9,1],[99,-22,10,0],[110,-56,8,0],[-23,-102,9,1],
+] as const;
 
 // All street furniture is built in surveyed lots with an open frontage.
 // Raised elements clear the route below. Major masses use the same placement for collision.
@@ -157,26 +165,22 @@ export function addArcology(root: THREE.Group,m: Materials,solid: Solid) {
   const bark=enamel(0x475878), leaf=enamel(0x57abb4), tip=enamel(0x8bcdbf);
   const lilac=enamel(0xad93cf), blush=enamel(0xd1add7);
   const crown=new THREE.IcosahedronGeometry(1,0);
-  for (const [px,pz,length,purple] of [
-    [-31,118,8,0],[-36,146,9,0],[-8,115,10,0],[24,130,13,0],[-71,100,10,0],
-    [96,84,12,0],[133,89,12,0],[-99,48,9,0],[-38,45,8,0],
-    [28,-126,9,1],[52,-130,8,1],[22,-135,12,1],[76,-130,9,1],
-    [-62,-157,9,1],[99,-22,10,0],[110,-56,8,0],[-23,-102,9,1],
-  ]) {
-    solid([px,.29,pz],[length,.58,2.45],navy,.22);
-    box(root,m.zinc,length-.14,.135,2.38,px,.6,pz,.06);
-    box(root,cyan,length-.45,.07,2.08,px,.69,pz,.04);
+  for (const [px,pz,length,purple] of plantedIslands) {
+    const y=terrainHeight(px,pz)??0;
+    solid([px,y+.29,pz],[length,.58,2.45],navy,.22);
+    box(root,m.zinc,length-.14,.135,2.38,px,y+.6,pz,.06);
+    box(root,cyan,length-.45,.07,2.08,px,y+.69,pz,.04);
     for (const side of [-1,1]) {
       const tx=px+side*length*.26;
       const h=3.9+.7*Math.sin(tx);
-      cylinder(root,bark,.19,h,tx,.7+h/2,pz,7);
+      cylinder(root,bark,.19,h,tx,y+.7+h/2,pz,7);
       for (const fork of [-1,1]) {
-        const endX=tx+fork*1.05, endY=.7+h+fork*.3;
-        rail([tx,h*.67,pz],[endX,endY,pz+fork*.2],.24,.24,bark);
+        const endX=tx+fork*1.05, endY=y+.7+h+fork*.3;
+        rail([tx,y+h*.67,pz],[endX,endY,pz+fork*.2],.24,.24,bark);
         const foliage=mesh(root,crown,purple?lilac:leaf,endX,endY+.45,pz+fork*.2);
         foliage.scale.set(1.84,1.3,1.45);foliage.rotation.y=tx;foliage.castShadow=true;
       }
-      const top=mesh(root,crown,purple?blush:tip,tx,.7+h+1.28,pz);
+      const top=mesh(root,crown,purple?blush:tip,tx,y+.7+h+1.28,pz);
       top.scale.set(1.95,1.44,1.55);top.rotation.y=pz;top.castShadow=true;
     }
   }

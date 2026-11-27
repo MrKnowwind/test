@@ -163,7 +163,7 @@ export function buildCivicDistrict(root:THREE.Group,m:Materials,solids:Solid[]){
     if(i!==2){for(const side of [-1,1]){const roof=b(-135,f+3.77,z+side*2.35,18.7,.17,5.05,accent,.04);roof.rotation.x=side*.32;}b(-135,f+4.50,z,18.9,.18,.23,slate,.045);}else{b(-135,f+3.21,z,18.9,.32,9.5,blue,.08);solid(-139,f+3.91,z,2.0,1.40,1.8,slate,.07);}
     lamp(-135,2.78,z);lamp(-135,f+2.63,z);
     // Individual planters and porch equipment; leave central entries clear.
-    for(const dz of [-3.2,3.2]){solid(-124.5,.35,z+dz,1.15,.7,.85,cream,.07);cylinder(group,green,.32,.78,-124.5,1.04,z+dz,10);}
+    for(const dz of [-3.2,3.2]){solid(-125.44,.35,z+dz,.78,.7,.85,cream,.07);cylinder(group,green,.32,.78,-125.44,1.04,z+dz,10);}
   }
   for (const collider of solids.slice(firstHouseSolid)) {
     if (collider.slope) {

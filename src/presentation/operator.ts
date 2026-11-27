@@ -168,8 +168,8 @@ export function renderOperatorPortrait(renderer:THREE.WebGLRenderer,shield?:Shie
   scene.add(actor,new THREE.HemisphereLight(0xfff4e3,0xa9bfd5,1.7));
   actor.rotation.y=.39;
   const key=new THREE.DirectionalLight(0xffecd7,2.2);key.position.set(-2,4,3);scene.add(key);
-  const w=352,h=448, cam=new THREE.OrthographicCamera(-.31,.31,.395,-.395,.1,15);
-  cam.position.set(.08,1.52,4);cam.lookAt(0,1.417,0);
+  const w=360,h=560, cam=new THREE.OrthographicCamera(-.50,.50,.778,-.778,.1,15);
+  cam.position.set(.08,1.17,4);cam.lookAt(0,1.075,0);
   const target=new THREE.WebGLRenderTarget(w,h,{samples:2});target.texture.colorSpace=THREE.SRGBColorSpace;
   const oldTarget=renderer.getRenderTarget(), old=renderer.getClearColor(new THREE.Color()), alpha=renderer.getClearAlpha();
   const pixels=new Uint8Array(w*h*4);

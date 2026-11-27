@@ -11,11 +11,13 @@ import { createRaid } from '../src/raid/raid.ts';
 import { itemSpecs, packs } from '../src/raid/catalog.ts';
 import { districtRoutes } from './fixtures/district-routes.mjs';
 import { isLabLevel, labLift, researchPad, researchBuildingFloor, researchUpperY } from '../src/world/researchPlan.ts';
-import { communityPad, residentialPad, southInteractions, transitPad } from '../src/world/southPlan.ts';
+import { communityPad, residentialPad, residentialSteps, southInteractions, southernKerb, transitPad } from '../src/world/southPlan.ts';
 import { marketArea, marketInteractions, parkingPad, pharmacyPad } from '../src/world/marketPlan.ts';
-import { innArea, innDoorX, innFloor, innInteractions, innPad, innStair, innUpperY } from '../src/world/innPlan.ts';
+import { innArea, innBuilding, innDoorX, innFloor, innInteractions, innPad, innStair, innUpperY } from '../src/world/innPlan.ts';
 import { archiveFloor, archivePad, archiveStair, archiveUpperY, observationPad, researchAnnexArea, researchAnnexInteractions, ridgeCrest } from '../src/world/researchAnnexPlan.ts';
-import { houses, observatoryFloor, observatoryUpperY, tidalWalk } from '../src/world/terrainPlan.ts';
+import { houses, observatoryFloor, observatoryUpperY, terrainHeight, tidalWalk } from '../src/world/terrainPlan.ts';
+import { plantedIslands } from '../src/world/arcology.ts';
+import { roads } from '../src/world/roads.ts';
 import { controlStair, drainCrossings, officeStair, sortingStair, worksiteInteractions, worksitePlace } from '../src/world/worksitePlan.ts';
 
 const map = createFirstMap(42);
@@ -134,15 +136,34 @@ test('the warehouse doorways lead to its loading aisle and ordinary supplies',()
  visible(at('plant',[35,0,22.1]),'factory-ammo');
 });
 
-test('the full player capsule crosses a low ramp edge beside the southern road center',()=>{
-  for (const z of [154.42,154.74,154.994,155.14]) {
-    const east=map.moveBody([-71.6,0,z],11,0,0,radius,height);
-    assert.ok(Math.abs(east[0]+60.6)<.001 && Math.abs(east[1])<.001,z);
-    const west=map.moveBody(east,-11,0,0,radius,height);
-    assert.ok(Math.abs(west[0]+71.6)<.001 && Math.abs(west[1])<.001,z);
+test('southern street stays level across the entrances, with grade beginning behind the kerb',()=>{
+  for (const x of [-124.5,-122.1,-66,27,innDoorX,124]) {
+    for (const z of [95,southernKerb.north-.11,southernKerb.south+.11,155]) {
+      const east=map.moveBody([x-5,0,z],10,0,0,radius,height);
+      assert.ok(Math.abs(east[0]-x-5)<.001 && Math.abs(east[1])<.001,JSON.stringify({x,z,east}));
+      const west=map.moveBody(east,-10,0,0,radius,height);
+      assert.ok(Math.abs(west[0]-x+5)<.001 && Math.abs(west[1])<.001,JSON.stringify({x,z,west}));
+      const level=map.groundHeight([x,2,z],radius);
+      assert.ok(level!==null&&Math.abs(level)<.001,JSON.stringify({x,z,level}));
+    }
   }
-  const highSide=map.moveBody([-71.4,0,151],3,0,0,radius,height);
+  const highSide=map.moveBody([-71.4,0,147.25],3,0,0,radius,height);
   assert.ok(highSide[0]<-70,'higher ramp sides must stay solid');
+  map.scene.updateMatrixWorld(true);
+  for (const z of [southernKerb.north-.24,southernKerb.south+.24]) {
+    const hit=new Raycaster(new Vector3(innDoorX,1,z),new Vector3(0,-1,0),0,1.2).intersectObject(map.scene,true)[0];
+    assert.ok(hit && Math.abs(hit.point.y)<.05,'rendered road is flush at the approach');
+  }
+});
+
+test('planted street islands are clear of road lanes and grounded on continuous landings',()=>{
+  for (const [x,z,w] of plantedIslands) {
+    const footprint={x1:x-w/2,x2:x+w/2,z1:z-1.225,z2:z+1.225};
+    assert.ok(!roads.some(r=>footprint.x1<r.x2&&footprint.x2>r.x1&&footprint.z1<r.z2&&footprint.z2>r.z1),JSON.stringify({x,z}));
+    const y=terrainHeight(x,z)??0;
+    for (const xx of [footprint.x1,footprint.x2]) for (const zz of [footprint.z1,footprint.z2])
+      assert.equal(terrainHeight(xx,zz)??0,y,JSON.stringify({x,z,xx,zz}));
+  }
 });
 
 test('the logistics buildings separate sorting, office records and outdoor vehicle transfer',()=>{
@@ -515,7 +536,7 @@ test('the playable body crosses port, B1 and new district ramp seams in both dir
     [[26,0,-196],[26,1.8,-212]], [[38,0,0],[38,3.6,35]], [[38,0,70],[38,3.6,35]],
     [[40.5,0,-70],[40.5,researchPad.height,-130]], [[36,0,-196],[36,researchPad.height,-174]],
     [[-122.7,0,95],[-122.7,residentialPad.height,121]],
-    [[-122.7,residentialPad.height,148],[-122.7,0,155.4]],
+    [[-122.1,residentialPad.height,residentialSteps.minZ-.85],[-122.1,0,155.4]],
     [[27,0,95],[27,communityPad.height,116]], [[27,0,151],[27,communityPad.height,137]],
     [[123,0,158],[123,transitPad.height,130]], [[123,0,95],[123,transitPad.height,113]],
   ]){
@@ -573,16 +594,16 @@ test('north civic interiors connect to the registration office and the glazed ob
 });
 
 test('southern terraces connect both arterials and offer distinct, searchable public interiors',()=>{
- const home=walk([-122.7,0,95],[[-122.7,123],[-122.7,148]]);
+ const home=walk([-122.7,0,95],[[-122.7,123],[-122.7,139.4],[-124.4,139.4],[-124.4,147.5]]);
  assert.equal(home[1],residentialPad.height);
- assert.ok(Math.abs(walk(home,[[-122.7,155.4]])[1])<.02);
+ assert.ok(Math.abs(walk(home,[[-124.4,139.4],[-122.1,139.4],[-122.1,155.4]])[1])<.02);
  for(const [i,{z}] of houses.entries()){
-   const lower=walk(home,[[-122.7,z],[-133.9,z]]);
+   const lower=walk(home,[[-124.4,z],[-133.9,z]]);
    visible(lower,`residential-${i}-ground`);
    const upper=walk(lower,[[-130.2,z],[-130.2,z-3],[-142.88,z-3],[-142.88,z],[-139,z]]);
    assert.ok(Math.abs(upper[1]-residentialPad.height-3.2)<.01);
    visible(upper,`residential-${i}-upper`);
-   assert.equal(walk(upper,[[-142.88,z],[-142.88,z-3],[-130.2,z-3],[-130.2,z],[-122.7,z]])[1],residentialPad.height);
+   assert.equal(walk(upper,[[-142.88,z],[-142.88,z-3],[-130.2,z-3],[-130.2,z],[-124.4,z]])[1],residentialPad.height);
  }
 
  const court=walk([27,0,152],[[27,136],[27,122.15]]);
@@ -614,6 +635,8 @@ test('market stores, the single pharmacy and parking have continuous approaches 
   [[[-67.2,119.4],[-67.2,114.25]],'market-hardware'],
   [[[-60.2,119.4],[-60.2,112.75]],'market-kitchen'],
  ]) visible(walk(court,route),id);
+ const street=walk(court,[[-60.2,119.4],[-60.2,120.55],[-60.2,119.4],[-79.5,119.4],[-79.5,95]]);
+ assert.equal(street[1],0,'frontage seating leaves a continuous path');
  const clinic=walk(court,[[-66,137.0]]);
  assert.equal(clinic[1],pharmacyPad.height);
  visible(walk(clinic,[[-70.45,137.0],[-71.2,137.0]]),'room-clinic-8');
@@ -700,6 +723,16 @@ test('seafarers inn connects its approach ramps, stair and three distinct guest 
  }
  const ceiling=map.blockedDistance([88.6,innPad.height+1.65,117.1],[0,1,0],3);
  assert.ok(ceiling!==null&&ceiling<2.1);
+ map.scene.updateMatrixWorld(true);
+ const direction=new Vector3(-1,0,0);
+ for(const level of [innPad.height,innUpperY]){
+   const out=new Vector3(innBuilding.maxX+1,level+.91,innBuilding.maxZ+.93);
+   assert.equal(new Raycaster(out,direction,0,2).intersectObject(map.scene,true).length,0,'sills end before the wall corner');
+   const through=new Vector3(innBuilding.maxX+.8,level+1.63,132.66);
+   const pane=new Raycaster(through,direction,0,1.1).intersectObject(map.scene,true)[0]?.object;
+   assert.ok(pane?.material.transparent,'wall has an actual transparent opening');
+   assert.ok(map.blockedDistance(through.toArray(),[-1,0,0],1.1)!==null,'glass still stops passage');
+ }
  const guard=map.enemies.find(enemy=>enemy.id==='inn-infected');
  assert.ok(map.bodyClear(guard.position,radius,height));
  assert.equal(map.groundHeight(guard.position,radius),innPad.height);

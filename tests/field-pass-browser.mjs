@@ -62,7 +62,7 @@ await page.addInitScript(fixedRoutes => {
     }
     painting = true;
   };
-}, ['research','south','market','inn','annex','civic','terrain','street','worksites'].some(name=>cases.has(name)));
+}, ['research','south','market','inn','loadout','annex','civic','terrain','street','worksites'].some(name=>cases.has(name)));
 const tick = (n=2, paint=false) => page.evaluate(([n,paint]) => window.advanceRaid(n,paint),[n,paint]);
 const state = () => page.evaluate(() => {
   const {feet,stance,climb,eye,countdown,result,flags,weapon,locked,backpack,items,spawn,fov,speed,grounded,health} = window.raidQA.state();
@@ -430,7 +430,7 @@ async function south() {
   assert.match(await page.locator('#prompt').textContent(),/本局未开放/);
   assert.equal((await state()).result,undefined);
 
-  await walkRoute([[26,155],[-122.7,155],[-122.7,147.8],[-122.7,134.5]]);
+  await walkRoute([[26,155],[-122.1,155],[-122.1,140],[-122.7,134.5]]);
   await height(residentialPad.height);
   await pose((await state()).feet,Math.PI/2,.04);
   await capture('04-south-residential-porches');
@@ -483,7 +483,7 @@ async function market() {
   await walkRoute([[-60.2,120.55]]);
   await pose((await state()).feet,.53,.10);
   await capture('03-market-frontage');
-  await walkRoute([[-79.5,119.4],[-79.5,95]]);
+  await walkRoute([[-60.2,119.4],[-69,119.4],[-79.5,119.4],[-79.5,95]]);
   await height(0);
 
   await pose([198,0,95],Math.PI);
@@ -506,7 +506,11 @@ async function inn() {
   await start(5);
   assert.equal((await state()).spawn.id,'S-C');
   await practice();
-  await walkRoute([[123,155],[innDoorX,155],[innDoorX,139.5]]);
+  await walkRoute([[123,155],[innDoorX,155]]);
+  await height(0);
+  await pose((await state()).feet,.49,.11);
+  await capture('00-inn-roadside');
+  await walkRoute([[innDoorX,139.5]]);
   await capture('01-inn-south-approach');
   await walkRoute([[innDoorX,129.5]]);
   await height(innPad.height);
@@ -515,9 +519,14 @@ async function inn() {
   await aim('inn-reception');
   await capture('02-inn-reception');
   await searchCase('inn-reception');
+  await walkRoute([[91.9,129.2]]);
+  await pose((await state()).feet,2.03,-.09);
+  await capture('02b-inn-lounge');
   await walkRoute([[innDoorX,129.5],[innDoorX,122.1],[89.65,122.1]]);
   await searchCase('inn-linen');
-  await walkRoute([[innDoorX,122.1],[innDoorX,129.5],[innStair.x,129.5],[innStair.x,115.7],[99.1,115.7]]);
+  await walkRoute([[innDoorX,122.1],[innDoorX,116.7],[90.05,116.7]]);
+  await searchCase('inn-luggage');
+  await walkRoute([[innDoorX,116.7],[innDoorX,129.5],[innStair.x,129.5],[innStair.x,115.7],[99.1,115.7]]);
   await height(innUpperY);
   assert.equal(await page.locator('#floor').textContent(),'海员旅馆 · 2F');
   await page.waitForTimeout(120);
@@ -537,8 +546,78 @@ async function inn() {
   await walkRoute([[innDoorX,155]]);
   await height(0);
   report.inn={spawn:'S-C',street:innPad.height,upper:innUpperY,
-    searched:['inn-reception','inn-linen','inn-crew','inn-twin','inn-corner'],
+    searched:['inn-reception','inn-linen','inn-luggage','inn-crew','inn-twin','inn-corner'],
     checked:['south approach','north approach','stairs both ways','minimap level','three guest rooms']};
+}
+async function loadout() {
+  await start(5);
+  await practice();
+  await pose([innDoorX,0,155],0,-1.03);
+  await press('Escape');
+  await page.selectOption('#creative-item','alpine');
+  await click('#creative-drop');
+  await resume();
+  await page.waitForFunction(()=>document.querySelector('#prompt').textContent.includes('查看'),undefined,{polling:25,timeout:5000});
+  await press('e');
+  await click('button.pack-source');
+  await page.getByRole('button',{name:'装备此包'}).click({force:true});
+  const confirm=page.getByRole('button',{name:'确认装备'});
+  if(await confirm.isVisible()) await confirm.click({force:true});
+  await page.locator('#backpack-panel:not(.has-source):not([hidden]) .pack-layout[data-pack=alpine]').waitFor();
+  const check = () => page.evaluate(()=>{
+    const box = selector => {
+      const r=document.querySelector(selector).getBoundingClientRect();
+      return {width:r.width,height:r.height,x:r.x,right:r.right};
+    };
+    const slots=[...document.querySelectorAll('#loadout button')].map(b=>{
+      const r=b.getBoundingClientRect();
+      return {slot:b.dataset.gearSlot,width:r.width,height:r.height,text:b.textContent.trim(),icon:!!b.firstElementChild};
+    });
+    return {gear:box('.equipment'),carry:box('.carry-column'),portrait:box('.operator-portrait'),
+      source:box('.bag-container'),window:box('.bag-window'),overflow:document.querySelector('.bag-window').scrollWidth-document.querySelector('.bag-window').clientWidth,slots};
+  });
+  const viewports=[[1440,900],[768,620],[430,780]];
+  const verify=(m,w)=>{
+    assert.equal(m.slots.length,7);
+    for(const slot of m.slots)
+      assert.ok(Math.abs(slot.width-slot.height)<1 && slot.width>=46 && slot.text==='' && slot.icon,JSON.stringify({w,slot}));
+    assert.ok(m.portrait.width>=85&&m.portrait.height>90,JSON.stringify({w,m}));
+    assert.ok(m.overflow<=1&&m.window.x>=0&&m.window.right<=w,JSON.stringify({w,m}));
+  };
+  report.loadout={solo:[],source:[]};
+  for(const [w,h] of viewports){
+    await page.setViewportSize({width:w,height:h});
+    await capture('loadout-solo-'+w);
+    const m=await check();
+    verify(m,w);
+    assert.equal(m.source.width,0);
+    if(w>610) assert.ok(m.gear.width>m.carry.width);
+    report.loadout.solo.push({w,gearWidth:m.gear.width,carryWidth:m.carry.width,slotWidth:m.slots[0].width});
+  }
+  await page.setViewportSize({width:1440,height:900});
+  const pistol='#backpack-panel #loadout [data-gear-slot=pistol]';
+  await click(pistol);
+  assert.equal(await page.locator('#selected-item strong, #selected-item small').count(),0);
+  await page.getByRole('button',{name:'收进格子',exact:true}).click();
+  const stowed=page.locator('#carry-grids').getByRole('button',{name:'港卫 P8',exact:true});
+  await stowed.click();
+  await page.locator('#bag-detail').getByRole('button',{name:'装备',exact:true}).click();
+  await page.locator(pistol+':not(.empty-gear)').waitFor();
+  await closeBag();
+  await pose([93.4,innPad.height,130.23]);
+  await aim('inn-reception');
+  await press('e');
+  await page.locator('.bag-container').waitFor({state:'visible'});
+  for(const [w,h] of viewports){
+    await page.setViewportSize({width:w,height:h});
+    await capture('loadout-source-'+w);
+    const m=await check();
+    verify(m,w);
+    assert.ok(m.source.width>150);
+    if(w>920) assert.ok(m.gear.x<m.carry.x&&m.carry.x<m.source.x);
+    report.loadout.source.push({w,sourceWidth:m.source.width});
+  }
+  report.loadout.stowAndEquip=true;
 }
 async function annex() {
   await start(1);
@@ -739,7 +818,7 @@ async function worksites() {
   report.worksites={bundle,searched,drainCrossings:2,stairRuns:3};
 }
 try {
-  for(const [name,fn] of Object.entries({districts,bags,movement,exits,service,routes,controls,feel,research,south,market,inn,annex,civic,terrain,street,worksites})){
+  for(const [name,fn] of Object.entries({districts,bags,movement,exits,service,routes,controls,feel,research,south,market,inn,loadout,annex,civic,terrain,street,worksites})){
     if(cases.has(name)){await fn();console.log(name+' passed');}
   }
   assert.deepEqual(errors,[]);

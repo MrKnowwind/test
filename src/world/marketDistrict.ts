@@ -37,6 +37,11 @@ export function buildMarketDistrict(root:THREE.Group,m:Materials,solid:Builder) 
     const bulb=new THREE.PointLight(color,28,8,2);
     bulb.position.set(x,y-.15,z);root.add(bulb);
   }
+  const foodPacket=enamel(0xccad70);
+  function stock(x:number,y:number,z:number,mat:THREE.Material,width=.32) {
+    box(root,mat,width,.29,.34,x,y+.145,z,.025);
+    box(root,cream,width*.59,.068,.012,x,y+.17,z+.174,.008);
+  }
   const sidewalk=enamel(0xb6b39c);
   box(root,sidewalk,marketCourt.maxX-marketCourt.minX,.035,5,-67,.019,119.5);
   box(root,sidewalk,1.25,.034,16.9,-77.95,.019,109.6);
@@ -72,6 +77,13 @@ export function buildMarketDistrict(root:THREE.Group,m:Materials,solid:Builder) 
     box(root,glass,.07,1.47,1.01,-72.58,.94,z,.035);
   }
   for(const z of [112.6,114.1])counter(-72.15,0,z,1.10,1.00,cream);
+  for(const [x,z] of [[-72.34,112.74],[-71.96,112.54],[-72.37,113.93],[-71.96,114.18]])
+    stock(x,1.05,z,z>113?foodPacket:green);
+  solid([-75.78,.78,106.15],[1.46,1.56,.62],m.steel,.045);
+  for (const y of [.40,.84,1.28]) {
+    box(root,green,1.37,.07,.16,-75.78,y,106.52,.018);
+    for (const x of [-76.22,-75.80,-75.38]) stock(x,y+.035,106.56,y<.8?orange:foodPacket);
+  }
   counter(-69.25,0,113.7,1.75,1.65,blue);
   solid([-65.05,1.04,110.1],[1.06,2.08,3.19],m.steel,.04);
   for(const h of [.52,1.04,1.56]){
@@ -80,6 +92,12 @@ export function buildMarketDistrict(root:THREE.Group,m:Materials,solid:Builder) 
   }
   solid([-68.2,1.13,106.42],[4.78,2.25,.48],green,.025);
   for(let i=0;i<6;i++)box(root,m.zinc,.24,.65+(i%2)*.14,.09,-70.1+i*.75,1.43,106.73,.02);
+  for (const x of [-69.95,-69.34,-68.73]) {
+    box(root,blue,.48,.29,.41,x,.145,107.08,.047);
+    box(root,cream,.27,.086,.019,x,.18,107.30,.012);
+  }
+  box(root,m.rubber,.47,.038,.46,-69.64,1.069,113.33,.023);
+  box(root,m.zinc,.31,.06,.16,-69.64,1.112,113.31,.015);
   counter(-58.55,0,112.7,1.76,1.43,orange);
   counter(-61,0,108.55,4.75,1.22,green);
   for(const x of [-62,-61,-60])cylinder(root,m.rubber,.22,.047,x,1.075,108.6,16);
@@ -87,6 +105,16 @@ export function buildMarketDistrict(root:THREE.Group,m:Materials,solid:Builder) 
     solid([x,.39,114.95],[.46,.78,.44],orange,.09);
     box(root,cream,.61,.085,.58,x,.8,114.95,.12);
   }
+  for (const [x,z] of [[-61.85,108.22],[-61.55,108.31],[-59.1,112.62]]) {
+    cylinder(root,cream,.094,.19,x,1.14,z,12);
+    cylinder(root,orange,.099,.046,x,1.25,z,12);
+  }
+  for (const x of [-61.49,-58.81]) {
+    box(root,m.timber,1.56,.13,.38,x,.30,121.51,.025);
+    for (const dx of [-.65,.65]) solid([x+dx,.14,121.51],[.15,.28,.31],blue,.029);
+  }
+  solid([-64.23,.34,118.42],[.59,.68,.55],m.steel,.075);
+  box(root,green,.64,.085,.59,-64.23,.72,118.42,.042);
 
   function parapets(pad:Footprint & {height:number},north:Footprint,south:Footprint,mat:THREE.Material) {
     const {minX:x1,maxX:x2,minZ:z1,maxZ:z2,height:y}=pad;

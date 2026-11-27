@@ -1,20 +1,34 @@
 import type { MapInteraction, Vec3 } from '../contracts/demo.ts';
 
-export const residentialPad = { minX:-148, maxX:-121, minZ:119, maxZ:149, height:3.9 };
+// Roads are defined by centre and dimensions. Approaches within the block meet their inner kerbs.
+export const southernArterials = {
+  north: [20,95,360,10],
+  south: [10,155,340,12],
+} as const;
+export const southernKerb = {
+  north: southernArterials.north[1] + southernArterials.north[3] / 2,
+  south: southernArterials.south[1] - southernArterials.south[3] / 2,
+};
+
+export const residentialPad = { minX:-148, maxX:-121, minZ:119, maxZ:southernKerb.south-.55, height:3.9 };
 export const communityPad = { minX:21, maxX:53, minZ:114, maxZ:139, height:3.6 };
 export const transitPad = { minX:116, maxX:165, minZ:111, maxZ:132, height:3 };
 
 // The arterials at Z=95 and Z=155 retain their straight, level centrelines.
-export const residentialApproach = { minX:-128, maxX:-121, minZ:96, maxZ:119, northY:0, southY:residentialPad.height };
-export const residentialSteps = { minX:-127, maxX:-121, minZ:149, maxZ:154.5, northY:residentialPad.height, southY:0, finishInset:.11 };
-export const communityApproach = { minX:23, maxX:31, minZ:96, maxZ:114, northY:0, southY:communityPad.height };
-export const communitySteps = { minX:23, maxX:31, minZ:139, maxZ:149, northY:communityPad.height, southY:0, finishInset:.11 };
-export const transitNorth = { minX:120, maxX:128, minZ:96, maxZ:111, northY:0, southY:transitPad.height };
-export const transitSouth = { minX:120, maxX:128, minZ:132, maxZ:150, northY:transitPad.height, southY:0 };
-export const southPads = [residentialPad, communityPad, transitPad] as const;
+export const residentialApproach = { minX:-128, maxX:-121, minZ:southernKerb.north, maxZ:119, northY:0, southY:residentialPad.height };
+// Set the steps into the outer half of the front court, leaving a flat porch at the houses.
+export const residentialSteps = { minX:-123.2, maxX:residentialPad.maxX, minZ:142.4, maxZ:southernKerb.south, northY:residentialPad.height, southY:0, finishInset:.11 };
+export const communityApproach = { minX:23, maxX:31, minZ:southernKerb.north, maxZ:114, northY:0, southY:communityPad.height };
+export const communitySteps = { minX:23, maxX:31, minZ:139, maxZ:southernKerb.south, northY:communityPad.height, southY:0, finishInset:.11 };
+export const transitNorth = { minX:120, maxX:128, minZ:southernKerb.north, maxZ:111, northY:0, southY:transitPad.height };
+export const transitSouth = { minX:120, maxX:128, minZ:132, maxZ:southernKerb.south, northY:transitPad.height, southY:0 };
 export const southGrades = [
   residentialApproach, residentialSteps, communityApproach, communitySteps, transitNorth, transitSouth,
-  ...southPads.map(pad => ({ ...pad, northY:pad.height, southY:pad.height })),
+  ...[
+    { ...residentialPad, maxX:residentialSteps.minX },
+    { ...residentialPad, minX:residentialSteps.minX, maxZ:residentialSteps.minZ },
+    communityPad, transitPad,
+  ].map(pad => ({ ...pad, northY:pad.height, southY:pad.height })),
 ];
 
 export const southBuildings = [
@@ -24,14 +38,13 @@ export const southBuildings = [
 ] as const;
 
 export function southernArea([x,y,z]: Vec3) {
-  for (const [pad, label, approaches, minZ, maxZ] of [
-    [residentialPad, '港务家属区', [residentialApproach, residentialSteps], 94.9, 155.2],
-    [communityPad, '社区救护与活动中心', [communityApproach, communitySteps], 95, 150],
-    [transitPad, '交通站与餐饮广场', [transitNorth, transitSouth], 95, 159],
+  for (const [pad, label, approaches] of [
+    [residentialPad, '港务家属区', [residentialApproach, residentialSteps]],
+    [communityPad, '社区救护与活动中心', [communityApproach, communitySteps]],
+    [transitPad, '交通站与餐饮广场', [transitNorth, transitSouth]],
   ] as const) {
     if (x >= pad.minX && x <= pad.maxX && z >= pad.minZ && z <= pad.maxZ && y >= pad.height - .08) return label;
-    if (z >= minZ && z <= maxZ &&
-        approaches.some(a => x >= a.minX && x <= a.maxX && (z < pad.minZ || z > pad.maxZ))) return label;
+    if (approaches.some(a => x >= a.minX && x <= a.maxX && z >= a.minZ && z <= a.maxZ)) return label;
   }
   return undefined;
 }
