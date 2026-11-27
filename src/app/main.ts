@@ -16,7 +16,8 @@ import { createWarehouse } from '../raid/warehouse.ts';
 import { defaultLoadout, type Loadout } from '../raid/loadout.ts';
 import type { Cargo } from '../raid/backpack.ts';
 import {isPack,equipSlot,isShield,isHead} from '../raid/catalog.ts';
-import {harborFloor,isShip} from '../world/harborPlan.ts';
+import {dispatchFloor,dispatchOffice,harborFloor,isShip} from '../world/harborPlan.ts';
+import { observatory, observatoryFloor } from '../world/terrainPlan.ts';
 import { isLabLevel, isResearchCampus, researchBuildingFloor } from '../world/researchPlan.ts';
 import { researchAnnexArea } from '../world/researchAnnexPlan.ts';
 import { streetArea } from '../world/portBlocks.ts';
@@ -646,9 +647,13 @@ async function startGame() {
     map.updateExitLights(exit => raid.exitStatus(exit).kind);
     const shipLabel=isShip(player.feet)?'海湾号 · '+harborFloor(player.feet):player.feet[0]<-172?'登船连桥':undefined;
     const researchFloor = researchBuildingFloor(player.feet);
+    const dispatchLevel = dispatchFloor(player.feet);
+    const observationLevel = observatoryFloor(player.feet);
+    const civicLabel = dispatchLevel ? dispatchOffice.label + ' · ' + dispatchLevel :
+      observationLevel ? observatory.label + ' · ' + observationLevel : undefined;
     const site = worksitePlace(player.feet);
     const areaLabel = researchFloor ? '科研主楼 · ' + researchFloor :
-      isResearchCampus(player.feet) ? '科研园' : shipLabel ?? researchAnnexArea(player.feet) ?? innArea(player.feet) ?? marketArea(player.feet) ??
+      isResearchCampus(player.feet) ? '科研园' : shipLabel ?? civicLabel ?? researchAnnexArea(player.feet) ?? innArea(player.feet) ?? marketArea(player.feet) ??
         southernArea(player.feet) ?? (site ? site.name + (site.floor ? ' · ' + site.floor : '') : undefined) ?? streetArea(player.feet) ?? region?.label;
     view.updateHud(frame, raid.spawn.label ?? raid.spawn.id, underground, areaLabel,run.treatment.pose, ammoTime > 0);
     const now=performance.now();

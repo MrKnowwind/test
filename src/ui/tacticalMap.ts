@@ -1,10 +1,10 @@
 import { supplySites } from '../world/supplySites.ts';
 import { lab, mapBounds, mapViewBounds, ramp } from '../world/worldQueries.ts';
-import {gangways,harborBuildings,harborFloor,shipEnvelope,shipOutline,isShip} from '../world/harborPlan.ts';
-import { civicBuildings,terrainSections } from '../world/terrainPlan.ts';
+import {dispatchFloor,gangways,harborBuildings,harborFloor,shipEnvelope,shipOutline,isShip} from '../world/harborPlan.ts';
+import { civicBuildings,observatoryFloor,terrainSections } from '../world/terrainPlan.ts';
 import { districtBuildings } from '../world/districtSites.ts';
 import { isLabLevel, researchBuilding, researchBuildingFloor } from '../world/researchPlan.ts';
-import { annexWalk, researchAnnexBuildings } from '../world/researchAnnexPlan.ts';
+import { annexWalk, archiveFloor, archiveStair, researchAnnexBuildings } from '../world/researchAnnexPlan.ts';
 import { landOutline } from '../world/landPlan.ts';
 import { southBuildings } from '../world/southPlan.ts';
 import { marketBuildings } from '../world/marketPlan.ts';
@@ -17,6 +17,8 @@ import { freightHalls } from '../world/upperRoutes.ts';
 import { roads, footpaths } from '../world/roads.ts';
 
 const publicBuildings=[...civicBuildings,...districtBuildings,researchBuilding,...researchAnnexBuildings,...southBuildings,...marketBuildings,innBuilding,...worksiteBuildings];
+const buildingFloors = { inn: innFloor, archive: archiveFloor, dispatch: dispatchFloor, observatory: observatoryFloor };
+
 function fillLand(context: CanvasRenderingContext2D, project: (x: number, z: number) => number[], color: string) {
   context.beginPath();
   landOutline.forEach(([x, z], i) => {
@@ -30,7 +32,9 @@ function fillLand(context: CanvasRenderingContext2D, project: (x: number, z: num
 }
 
 function upperBuildingAt(position: Vec3) {
-  if (innFloor(position)==='2F') return 'inn';
+  for (const [building, floorAt] of Object.entries(buildingFloors)) {
+    if (floorAt(position) === '2F') return building;
+  }
   if (researchBuildingFloor(position)==='2F') return 'research';
   const site=worksitePlace(position);
   if (site?.floor==='2F'||site?.floor==='夹层') return site.id;
@@ -59,7 +63,8 @@ export function createTacticalMap() {
       if (now - lastRadar < 90) return;
       lastRadar = now;
       const underground = isLabLevel(feet);
-      const floor = underground ? 'B1' : innFloor(feet) ?? researchBuildingFloor(feet) ?? worksitePlace(feet)?.floor ?? harborFloor(feet);
+      const floor = underground ? 'B1' : innFloor(feet) ?? researchBuildingFloor(feet) ?? archiveFloor(feet) ??
+        dispatchFloor(feet) ?? observatoryFloor(feet) ?? worksitePlace(feet)?.floor ?? harborFloor(feet);
       const upperBuilding=upperBuildingAt(feet);
       if (miniFloor.textContent !== floor) miniFloor.textContent = floor;
       const half = mini.width / 2, scale = half / (underground ? 25 : 45);
@@ -179,7 +184,7 @@ export function createTacticalMap() {
         const [x,z]=project(r.minX,r.minZ),[a,b]=project(r.maxX,r.maxZ);
         ctx.fillStyle=color;ctx.fillRect(x,z,a-x,b-z);
       }
-      for(const stair of [sortingStair,officeStair,controlStair])stairMark(stair.x,stair.footZ);
+      for(const stair of [sortingStair,officeStair,controlStair,archiveStair])stairMark(stair.x,stair.footZ);
       const [bridgeX,bridgeZ]=project(annexWalk.minX,annexWalk.minZ),[bridgeRight,bridgeBottom]=project(annexWalk.maxX,annexWalk.maxZ);
       ctx.fillStyle='#607e90';ctx.fillRect(bridgeX,bridgeZ,bridgeRight-bridgeX,bridgeBottom-bridgeZ);
       stairMark(innStair.x,innStair.bottomZ);
@@ -213,11 +218,14 @@ export function createTacticalMap() {
         ctx.fillStyle = '#f3f4e7';
         ctx.fillText(caption, left + 5, sz + 4);
       }
+      const monitoredFloors = Object.values(buildingFloors).map(floorAt => ({ floorAt, active: floorAt(feet) ?? '1F' }));
       for (const target of map.interactions) {
         if (target.kind !== 'loot'||!discovered.has(target.id)) continue;
         if(isShip(target.position)&&isShip(feet)&&harborFloor(target.position)!==harborFloor(feet))continue;
-        const innLevel=innFloor(target.position);
-        if(innLevel && innLevel !== (innFloor(feet) ?? '1F'))continue;
+        if (monitoredFloors.some(({ floorAt, active }) => {
+          const level = floorAt(target.position);
+          return level && level !== active;
+        })) continue;
         const site=worksitePlace(target.position), activeSite=worksitePlace(feet);
         if(site?.floor && site.floor !== (activeSite?.id===site.id?activeSite.floor:'1F')) continue;
         const [sx, sz] = project(target.position[0], target.position[2]);

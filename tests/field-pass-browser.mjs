@@ -8,8 +8,9 @@ import { lab, labLift, researchPad, researchUpperY } from '../src/world/research
 import { communityPad, residentialPad, transitPad } from '../src/world/southPlan.ts';
 import { parkingPad, pharmacyPad } from '../src/world/marketPlan.ts';
 import { innDoorX, innPad, innStair, innUpperY } from '../src/world/innPlan.ts';
-import { archivePad, observationPad, ridgeCrest } from '../src/world/researchAnnexPlan.ts';
-import { tidalWalk } from '../src/world/terrainPlan.ts';
+import { archivePad, archiveStair, archiveUpperY, observationPad, ridgeCrest } from '../src/world/researchAnnexPlan.ts';
+import { dispatchUpperY } from '../src/world/harborPlan.ts';
+import { northTerrace, observatoryUpperY, tidalWalk } from '../src/world/terrainPlan.ts';
 import { isStreetBuilding, streetPlans } from '../src/world/portBlocks.ts';
 import { fixturePosition } from '../src/world/shopRooms.ts';
 import { controlStair, officeStair, sortingStair } from '../src/world/worksitePlan.ts';
@@ -61,7 +62,7 @@ await page.addInitScript(fixedRoutes => {
     }
     painting = true;
   };
-}, ['research','south','market','inn','annex','terrain','street','worksites'].some(name=>cases.has(name)));
+}, ['research','south','market','inn','annex','civic','terrain','street','worksites'].some(name=>cases.has(name)));
 const tick = (n=2, paint=false) => page.evaluate(([n,paint]) => window.advanceRaid(n,paint),[n,paint]);
 const state = () => page.evaluate(() => {
   const {feet,stance,climb,eye,countdown,result,flags,weapon,locked,backpack,items,spawn,fov,speed,grounded,health} = window.raidQA.state();
@@ -561,7 +562,7 @@ async function annex() {
   await capture('02-research-bridge');
   await walkRoute([[195,-150.1]]);
   await height(archivePad.height);
-  assert.equal(await page.locator('#floor').textContent(), '科研档案中心');
+  assert.equal(await page.locator('#floor').textContent(), '科研档案中心 · 1F');
   await walkRoute([[193,-150.1],[193,-142.1]]);
   await aim('annex-archive-files');
   await capture('03-archive-stacks');
@@ -572,14 +573,66 @@ async function annex() {
   await aim('annex-archive-server');
   await capture('04-archive-server-room');
   await searchCase('annex-archive-server');
-  await walkRoute([[217.4,-151.5],[223.8,-151.5],[223.8,-156.1],[216,-156.1],[216,-217.4]]);
+  const {x:stairX}=archiveStair;
+  await walkRoute([[217.4,-151.5],[195,-151.5],[195,-139.18],[stairX,-139.18],[stairX,-151.52],[190.35,-151.52]]);
+  await height(archiveUpperY);
+  assert.equal(await page.locator('#floor').textContent(),'科研档案中心 · 2F');
+  await aim('annex-archive-index');
+  await page.waitForTimeout(105);
+  await capture('05-archive-upper-index');
+  assert.equal(await page.locator('#minimap-floor').textContent(),'2F');
+  await searchCase('annex-archive-index');
+  await walkRoute([[194.4,-151.52],[194.4,-143.6],[187.9,-143.6]]);
+  await searchCase('annex-archive-chart');
+  await walkRoute([[194.4,-143.6],[194.4,-151.52],[stairX,-151.52],[stairX,-139.18],[195,-139.18],[195,-151.5]]);
+  await height(archivePad.height);
+  assert.equal(await page.locator('#floor').textContent(),'科研档案中心 · 1F');
+  await walkRoute([[223.8,-151.5],[223.8,-156.1],[216,-156.1],[216,-217.4]]);
   await height(ridgeCrest.height);
   assert.equal(await page.locator('#floor').textContent(), '东北山脊');
   await pose((await state()).feet, Math.PI, -.11);
-  await capture('05-ridge-overlook');
+  await capture('06-ridge-overlook');
   await walkRoute([[216,-156.1],[195,-156.1],[195,-198.5]]);
   await height(0);
-  report.annex = { spawn: 'N-C', elevation: archivePad.height, summit: ridgeCrest.height, searched: 6, bridge: true, returnedToRoad: true };
+  const bundle = await page.locator('script[type=module]').getAttribute('src');
+  report.annex = { bundle, spawn: 'N-C', elevation: archivePad.height, archiveUpperY, summit: ridgeCrest.height, searched: 8, bridge: true, returnedToRoad: true };
+}
+async function civic() {
+  await start(2);
+  await practice();
+  await pose([-141,0,35]);
+  await walkRoute([[-141,44.8],[-133.9,44.8],[-133.9,49],[-132,49.52]]);
+  assert.equal(await page.locator('#floor').textContent(),'港务调度办公室 · 1F');
+  await searchCase('harbor-dispatch-kit');
+  await walkRoute([[-133.9,49],[-133.9,44.8],[-141,44.8],[-141,38.5],[-150,38.5],[-150,39],[-150,51],[-145,52],[-137,51.5]]);
+  await height(dispatchUpperY);
+  assert.equal(await page.locator('#floor').textContent(),'港务调度办公室 · 2F');
+  await searchCase('harbor-dispatch-office');
+  await walkRoute([[-145,52],[-153,52],[-153,46.8]]);
+  await pose((await state()).feet,Math.PI/2,-.05);
+  await capture('07-dispatch-waterfront');
+  await walkRoute([[-153,52],[-150,52],[-150,51],[-150,39],[-150,38.5],[-141,38.5],[-141,35]]);
+  await height(0);
+
+  const upperTerrace=northTerrace.height;
+  await pose([-115,upperTerrace,-179]);
+  await walkRoute([[-136,-179],[-136,-183.4]]);
+  await searchCase('north-customs-locker');
+  await walkRoute([[-136,-179],[-115,-179],[-115,-204],[-139,-204]]);
+  assert.equal(await page.locator('#floor').textContent(),'海岸气象观察站 · 1F');
+  await searchCase('north-observatory-console');
+  await walkRoute([[-132,-204],[-132,-197.14],[-147.5,-197.14],[-147.5,-212],[-141,-212],[-141,-205.7]]);
+  await height(observatoryUpperY);
+  assert.equal(await page.locator('#floor').textContent(),'海岸气象观察站 · 2F');
+  await searchCase('north-observatory-upper');
+  await walkRoute([[-141,-212.05],[-151.2,-212.05],[-151.2,-207.05]]);
+  await pose((await state()).feet,Math.PI/2,-.08);
+  await page.waitForTimeout(105);
+  await capture('08-weather-station-waterfront');
+  assert.equal(await page.locator('#minimap-floor').textContent(),'2F');
+  await walkRoute([[-151.2,-212.05],[-147.5,-212.05],[-147.5,-197.14],[-132,-197.14],[-132,-204],[-124.9,-204]]);
+  await height(upperTerrace);
+  report.civic = { searched: 5, dispatchUpperY, observatoryUpperY, returnedToRoad: true };
 }
 async function terrain() {
   await start(3);
@@ -686,7 +739,7 @@ async function worksites() {
   report.worksites={bundle,searched,drainCrossings:2,stairRuns:3};
 }
 try {
-  for(const [name,fn] of Object.entries({districts,bags,movement,exits,service,routes,controls,feel,research,south,market,inn,annex,terrain,street,worksites})){
+  for(const [name,fn] of Object.entries({districts,bags,movement,exits,service,routes,controls,feel,research,south,market,inn,annex,civic,terrain,street,worksites})){
     if(cases.has(name)){await fn();console.log(name+' passed');}
   }
   assert.deepEqual(errors,[]);

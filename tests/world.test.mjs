@@ -14,8 +14,8 @@ import { isLabLevel, labLift, researchPad, researchBuildingFloor, researchUpperY
 import { communityPad, residentialPad, southInteractions, transitPad } from '../src/world/southPlan.ts';
 import { marketArea, marketInteractions, parkingPad, pharmacyPad } from '../src/world/marketPlan.ts';
 import { innArea, innDoorX, innFloor, innInteractions, innPad, innStair, innUpperY } from '../src/world/innPlan.ts';
-import { archivePad, observationPad, researchAnnexArea, researchAnnexInteractions, ridgeCrest } from '../src/world/researchAnnexPlan.ts';
-import { tidalWalk } from '../src/world/terrainPlan.ts';
+import { archiveFloor, archivePad, archiveStair, archiveUpperY, observationPad, researchAnnexArea, researchAnnexInteractions, ridgeCrest } from '../src/world/researchAnnexPlan.ts';
+import { houses, observatoryFloor, observatoryUpperY, tidalWalk } from '../src/world/terrainPlan.ts';
 import { controlStair, drainCrossings, officeStair, sortingStair, worksiteInteractions, worksitePlace } from '../src/world/worksitePlan.ts';
 
 const map = createFirstMap(42);
@@ -315,7 +315,7 @@ test('the northern observation and archive facilities connect to the road and ea
 
   const archive = walk(observation, [[80,-150.1],[195,-150.1]]);
   assert.equal(archive[1], archivePad.height);
-  assert.equal(researchAnnexArea(archive), '科研档案中心');
+  assert.equal(researchAnnexArea(archive), '科研档案中心 · 1F');
   visible(walk(archive, [[193,-150.1],[193,-142.1]]), 'annex-archive-files');
   visible(walk(archive, [[195,-151.5],[207,-151.5],[207,-150.2]]), 'annex-archive-reading');
   visible(walk(archive, [[195,-151.5],[217.4,-151.5],[217.4,-142.8]]), 'annex-archive-server');
@@ -531,10 +531,59 @@ test('the playable body crosses port, B1 and new district ramp seams in both dir
   }
 });
 
+test('the archive second floor has two searchable rooms and an internal round trip',()=>{
+  const entry = [195,archivePad.height,-150.1];
+  const {x:stairX}=archiveStair;
+  const index = walk(entry,[[195,-139.18],[stairX,-139.18],[stairX,-151.52],[190.35,-151.52]]);
+  assert.equal(index[1],archiveUpperY);
+  assert.equal(researchAnnexArea(index),'科研档案中心 · 2F');
+  visible(index,'annex-archive-index');
+  const chart = walk(index,[[194.4,-151.52],[194.4,-143.6],[187.9,-143.6]]);
+  assert.equal(chart[1],archiveUpperY);
+  visible(chart,'annex-archive-chart');
+  const back = walk(chart,[[194.4,-143.6],[194.4,-151.52],[stairX,-151.52],[stairX,-139.18],[195,-139.18],[195,-150.1]]);
+  assert.equal(back[1],archivePad.height);
+  assert.equal(archiveFloor(back),'1F');
+  assert.equal(archiveFloor([207,archivePad.height,-150.2]),'1F');
+  assert.notEqual(archiveFloor([207,archiveUpperY,-150.2]),'2F');
+  const ceiling=map.blockedDistance([190.35,archivePad.height+1.65,-151.52],[0,1,0],3);
+  assert.ok(ceiling>1&&ceiling<1.6,'the upper loot is separated from the lower room by the deck');
+});
+
+test('north civic interiors connect to the registration office and the glazed observation floor',()=>{
+  const customs = walk([-115,8,-179],[[-136,-179],[-136,-183.4]]);
+  visible(customs,'north-customs-locker');
+  assert.equal(walk(customs,[[-136,-179],[-115,-179]])[1],8);
+
+  const station = walk([-124.9,8,-204],[[-139,-204]]);
+  visible(station,'north-observatory-console');
+  assert.equal(observatoryFloor(station),'1F');
+  const platform = walk(station,[[-132,-204],[-132,-197.14],[-147.5,-197.14],[-147.5,-212],[-141,-212],[-141,-205.7]]);
+  assert.equal(platform[1],observatoryUpperY);
+  assert.equal(observatoryFloor(platform),'2F');
+  visible(platform,'north-observatory-upper');
+  const window = walk(platform,[[-141,-212.05],[-151.2,-212.05],[-151.2,-207.05]]);
+  const eye = new Vector3(window[0],window[1]+1.65,window[2]);
+  map.scene.updateMatrixWorld(true);
+  const hits = new Raycaster(eye,new Vector3(-1,0,0),0,3.3).intersectObject(map.scene,true);
+  assert.ok(hits.length&&hits.every(({object})=>object.material.transparent),'west sightline passes through glass');
+  assert.ok(map.moveBody(window,-4,0,0,radius,height)[0]>-153,'the window still stops the player');
+  const back=walk(window,[[-151.2,-212.05],[-147.5,-212.05],[-147.5,-197.14],[-132,-197.14],[-132,-204],[-124.9,-204]]);
+  assert.equal(back[1],8);
+});
+
 test('southern terraces connect both arterials and offer distinct, searchable public interiors',()=>{
  const home=walk([-122.7,0,95],[[-122.7,123],[-122.7,148]]);
  assert.equal(home[1],residentialPad.height);
  assert.ok(Math.abs(walk(home,[[-122.7,155.4]])[1])<.02);
+ for(const [i,{z}] of houses.entries()){
+   const lower=walk(home,[[-122.7,z],[-133.9,z]]);
+   visible(lower,`residential-${i}-ground`);
+   const upper=walk(lower,[[-130.2,z],[-130.2,z-3],[-142.88,z-3],[-142.88,z],[-139,z]]);
+   assert.ok(Math.abs(upper[1]-residentialPad.height-3.2)<.01);
+   visible(upper,`residential-${i}-upper`);
+   assert.equal(walk(upper,[[-142.88,z],[-142.88,z-3],[-130.2,z-3],[-130.2,z],[-122.7,z]])[1],residentialPad.height);
+ }
 
  const court=walk([27,0,152],[[27,136],[27,122.15]]);
  assert.equal(court[1],communityPad.height);

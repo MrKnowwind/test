@@ -9,11 +9,18 @@ export const shipDeck={minX:-229,maxX:-186,minZ:-92,maxZ:42};
 export const shipLevels={cabin:.7,upper:4.1,sun:7.65,sea:-2.1};
 export const gangways=[-48,0].map(z=>({minX:-186.2,maxX:-164.8,minZ:z-1.6,maxZ:z+1.6,z}));
 export const offshoreWalkAreas=[shipDeck,...gangways];
+export const dispatchOffice={id:'dispatch',label:'港务调度办公室',minX:-154,maxX:-130,minZ:37,maxZ:54} as const;
+export const dispatchUpperY=3.48;
 export const harborBuildings=[
   {id:'terminal',label:'客运候船厅',minX:-153,maxX:-122,minZ:-96,maxZ:-73},
   {id:'repair',label:'装卸维修工棚',minX:-169,maxX:-158,minZ:19,maxZ:35},
-  {id:'dispatch',label:'港务调度办公室',minX:-154,maxX:-130,minZ:37,maxZ:54},
+  dispatchOffice,
 ] as const;
+export function dispatchFloor([x,y,z]:Vec3) {
+  const {minX,maxX,minZ,maxZ}=dispatchOffice;
+  if(x<minX||x>maxX||z<minZ||z>maxZ||y<-.12||y>=dispatchUpperY+3.0)return undefined;
+  return y>=dispatchUpperY-.12?'2F':'1F';
+}
 
 export const openContainerPlans=[
   {id:'cargo-luggage',x:-143,z:15,style:'luggage',tint:[49,166,177]},
@@ -28,7 +35,8 @@ export const harborInteractions:readonly MapInteraction[]=[
   loot('harbor-terminal-desk','客运登记台','terminal',[-128,1.07,-90]),
   loot('harbor-repair-tools','工棚备件台','salvage',[-166,1.07,31.4]),
   loot('harbor-dispatch-records','调度一层文件柜','manual',[-150,1.07,49.5]),
-  loot('harbor-dispatch-office','调度二层设备','board',[-137,4.55,49.8]),
+  loot('harbor-dispatch-kit','港务器材寄存柜','salvage',[-132,1.07,51.1]),
+  loot('harbor-dispatch-office','调度二层设备','board',[-137,dispatchUpperY+1.07,49.8]),
   loot('ship-reception','邮轮接待登记箱','manual',[-202,1.77,-62]),
   loot('ship-cabin-a','客房 A 行李箱','sealbag',[-203.6,1.57,-51]),
   loot('ship-cabin-b','客房 B 储物箱','manual',[-203.6,1.57,-43]),

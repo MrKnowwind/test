@@ -3,7 +3,7 @@ import type { Vec3 } from '../contracts/demo.ts';
 import { box, mesh, strut } from './detail/geometry.ts';
 import { emissive, enamel, type Materials } from './detail/materialLibrary.ts';
 import {
-  annexApproaches, annexWalk, archiveBuilding, archiveDoorX, archivePad,
+  annexApproaches, annexWalk, archiveBuilding, archiveDoorX, archivePad, archiveStackEast, archiveStackRoof, archiveStair, archiveUpperY,
   observationBuilding, observationDoorX, observationPad, ridgeCrest, ridgeTrail,
 } from './researchAnnexPlan.ts';
 import type { Solid } from './worldQueries.ts';
@@ -27,11 +27,11 @@ export function buildResearchAnnex(root: THREE.Group, m: Materials, solids: Soli
     wallZ(z, x + width / 2, right, 0, h, material);
     wallZ(z, x - width / 2, x + width / 2, 2.48, h - 2.48, material);
   }
-  function worktop(x: number, z: number, width: number, depth: number, material: THREE.Material) {
-    solid([x, y + .51, z], [width, 1.02, depth], material, .06);
-    box(root, m.zinc, width + .06, .055, depth + .06, x, y + 1.0275, z, .02);
+  function worktop(x: number, z: number, width: number, depth: number, material: THREE.Material, base = y) {
+    solid([x, base + .51, z], [width, 1.02, depth], material, .06);
+    box(root, m.zinc, width + .06, .055, depth + .06, x, base + 1.0275, z, .02);
     for (const dx of [-width / 3, 0, width / 3])
-      box(root, m.steel, .26, .066, .064, x + dx, y + .75, z + depth / 2, .02);
+      box(root, m.steel, .26, .066, .064, x + dx, base + .75, z + depth / 2, .02);
   }
   function fixture(x: number, z: number, length: number, height: number, color: number) {
     box(root, m.steel, length + .13, .10, .32, x, y + height, z, .03);
@@ -102,38 +102,47 @@ export function buildResearchAnnex(root: THREE.Group, m: Materials, solids: Soli
   for (const [x, z] of [[77, -142.5], [86.6, -143], [84, -136.5], [93, -136.5]])
     fixture(x, z, 1.65, 3.02, 0xbcebf1);
 
-  // A tall stack room, lower reading room and enclosed plant room form different roof volumes.
+  // A two-storey stack block and lower reading and equipment wing have separate rooflines.
   const { minX: ax1, maxX: ax2, minZ: az1, maxZ: az2 } = archiveBuilding;
+  const upper = archiveUpperY - y;
+  const roof = archiveStackRoof;
   box(root, floor, ax2 - ax1, .03, az2 - az1, 203.5, y + .018, -146.25);
-  wallX(ax1, az1, -151.75, 0, 5.15, m.ceramic);
-  wallX(ax1, -148.45, az2, 0, 5.15, m.ceramic);
-  wallX(ax1, -151.75, -148.45, 2.51, 2.64, m.ceramic);
-  wallZ(az2, ax1, 200.9, 0, 5.15, m.ceramic);
-  wallZ(az2, 200.9, ax2, 0, 3.60, slate);
-  portal(az1, ax1, 200.9, archiveDoorX, 3.50, 5.15, m.ceramic);
-  wallZ(az1, 200.9, ax2, 0, .93, slate);
-  wallZ(az1, 200.9, ax2, .93, 1.68, pane);
-  wallZ(az1, 200.9, ax2, 2.61, .99, slate);
+  wallX(ax1, az1, -151.75, 0, upper, m.ceramic);
+  wallX(ax1, -148.45, az2, 0, upper, m.ceramic);
+  wallX(ax1, -151.75, -148.45, 2.51, upper - 2.51, m.ceramic);
+  wallX(ax1, az1, az2, upper, .92, slate);
+  wallX(ax1, az1, az2, upper + .92, 1.62, pane);
+  wallX(ax1, az1, az2, upper + 2.54, roof - upper - 2.54, m.ceramic);
+  for (const z of [-153.8, -150.5, -147.1, -143.8, -140.4])
+    box(root, bronze, .28, 1.72, .13, ax1, archiveUpperY + 1.71, z);
+  wallZ(az2, ax1, archiveStackEast, 0, upper + .88, m.ceramic);
+  wallZ(az2, ax1, archiveStackEast, upper + .88, 1.65, pane);
+  wallZ(az2, ax1, archiveStackEast, upper + 2.53, roof - upper - 2.53, slate);
+  wallZ(az2, archiveStackEast, ax2, 0, 3.60, slate);
+  portal(az1, ax1, archiveStackEast, archiveDoorX, 3.50, roof, m.ceramic);
+  wallZ(az1, archiveStackEast, ax2, 0, .93, slate);
+  wallZ(az1, archiveStackEast, ax2, .93, 1.68, pane);
+  wallZ(az1, archiveStackEast, ax2, 2.61, .99, slate);
   for (const x of [201, 205.1, 209.2, 213.3, 217.4, 221.3])
     wallZ(az1, x, x + .13, .9, 1.75, bronze);
   wallX(ax2, az1, -152.9, 0, 3.60, slate);
   wallX(ax2, -150.1, az2, 0, 3.60, slate);
   wallX(ax2, -152.9, -150.1, 2.51, 1.09, slate);
-  wallX(200.9, az1, az2, 3.60, 1.58, slate);
-  solid([192.8, y + 5.15, -146.25], [16.2, .27, 18.15], slate, .05);
+  wallX(archiveStackEast, az1, az2, 3.60, roof - 3.60, slate);
+  solid([192.8, y + roof, -146.25], [16.2, .27, 18.15], slate, .05);
   solid([211.45, y + 3.62, -146.25], [21.32, .24, 17.99], m.steel, .042);
-  box(root, slate, 14.5, .20, 2.2, 192.85, y + 5.72, -145.3, .06);
+  box(root, slate, 14.5, .20, 2.2, 192.85, y + roof + .57, -145.3, .06);
   for (const z of [-146.41, -144.19])
-    box(root, jade, 14.45, .42, .075, 192.85, y + 5.44, z);
+    box(root, jade, 14.45, .42, .075, 192.85, y + roof + .29, z);
   box(root, bronze, 6.6, .20, 2.3, archiveDoorX, y + 2.75, -155.5, .07);
   wallZ(-148, 211.9, 215.95, 0, 3.47, m.steel);
   wallZ(-148, 218.85, ax2, 0, 3.47, m.steel);
   wallZ(-148, 215.95, 218.85, 2.48, .99, m.steel);
   wallX(211.9, -148, az2, 0, 3.47, m.steel);
 
-  for (const [x, z, count] of [[187.4, -147.1, 3], [198.1, -143.3, 2]]) {
-    solid([x, y + 1.50, z], [1.48, 3, 4.2], slate, .045);
-    for (const dy of [.58, 1.24, 1.93, 2.58]) {
+  for (const [x, z, count] of [[187.4, -147.1, 3], [196.9, -145, 2]]) {
+    solid([x, y + 1.44, z], [1.48, 2.88, 4.2], slate, .045);
+    for (const dy of [.58, 1.24, 1.93, 2.39]) {
       box(root, m.zinc, 1.56, .08, 4.26, x, y + dy, z, .012);
       for (let i = 0; i < count; i++) {
         const tint = i % 2 ? m.ceramic : bronze;
@@ -150,8 +159,54 @@ export function buildResearchAnnex(root: THREE.Group, m: Materials, solids: Soli
     solid([220.45, y + 1.24, z], [1.42, 2.48, 1.22], m.steel, .035);
     for (const dy of [.53, 1.12, 1.71, 2.23]) box(root, lamp, .035, .048, .42, 219.72, y + dy, z);
   }
-  for (const [x, z, h] of [[192.5, -149, 4.94], [192.5, -141, 4.94], [206.5, -150.8, 3.40], [217.5, -143, 3.40]])
+  for (const [x, z, h] of [[192.5, -149, 2.79], [192.5, -141, 2.79], [206.5, -150.8, 3.40], [217.5, -143, 3.40]])
     fixture(x, z, 2.05, h, 0xc9d8fb);
+
+  // The separate review room and drawing room open off the upstairs landing.
+  const { x: stairX, width, topZ, footZ } = archiveStair;
+  const wellEdge = 197.87;
+  function upperDeck(x1: number, x2: number, z1: number, z2: number) {
+    box(root, slate, x2 - x1, .24, z2 - z1, (x1 + x2) / 2, archiveUpperY - .12, (z1 + z2) / 2);
+    solids.push({ min: [x1, archiveUpperY - .24, z1], max: [x2, archiveUpperY, z2], floor: true, walkSurface: true, surface: 'metal' });
+  }
+  upperDeck(ax1 + .12, wellEdge, az1 + .12, az2 - .12);
+  upperDeck(wellEdge, archiveStackEast - .12, az1 + .12, topZ);
+  upperDeck(wellEdge, archiveStackEast - .12, footZ, az2 - .12);
+  const run = topZ - footZ;
+  solids.push({
+    min: [stairX - width / 2, -.145, topZ], max: [stairX + width / 2, 0, footZ],
+    floor: true, walkSurface: true, surface: 'metal',
+    slope: { axis: 2, start: footZ, height: y, gradient: upper / run },
+  });
+  const treads = Math.ceil(upper / .176);
+  for (let i = 0; i < treads; i++) {
+    const t = (i + .5) / treads;
+    box(root, m.zinc, width, .14, -run / treads + .01, stairX, y + upper * t - .07, footZ + run * t);
+    box(root, jade, width - .13, .019, .09, stairX, y + upper * t + .009, footZ + run * t + .14);
+  }
+  for (const px of [stairX - width / 2, stairX + width / 2]) {
+    strut(root, jade, new THREE.Vector3(px, y + .94, footZ), new THREE.Vector3(px, archiveUpperY + .94, topZ), .08);
+    for (const t of [0, .25, .5, .75, 1])
+      solid([px, y + upper * t + .45, footZ + run * t], [.08, .90, .08], m.steel);
+  }
+  wallX(wellEdge, topZ, footZ, upper, 1.02, pane);
+  wallZ(footZ, wellEdge, archiveStackEast, upper, 1.02, pane);
+  box(root, bronze, .265, .075, -run, wellEdge, archiveUpperY + 1.03, (footZ + topZ) / 2);
+  wallZ(-148.35, ax1, 193.18, upper, 2.98, m.ceramic);
+  wallZ(-148.35, 195.63, wellEdge, upper, 2.98, m.ceramic);
+  wallZ(-148.35, 193.18, 195.63, upper + 2.42, .56, slate);
+  worktop(190.35, -152.8, 3.65, .88, jade, archiveUpperY);
+  for (const x of [189.17, 191.53]) {
+    box(root, m.rubber, .81, .46, .13, x, archiveUpperY + 1.34, -153.04, .028);
+    box(root, lamp, .68, .26, .021, x, archiveUpperY + 1.37, -152.969);
+  }
+  worktop(187.9, -141.6, 2.55, 1.08, slate, archiveUpperY);
+  solid([193.1, archiveUpperY + .43, -140.2], [3.74, .86, 1.62], bronze, .055);
+  box(root, m.ceramic, 2.26, .036, .99, 193.4, archiveUpperY + .88, -140.24, .012);
+  for (const dx of [-.55, .12, .56])
+    box(root, jade, .073, .018, .74, 193.4 + dx, archiveUpperY + .905, -140.24);
+  for (const [x, z] of [[190.7, -152.1], [191.1, -144.2], [196.1, -151.5]])
+    fixture(x, z, 2.35, upper + 2.85, 0xd2eff3);
 
   const crestY = ridgeCrest.height;
   const rock = new THREE.DodecahedronGeometry(1, 0);

@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import {box,cylinder,mesh,strut} from './detail/geometry.ts';
 import {enamel,emissive,type Materials} from './detail/materialLibrary.ts';
-import {northTerrace,terrainHeight,houses} from './terrainPlan.ts';
+import {northTerrace,terrainHeight,houses,observatory,observatoryUpperY} from './terrainPlan.ts';
 import type {Solid,Slope} from './worldQueries.ts';
 import { residentialPad } from './southPlan.ts';
 
@@ -81,12 +81,22 @@ export function buildCivicDistrict(root:THREE.Group,m:Materials,solids:Solid[]){
   for(const x of [-149,-143,-137,-131])for(const z of [nz1,nz2])b(x,y+3.4,z+(z===nz1?-.13:.13),4.6,1.15,.045,glass,.04);
   for(const x of [nx1,nx2]){for(const [a,c] of [[nz1,-181],[-177,nz2]]){b(x+(x===nx1?-.13:.13),y+.49,(a+c)/2,.08,.88,c-a,slate);for(let z=a+1;z<c-.5;z+=2.8)b(x+(x===nx1?-.17:.17),y+1.94,z,.085,2.12,.13,slate);}b(x+(x===nx1?-.85:.85),y+3.54,-179,2.8,.18,5.1,purple,.06);}
   counter(-149,y,-179,3.5,1.1);counter(-136,y,-185,3.4,.95);for(const x of [-146,-138,-132])seat(x,y,-172.1,3.1,blue);
+  wallX(-143.2,nz1,-182.7,y,3.18,cream);
+  wallZ(-182.7,-143.2,-137.32,y,3.18,cream);
+  wallZ(-182.7,-134.68,nx2,y,3.18,slate);
+  wallZ(-182.7,-137.32,-134.68,y+2.46,.72,slate);
+  counter(-129.56,y,-186.55,2.65,.91,blue);
+  for(const x of [-141.6,-139.25]) {
+    solid(x,y+1.03,-188.9,1.82,2.06,.92,slate,.04);
+    for(const h of [.46,.98,1.48])b(x,y+h,-188.39,1.61,.13,.10,wood,.015);
+  }
+  lamp(-135.5,y+2.83,-186.15);
   for(const x of [-147,-140,-133])for(const z of [-185.7,-173.6])lamp(x,y+4.60,z);
   b(-140,y+.019,-179,18.4,.018,3.2,sage);for(const z of [-183.2,-175.1])b(-140,y+.025,z,19,.013,.12,m.safety);
   for(const z of [-184,-174])solid(-124.6,y+.48,z,.30,.96,.30,m.steel,.04);
 
   // N5 early exploration anchor: an observation station with a usable upper room.
-  const ox1=-153,ox2=-129,oz1=-213,oz2=-196,top=y+3.4;
+  const {minX:ox1,maxX:ox2,minZ:oz1,maxZ:oz2}=observatory,top=observatoryUpperY;
   wallZ(oz1,ox1,ox2,y,3.2,slate);wallZ(oz2,ox1,ox2,y,3.2,slate);wallX(ox1,oz1,oz2,y,3.2,cream);entryX(ox2,oz1,oz2,y,3.2,-204,3.0,cream);
   counter(-141,y,-204,3.1,.9);seat(-139,y,-199,3.0,blue);
   // Interior stair is along north wall and the second storey slab leaves a true well.
@@ -94,9 +104,27 @@ export function buildCivicDistrict(root:THREE.Group,m:Materials,solids:Solid[]){
   ramp(sx1,sx2,high,low,2,low,y,grade);for(let z=high+.26;z<low;z+=.55)b(-147.5,y+(z-low)*grade+.022,z,4.65,.026,.10,m.safety);
   slab(ox1,sx1,oz1,oz2,top,m.concrete);slab(sx2,ox2,oz1,oz2,top,m.concrete);slab(sx1,sx2,oz1,high,top,m.concrete);slab(sx1,sx2,low,oz2,top,m.concrete);
   rail(sx1,high,sx1,low,top);rail(sx2,high,sx2,low,top);rail(sx1,low,sx2,low,top);
-  wallX(ox1,oz1,oz2,top,3.1,cream);wallX(ox2,oz1,oz2,top,3.1,cream);wallZ(oz1,ox1,ox2,top,3.1,slate);wallZ(oz2,ox1,ox2,top,3.1,slate);
-  counter(-141,top,-204,3.2,.8,blue);for(const z of [-209,-201]){b(ox2+.12,top+1.9,z,.04,1.8,5.8,glass,.04);b(ox1-.12,top+1.9,z,.04,1.8,5.8,glass,.04);}
-  for(const x of [-149,-142,-135])for(const z of [oz1,oz2])b(x,top+1.9,z+(z===oz1?-.13:.13),5.2,1.8,.045,glass,.04);
+  const vista = new THREE.MeshStandardMaterial({ color: 0x94bad7, transparent: true, opacity: .23, depthWrite: false, roughness: .21 });
+  wallX(ox1,oz1,oz2,top,.78,slate);
+  solid(ox1,top+1.61,(oz1+oz2)/2,.098,1.66,oz2-oz1,vista);
+  wallX(ox1,oz1,oz2,top+2.44,.66,cream);
+  for(const z of [-212.2,-208.2,-204.1,-200.05,-196.7])
+    b(ox1,top+1.63,z,.28,1.72,.18,slate);
+  wallX(ox2,oz1,oz2,top,3.1,cream);
+  wallZ(oz1,ox1,ox2,top,3.1,slate);
+  wallZ(oz2,ox1,ox2,top,.9,slate);
+  solid(-141,top+1.67,oz2,24,1.54,.096,vista);
+  wallZ(oz2,ox1,ox2,top+2.44,.66,cream);
+  for(const x of [-151,-145.7,-140.3,-134.9,-130.2])
+    b(x,top+1.67,oz2,.17,1.59,.265,purple);
+  counter(-141,top,-204,3.2,.8,blue);
+  for(const z of [-209,-201])b(ox2+.12,top+1.9,z,.04,1.8,5.8,glass,.04);
+  for(const x of [-149,-142,-135])b(x,top+1.9,oz1-.13,5.2,1.8,.045,glass,.04);
+  const scopeStand = cylinder(group,slate,.29,1.12,-151.84,top+.56,-205.2,12);
+  scopeStand.castShadow = true;
+  const scope = cylinder(group,purple,.18,.91,-151.87,top+1.18,-205.2,16);
+  scope.rotation.z = Math.PI / 2 - .15;
+  solids.push({min:[-152.13,top,-205.49],max:[-151.55,top+1.12,-204.91]});
   solid(-141,top+3.25,-204.5,25.1,.3,18.1,purple,.08);const antenna=cylinder(group,slate,.15,5.7,-141,top+6.1,-204.5,12);antenna.castShadow=true;
   const disk=cylinder(group,cream,2.8,.28,-141,top+5.0,-204.5,32);disk.rotation.z=.27;
   for(const z of [-208,-201])lamp(-141,top+2.85,z);

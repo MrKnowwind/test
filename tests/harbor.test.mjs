@@ -2,7 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createFirstMap} from '../src/world/firstMap.ts';
 import {findInteraction} from '../src/player/controller.ts';
-import {gangways,harborInteractions,harborFloor,openContainerPlans,shipDeck,shipEnvelope,shipLevels} from '../src/world/harborPlan.ts';
+import {Raycaster,Vector3} from 'three';
+import {dispatchFloor,dispatchUpperY,gangways,harborInteractions,harborFloor,openContainerPlans,shipDeck,shipEnvelope,shipLevels} from '../src/world/harborPlan.ts';
 import {mapBounds,mapViewBounds} from '../src/world/worldQueries.ts';
 import {createRaid} from '../src/raid/raid.ts';
 
@@ -65,8 +66,21 @@ test('landside facilities have actual entrances, search surfaces and an upper of
   view(walk([-137.5,0,-70],[[-137.5,-83],[-147,-83]]),'harbor-terminal-luggage');
   view(walk([-137.5,0,-70],[[-137.5,-92],[-128,-92]]),'harbor-terminal-desk');
   view(walk([-163.5,0,17],[[-163.5,31.4],[-164.4,31.4]]),'harbor-repair-tools');
+  const kit=walk([-141,0,35],[[-141,44.8],[-133.9,44.8],[-133.9,49],[-132,49.52]]);
+  assert.equal(dispatchFloor(kit),'1F');
+  view(kit,'harbor-dispatch-kit');
+  const entry=walk(kit,[[-133.9,49],[-133.9,44.8],[-141,44.8],[-141,35]]);
+  assert.ok(Math.abs(entry[1])<.04);
   const office=walk([-141,0,35],[[-141,38.5],[-150,38.5],[-150,39],[-150,51],[-145,52],[-137,51.5]]);view(office,'harbor-dispatch-office');assert.ok(Math.abs(office[1]-3.48)<.04);
-  const back=walk(office,[[-145,52],[-150,51],[-150,39],[-150,38.5],[-141,38.5],[-141,35]]);assert.ok(Math.abs(back[1])<.04);
+  const window=walk(office,[[-145,52],[-153,52],[-153,46.8]]);
+  assert.ok(Math.abs(window[1]-dispatchUpperY)<.04);
+  assert.equal(dispatchFloor(window),'2F');
+  map.scene.updateMatrixWorld(true);
+  const eye=new Vector3(window[0],window[1]+1.65,window[2]);
+  const hits=new Raycaster(eye,new Vector3(-1,0,0),0,2.3).intersectObject(map.scene,true);
+  assert.ok(hits.length&&hits.every(({object})=>object.material.transparent),'dispatch overlooks the water through glass');
+  assert.ok(map.moveBody(window,-4,0,0,radius,height)[0]>-154,'the window still stops the player');
+  const back=walk(window,[[-153,52],[-150,52],[-150,51],[-150,39],[-150,38.5],[-141,38.5],[-141,35]]);assert.ok(Math.abs(back[1])<.04);
 });
 
 test('new harbor search locations have real inventory containers and physical supporting surfaces',()=>{

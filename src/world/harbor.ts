@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import {box,cylinder,mesh,strut} from './detail/geometry.ts';
 import {enamel,emissive,type Materials} from './detail/materialLibrary.ts';
-import {gangways,shipDeck,shipLevels,shipOutline} from './harborPlan.ts';
+import {dispatchOffice,dispatchUpperY,gangways,shipDeck,shipLevels,shipOutline} from './harborPlan.ts';
 import type {Solid,Slope} from './worldQueries.ts';
 
 // Fictional civil passenger terminal and ship. The same dimensions drive
@@ -185,8 +185,23 @@ export function buildHarbor(root:THREE.Group,m:Materials,solids:Solid[]){
   // Repair shed has open frontage and an independent work surface.
   const rx1=-169,rx2=-158,rz1=19,rz2=35;wallX(rx1,rz1,rz2,0,3.2,navy);wallX(rx2,rz1,rz2,0,3.2,navy);wallZ(rz2,rx1,rx2,0,3.2,navy);for(const x of [rx1+.25,rx2-.25])solid(x,1.6,rz1,.27,3.2,.30,navy);solid(-163.5,3.34,27,11.8,.25,16.7,teal);counter(-166,0,31.4,2.4,.95);for(const z of [24,27,33])solid(-168.25,.62,z,.82,1.24,.85,navy,.045);
   // Dispatch office: ground floor and an open two-storey stair/landing.
-  const dx1=-154,dx2=-130,dz1=37,dz2=54,dy=3.48;wallX(dx1,dz1,dz2,0,3.28,white);wallX(dx2,dz1,dz2,0,3.28,white);openingZ(dz1,dx1,dx2,0,3.28,-141,3.2);openingZ(dz2,dx1,dx2,0,3.28,-141,3.2);counter(-150,0,49.5,2.6,.76);bench(-134,0,41,3.0);
+  const {minX:dx1,maxX:dx2,minZ:dz1,maxZ:dz2}=dispatchOffice,dy=dispatchUpperY;
+  wallX(dx1,dz1,dz2,0,3.28,white);wallX(dx2,dz1,dz2,0,3.28,white);openingZ(dz1,dx1,dx2,0,3.28,-141,3.2);openingZ(dz2,dx1,dx2,0,3.28,-141,3.2);counter(-150,0,49.5,2.6,.76);bench(-134,0,41,3.0);
+  wallX(-138.2,46.35,dz2,0,3.22,navy);
+  openingZ(46.35,-138.2,dx2,0,3.22,-133.9,2.36,navy);
+  counter(-132,0,51.1,1.95,.82);
+  for(const z of [47.9,50.15,52.55]) {
+    solid(-137.47,1.03,z,.86,2.06,1.57,teal,.055);
+    for(const y of [.54,1.08,1.61])b(-136.99,y,z,.085,.16,1.31,navy);
+  }
+  lamp(-133.65,3.11,49.7);
   const sx=-152,ex=-148,lo=39,hi=51,grad=dy/(hi-lo);incline(sx,ex,lo,hi,2,lo,0,grad,navy);for(let z=lo+.25;z<hi;z+=.55)b(-150,(z-lo)*grad+.025,z,3.65,.025,.095,safety);
   slab(dx1,dx2,hi,dz2,dy,m.concrete);slab(dx1,sx,dz1,hi,dy,m.concrete);slab(ex,dx2,dz1,hi,dy,m.concrete);slab(sx,ex,dz1,lo,dy,m.concrete);rail(sx,lo,sx,hi-.05,dy);rail(ex,lo,ex,hi-.05,dy);rail(sx,lo,ex,lo,dy);
-  wallX(dx1,dz1,dz2,dy,3.0,teal);wallX(dx2,dz1,dz2,dy,3.0,white);wallZ(dz1,dx1,dx2,dy,3.0,teal);wallZ(dz2,dx1,dx2,dy,3.0,white);solid(-142,dy+3.13,45.5,24.6,.26,17.6,white);counter(-137,dy,49.8,2.9,.8);bench(-138,dy,42,3.2);for(const x of [-150,-146,-138,-134]){b(x,dy+1.76,dz1-.105,3.1,1.2,.035,blue);b(x,dy+1.76,dz2+.105,3.1,1.2,.035,blue);}lamp(-139,dy+2.8,49);
+  const shoreWindow = new THREE.MeshStandardMaterial({ color: 0x9dd4e5, transparent: true, opacity: .23, depthWrite: false, roughness: .24 });
+  wallX(dx1,dz1,dz2,dy,.89,teal);
+  solid(dx1,dy+1.70,(dz1+dz2)/2,.09,1.62,dz2-dz1,shoreWindow);
+  wallX(dx1,dz1,dz2,dy+2.51,.49,white);
+  for(const z of [38.1,41.8,45.4,49.0,52.8])b(dx1,dy+1.70,z,.26,1.66,.14,teal);
+  b(dx1+.12,dy+.92,45.5,.25,.085,16.8,wood);
+  wallX(dx2,dz1,dz2,dy,3.0,white);wallZ(dz1,dx1,dx2,dy,3.0,teal);wallZ(dz2,dx1,dx2,dy,3.0,white);solid(-142,dy+3.13,45.5,24.6,.26,17.6,white);counter(-137,dy,49.8,2.9,.8);bench(-138,dy,42,3.2);for(const x of [-150,-146,-138,-134]){b(x,dy+1.76,dz1-.105,3.1,1.2,.035,blue);b(x,dy+1.76,dz2+.105,3.1,1.2,.035,blue);}lamp(-139,dy+2.8,49);
 }
