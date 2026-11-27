@@ -30,11 +30,15 @@ test('north customs hall and observation station have real entrance, search furn
 });
 
 test('each attached residence has a distinct accessible first and second floor',()=>{
+  const porchX=-124.4;
   for(const [i,{z}] of houses.entries()){
     const y=residentialPad.height;
-    const lower=walk([-122,y,z],[[-133.8,z]]);inspect(lower,`residential-${i}-ground`);
+    const porch=[porchX,y,z];
+    assert.equal(map.groundHeight(porch,radius),y);
+    assert.ok(map.bodyClear(porch,radius,height));
+    const lower=walk(porch,[[-133.8,z]]);inspect(lower,`residential-${i}-ground`);
     const top=walk(lower,[[-128.7,z],[-128.7,z-3],[-143,z-3],[-143,z],[-139,z]]);assert.ok(Math.abs(top[1]-y-3.2)<.05);inspect(top,`residential-${i}-upper`);
-    const back=walk(top,[[-143,z],[-143,z-3],[-128.7,z-3],[-128.7,z],[-122,z]]);assert.ok(Math.abs(back[1]-y)<.05);
+    const back=walk(top,[[-143,z],[-143,z-3],[-128.7,z-3],[-128.7,z],[porchX,z]]);assert.ok(Math.abs(back[1]-y)<.05);
   }
 });
 

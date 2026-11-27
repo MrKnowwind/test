@@ -14,7 +14,7 @@
 
 ## 复现
 
-- 15 项定向测试覆盖道路边缘胶囊通行、路面渲染高度、花池占地、外墙玻璃碰撞、六处旅馆搜索点、南区地形、全部八组出生至对侧撤离。命令为 `node --test --test-name-pattern 'southern street|planted street|southern terraces|seafarers inn|playable body crosses|market stores|eight safe spawns|every search case|main research|former street|new street|coastline|civic interiors|cold chain|landside' tests/world.test.mjs tests/harbor.test.mjs`。
+- 定向测试覆盖道路边缘胶囊通行、路面渲染高度、花池占地、外墙玻璃碰撞、六处旅馆搜索点、联排前廊和室内楼梯、南区地形、全部八组出生至对侧撤离。命令为 `node --test --test-name-pattern 'southern street|planted street|southern terraces|seafarers inn|playable body crosses|market stores|eight safe spawns|every search case|main research|former street|new street|coastline|civic interiors|attached residence|cold chain|landside' tests/world.test.mjs tests/harbor.test.mjs tests/civic.test.mjs`。
 - `npm run build -- --base=./` 生成生产包。GitHub Actions 执行全量测试及 Pages 部署。
 - `PLAYWRIGHT_CHROMIUM_EXECUTABLE=/path/to/chromium node tests/field-pass-browser.mjs dist test-results/feedback-inn inn,loadout`。实走旅馆两侧入口及两层，搜索六处，核对三种窗口宽度的独立与容器状态，并操作副武器收纳、装备。
 - `PLAYWRIGHT_CHROMIUM_EXECUTABLE=/path/to/chromium node tests/field-pass-browser.mjs dist test-results/feedback-south south,market`。实走交通站、社区中心、联排台阶和客房、商街、药局、停车区，复核南侧撤离。
