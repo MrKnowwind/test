@@ -65,7 +65,7 @@ await page.addInitScript(fixedRoutes => {
     }
     painting = true;
   };
-}, ['research','south','market','inn','loadout','interiors','annex','civic','terrain','street','worksites'].some(name=>cases.has(name)));
+}, ['research','south','market','inn','loadout','interiors','annex','civic','customs-floor','terrain','street','worksites'].some(name=>cases.has(name)));
 const tick = (n=2, paint=false) => page.evaluate(([n,paint]) => window.advanceRaid(n,paint),[n,paint]);
 const state = () => page.evaluate(() => {
   const {feet,stance,climb,eye,countdown,result,flags,weapon,locked,backpack,items,spawn,fov,speed,grounded,health} = window.raidQA.state();
@@ -803,6 +803,27 @@ async function civic() {
   await height(upperTerrace);
   report.civic = { searched: 5, dispatchUpperY, observatoryUpperY, returnedToRoad: true };
 }
+async function customsFloor() {
+  await page.setViewportSize({width:1150,height:885});
+  await start(2);
+  assert.equal((await state()).spawn.id,'N-A');
+  const y = northTerrace.height;
+  await pose([-122,y,-179],Math.PI/2);
+  await walkRoute([[-132,-179],[-132,-177.4]]);
+  await height(y);
+  const standing = [[-131.5,y,-179.2],[-133.1,y,-179.3],[-135.6,y,-178.7]];
+  for(const [i,feet] of standing.entries()){
+    await pose(feet,(136+i*4)*Math.PI/180,-.18);
+    await capture('customs-southwest-'+i,94);
+  }
+  await pose([-146.2,y,-178.6],-Math.PI/2,-.25);
+  await capture('customs-east-entry',94);
+  await walkRoute([[-145,-179],[-136,-179],[-136,-183.4]]);
+  await searchCase('north-customs-locker');
+  await walkRoute([[-136,-179],[-122,-179]]);
+  await height(y);
+  report['customs-floor'] = {views: standing.length+1, searched: 'north-customs-locker', returnedToRoad: true};
+}
 async function terrain() {
   await start(3);
   assert.equal((await state()).spawn.id, 'S-A');
@@ -1039,7 +1060,7 @@ function rgb(hex) {
   return 'rgb('+hex.slice(1).match(/../g).map(n=>parseInt(n,16)).join(', ')+')';
 }
 try {
-  for(const [name,fn] of Object.entries({districts,bags,movement,exits,service,routes,controls,feel,research,south,market,inn,loadout,interiors,annex,civic,terrain,street,worksites,phase35d})){
+  for(const [name,fn] of Object.entries({districts,bags,movement,exits,service,routes,controls,feel,research,south,market,inn,loadout,interiors,annex,civic,'customs-floor':customsFloor,terrain,street,worksites,phase35d})){
     if(cases.has(name)){await fn();console.log(name+' passed');}
   }
   assert.deepEqual(errors,[]);

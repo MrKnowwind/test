@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import {Raycaster,Vector3} from 'three';
 import {createFirstMap} from '../src/world/firstMap.ts';
 import {northTerrace,terrainHeight,civicInteractions,houses} from '../src/world/terrainPlan.ts';
 import {findInteraction} from '../src/player/controller.ts';
@@ -27,6 +28,22 @@ test('north customs hall and observation station have real entrance, search furn
   const top=walk(office,[[-134,-204],[-134,-197.25],[-147.5,-197.25],[-147.5,-211.7],[-142,-212],[-142,-205.6]]);
   assert.ok(Math.abs(top[1]-11.4)<.04);inspect(top,'north-observatory-upper');
   const back=walk(top,[[-142,-212],[-147.5,-212],[-147.5,-197.25],[-134,-197.25],[-134,-204],[-115,-204],[-115,-107]]);assert.ok(Math.abs(back[1])<.05);
+});
+
+test('customs hall floor has one finish across the aisle and at the road threshold',()=>{
+  map.scene.updateMatrixWorld(true);
+  const height=northTerrace.height, down=new Vector3(0,-1,0);
+  const finishAt=(x,z)=>new Raycaster(new Vector3(x,height+.07,z),down,0,.065).intersectObject(map.scene,true);
+  for(const x of [-151.8,-149.201,-149.199,-143.8,-140.2,-135.9,-131.9,-130.801,-130.799,-128.2,-127.3]){
+    for(const z of [-182.21,-181.94,-180.601,-180.599,-179.03,-177.71,-177.401,-177.399,-176.92,-174.71]){
+      const hits=finishAt(x,z);
+      assert.equal(hits.length,1,`floor at ${x},${z}: ${hits.map(hit=>hit.point.y.toFixed(5)).join(', ')}`);
+      assert.ok(Math.abs(hits[0].point.y-height-.028)<.0001);
+    }
+  }
+  const approach=finishAt(-126.8,-177.83);
+  assert.equal(approach.length,1,'road still meets the east threshold');
+  assert.ok(Math.abs(approach[0].point.y-height-.031)<.0001);
 });
 
 test('each attached residence has a distinct accessible first and second floor',()=>{

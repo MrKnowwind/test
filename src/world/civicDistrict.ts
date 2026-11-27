@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import {box,cylinder,mesh,strut} from './detail/geometry.ts';
 import {enamel,emissive,type Materials} from './detail/materialLibrary.ts';
-import {northTerrace,terrainHeight,houses,observatory,observatoryUpperY} from './terrainPlan.ts';
+import {northTerrace,terrainHeight,houses,northCustoms,observatory,observatoryUpperY} from './terrainPlan.ts';
 import type {Solid,Slope} from './worldQueries.ts';
 import { residentialPad } from './southPlan.ts';
 
@@ -71,8 +71,19 @@ export function buildCivicDistrict(root:THREE.Group,m:Materials,solids:Solid[]){
 
   // N1: inspection hall on the actual eight metre terrace, broad public entrances,
   // low glass clerestory and separated office furnishings.
-  const y=northTerrace.height, nx1=-153,nx2=-127,nz1=-190,nz2=-168;
-  b((nx1+nx2)/2,y+.014,(nz1+nz2)/2,26,.028,22,m.concrete);
+  const y=northTerrace.height, {minX:nx1,maxX:nx2,minZ:nz1,maxZ:nz2}=northCustoms;
+  // The green lane is an inlay. Its footprint is removed from the concrete finish.
+  const rectangle = (halfW:number,halfD:number) => [
+    new THREE.Vector2(-halfW,-halfD), new THREE.Vector2(halfW,-halfD),
+    new THREE.Vector2(halfW,halfD), new THREE.Vector2(-halfW,halfD),
+  ];
+  const lane=rectangle(9.2,1.6);
+  const hall=new THREE.Shape(rectangle((nx2-nx1)/2,(nz2-nz1)/2));
+  hall.holes.push(new THREE.Path(lane));
+  for(const [shape,material] of [[hall,m.concrete],[new THREE.Shape(lane),sage]] as const){
+    const finish=new THREE.ShapeGeometry(shape).rotateX(-Math.PI/2);
+    mesh(group,finish,material,(nx1+nx2)/2,y+.028,(nz1+nz2)/2);
+  }
   entryX(nx1,nz1,nz2,y,4.8,-179,3.6,slate);entryX(nx2,nz1,nz2,y,4.8,-179,3.6,cream);
   wallZ(nz1,nx1,nx2,y,4.8,cream);wallZ(nz2,nx1,nx2,y,4.8,cream);
   solid(-140,y+4.97,-179,27.1,.32,23.4,slate,.045);
@@ -92,7 +103,7 @@ export function buildCivicDistrict(root:THREE.Group,m:Materials,solids:Solid[]){
   }
   lamp(-135.5,y+2.83,-186.15);
   for(const x of [-147,-140,-133])for(const z of [-185.7,-173.6])lamp(x,y+4.60,z);
-  b(-140,y+.019,-179,18.4,.018,3.2,sage);for(const z of [-183.2,-175.1])b(-140,y+.025,z,19,.013,.12,m.safety);
+  for(const z of [-183.2,-175.1])b(-140,y+.029,z,19,.012,.12,m.safety);
   for(const z of [-184,-174])solid(-124.6,y+.48,z,.30,.96,.30,m.steel,.04);
 
   // N5 early exploration anchor: an observation station with a usable upper room.

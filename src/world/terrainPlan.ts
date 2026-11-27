@@ -65,8 +65,9 @@ export function observatoryFloor([x,y,z]:Vec3) {
   if(x<minX||x>maxX||z<minZ||z>maxZ||y<northTerrace.height-.12||y>=observatoryUpperY+3.1)return undefined;
   return y>=observatoryUpperY-.12?'2F':'1F';
 }
+export const northCustoms = {id:'north-customs',label:'北部海关检查厅',minX:-153,maxX:-127,minZ:-190,maxZ:-168} as const;
 export const civicBuildings=[
-  {id:'north-customs',label:'北部海关检查厅',minX:-153,maxX:-127,minZ:-190,maxZ:-168},
+  northCustoms,
   observatory,
   {id:'residential-row',label:'港务联排住宅',minX:-144,maxX:-126,minZ:121,maxZ:148},
 ] as const;
