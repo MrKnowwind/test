@@ -1,11 +1,11 @@
-import { createBackpack, dimensions, portion, type BagEntry, type Placement } from '../raid/backpack.ts';
+import { createBackpack, dimensions, portion, type BagEntry, type Cargo, type Placement } from '../raid/backpack.ts';
 import { isPack, itemSpecs, packs, equipSlot, isShield, isHead, shields, headDevices, shieldCharge, gearLayout, tagLabels, type GearSlot, type ItemId, type PackId } from '../raid/catalog.ts';
-import { defaultLoadout, isCarryCargo, loadoutRequests, supplyItems, type Loadout, type Supply } from '../raid/loadout.ts';
+import { basicIssuedPack, defaultLoadout, issuedLoadouts, isCarryCargo, loadoutRequests, supplyItems, type Loadout, type Supply } from '../raid/loadout.ts';
 import { arrangeStash, readStashLayout, remainingStock, saveStashLayout, stashColumns, visibleStashRows } from '../raid/stash.ts';
 import { buyPrice, shopItems, exchanges, type createWarehouse } from '../raid/warehouse.ts';
 import { itemIcon } from './itemArt.ts';
 import { equipmentSlot } from './equipmentSlots.ts';
-import { itemLabels } from './itemLabels.ts';
+import { itemDescription, itemLabels, itemNameLabel, itemProvenance, markIssued } from './itemLabels.ts';
 import { renderPortMapPreviews } from './portMapPreview.ts';
 import { renderMerchantPortrait } from './merchantArt.ts';
 
@@ -40,7 +40,7 @@ export function createOutpostView(warehouse: ReturnType<typeof createWarehouse>,
     if(s.from==='carry')return bag?.entries.find(e=>e.id===s.id);
     if(s.from==='slot')return s.slot==='pack'?bag?.equipped:bag?.slots[s.slot];
   }
-  function makeTile(entry: Pick<BagEntry,'item'|'quantity'|'rotated'>, selection:Selection, paid?:number) {
+  function makeTile(entry: Pick<BagEntry,'item'|'quantity'|'rotated'|'issued'>, selection:Selection) {
     const spec=itemSpecs[entry.item], button=document.createElement('button');
     button.type='button';button.className='inventory-tile';
     button.style.setProperty('--item-color',spec.color);
@@ -51,9 +51,7 @@ export function createOutpostView(warehouse: ReturnType<typeof createWarehouse>,
     if(entry.quantity>1){
       const count=document.createElement('small');count.textContent=String(entry.quantity);button.append(count);
     }
-    if(paid!==undefined){
-      const mark=document.createElement('span');mark.className='issued-mark';mark.textContent=paid===0?'配发':paid<entry.quantity?'混合':'自带';button.append(mark);
-    }
+    if (selection.from === 'carry') markIssued(button, entry);
     bindTile(button,selection);
     return button;
   }
@@ -87,11 +85,11 @@ export function createOutpostView(warehouse: ReturnType<typeof createWarehouse>,
     for(const el of root.querySelectorAll('.inventory-tile.selected'))el.classList.remove('selected');
     const selector=s.from==='stash'?'[data-stock-entry="'+s.id+'"]':s.from==='carry'?'[data-carry-entry="'+s.id+'"]':s.from==='slot'?'[data-slot="'+s.slot+'"]':'';
     if(selector)root.querySelector(selector)?.classList.add('selected');
-    const spec=itemSpecs[entry.item], heading=document.createElement('div'), text=document.createElement('div'), name=document.createElement('strong'), meta=document.createElement('small');
-    heading.className='inspect-heading';name.textContent=spec.name+' ×'+entry.quantity;
+    const spec=itemSpecs[entry.item], heading=document.createElement('div'), text=document.createElement('div'), name=itemNameLabel(entry.item, ' ×'+entry.quantity), meta=document.createElement('small');
+    heading.className='inspect-heading';
     const condition=s.from==='stash'?warehouse.condition(entry.item):entry;
-    meta.textContent=[spec.w+' × '+spec.h+' 格',isShield(entry.item)?'护盾 '+shieldCharge(entry.item,condition?.charge)+'/'+shields[entry.item]:isHead(entry.item)?(headDevices[entry.item]?'前方照明':'基础头部装备'):'',entry.durability!==undefined?'耐久 '+entry.durability+'/3':'',entry.loaded!==undefined?'装填 '+entry.loaded:'',warehouse.price(entry.item)+' 券/件'].filter(Boolean).join(' · ');
-    text.append(name,meta,itemLabels(entry.item));heading.append(itemIcon(entry.item),text);
+    meta.textContent=[spec.w+' × '+spec.h+' 格',isShield(entry.item)?'护盾 '+shieldCharge(entry.item,condition?.charge)+'/'+shields[entry.item]:isHead(entry.item)?(headDevices[entry.item]?'前方照明':'基础头部装备'):'',entry.durability!==undefined?'耐久 '+entry.durability+'/3':'',entry.loaded!==undefined?'装填 '+entry.loaded:'',isPack(entry.item)?'容量 '+packs[entry.item].reduce((n, section)=>n+section.w*section.h,0)+' 格':'',itemProvenance(entry),warehouse.price(entry.item)+' 券/件'].filter(Boolean).join(' · ');
+    text.append(name,meta,itemLabels(entry.item),itemDescription(entry.item));heading.append(itemIcon(entry.item),text);
     const actions=document.createElement('div');actions.className='inspect-actions';
     function action(label:string,fn:()=>void){const b=document.createElement('button');b.type='button';b.textContent=label;b.onclick=fn;actions.append(b);}
     if(s.from==='stash'){action('带入整备',()=>quickMove(s));action('旋转',()=>rotate(s));}
@@ -221,7 +219,7 @@ export function createOutpostView(warehouse: ReturnType<typeof createWarehouse>,
       const weapon = slot==='primary1'||slot==='primary2'||slot==='pistol'||slot==='knife';
       if(slot==='primary1'||slot==='primary2'){weapons.append(equipmentSlot(slot));continue;}
       const cargo=slot==='pack'?bag.equipped:bag.slots[slot];
-      const area=equipmentSlot(slot,cargo?.item,!!cargo?.issued);
+      const area=equipmentSlot(slot, cargo);
       if(cargo){
         area.classList.add('inventory-tile');
         bindTile(area,{from:'slot',slot});
@@ -246,7 +244,7 @@ export function createOutpostView(warehouse: ReturnType<typeof createWarehouse>,
       label.textContent=section.name; area.className='prepare-section inventory-grid';area.dataset.carrySection=section.id;
       area.style.setProperty('--columns',String(section.w));area.style.setProperty('--rows',String(section.h));
       for(const entry of bag.entries.filter(e=>e.section===section.id)){
-        const tile=makeTile(entry,{from:'carry',id:entry.id},entry.quantity-(entry.issued??0));placeTile(tile,entry);area.append(tile);
+        const tile=makeTile(entry,{from:'carry',id:entry.id});placeTile(tile,entry);area.append(tile);
       }
       dropTarget(area,(s,event)=>{
         const e=entryFor(s);if(!e)return;
@@ -273,10 +271,13 @@ export function createOutpostView(warehouse: ReturnType<typeof createWarehouse>,
       const input=document.createElement('select');for(const [key,name] of options)input.add(new Option(name,key));
       input.value=value;input.onchange=()=>choose(input.value);field(title,input);
     }
-    const available=(Object.keys(packs) as PackId[]).filter(item=>stock[item]||item===plan.pack);
-    select('背包',[['','空'],...available.map(item=>[item,itemSpecs[item].name+' ×'+(stock[item]??0)] as const)],plan.pack??'',value=>{
-      if(!changePlan({...plan,pack:isPack(value as ItemId)?value as PackId:undefined}))prepare();
-    });
+    const available=(Object.keys(packs) as PackId[]).filter(item=>stock[item] || item===plan.pack);
+    select('背包',[['','空'],['issued',itemSpecs[basicIssuedPack].name+' · 配发'],
+      ...available.map(item=>[item,itemSpecs[item].name+' ×'+(stock[item]??0)] as const)],
+      plan.pack??'',value=>{
+        const pack=value==='issued'||isPack(value as ItemId)?value as Loadout['pack']:undefined;
+        if(!changePlan({...plan,pack}))prepare();
+      });
     for(const [weapon,title] of [['pistol','手枪'],['knife','近战']] as const){
       const options:[string,string][]=[['','空'],['issued',itemSpecs[weapon].name+' · 配发']];
       if(stock[weapon]||plan[weapon]==='warehouse')options.push(['warehouse',itemSpecs[weapon].name+' · 仓库 ×'+(stock[weapon]??0)]);
@@ -323,12 +324,54 @@ export function createOutpostView(warehouse: ReturnType<typeof createWarehouse>,
   });
   search.oninput=category.onchange=()=>{clearSelection();renderStash();};
   q('stash-sort').onclick=()=>{stash=arrangeStash(remainingStock(warehouse.read()??{},plan),[],warehouse.capacity().rows);saveLayout();renderStash();clearSelection();message();};
-  q('reset-loadout').onclick=()=>changePlan({...defaultLoadout},undefined,undefined,false);
+  const issuedDialog=q<HTMLDialogElement>('issued-dialog');
+  const issuedChoices=q('issued-choices');
+  for(const kit of issuedLoadouts){
+    const choice=document.createElement('button');
+    choice.type='button';choice.dataset.kit=kit.id;choice.textContent=kit.name;
+    choice.setAttribute('aria-pressed','false');
+    choice.onclick=()=>{
+      for(const button of issuedChoices.querySelectorAll('button'))button.setAttribute('aria-pressed',String(button===choice));
+      const preview=warehouse.preview(kit.plan);
+      if(!preview)return;
+      q('issued-feedback').textContent='';
+      q('issued-description').textContent=kit.description;
+      const pistol=preview.slots.pistol, knife=preview.slots.knife, pack=preview.equipped;
+      const rounds=preview.entries.filter(e=>e.item==='pistol-ammo').reduce((sum,e)=>sum+e.quantity,0);
+      const capacity=preview.sections.reduce((sum,part)=>sum+part.w*part.h,0);
+      const equipment: [GearSlot, Cargo|undefined, string][]=[
+        ['pistol',pistol,'弹匣 '+(pistol?.loaded??0)+' 发 · 备弹 '+rounds+' 发'],
+        ['knife',knife,'近战装备'],
+        ['pack',pack,'随身合计 '+capacity+' 格'],
+      ];
+      const cards=equipment.flatMap(([key,cargo,info])=>{
+        if(!cargo)return [];
+        const card=document.createElement('div'), label=document.createElement('small');
+        label.textContent=info;
+        const slot=equipmentSlot(key,cargo);
+        slot.disabled=true;
+        card.append(slot,itemNameLabel(cargo.item),label);
+        return [card];
+      });
+      q('issued-preview').replaceChildren(...cards);
+      q('issued-confirm').onclick=()=>{
+        if(changePlan({...kit.plan},undefined,undefined,false))issuedDialog.close();
+        else q('issued-feedback').textContent='配发未完成，请返回核对当前仓库与整备。';
+      };
+    };
+    issuedChoices.append(choice);
+  }
+  q('reset-loadout').onclick=()=>{
+    issuedChoices.querySelector('button')?.click();
+    issuedDialog.showModal();
+  };
+  q('issued-cancel').onclick=()=>issuedDialog.close();
+  q('trade-inspection-close').onclick=()=>q<HTMLDialogElement>('trade-inspection').close();
 
   function tradeRow(item: ItemId, amount: number, price: number, buying: boolean, credits: number) {
-    const row=document.createElement('article'), header=document.createElement('div'), name=document.createElement('strong'), info=document.createElement('small'), button=document.createElement('button');
+    const row=document.createElement('article'), header=document.createElement('div'), name=itemNameLabel(item), info=document.createElement('small'), button=document.createElement('button');
     row.style.setProperty('--item-color',itemSpecs[item].color);
-    name.textContent=itemSpecs[item].name; info.textContent=(buying&&item==='pistol-ammo'?'每盒 12 发 · ':'')+(isShield(item)?'护盾 '+shields[item]+' · ':isHead(item)&&headDevices[item]?'前方照明 · ':'')+'持有 '+amount;
+    info.textContent=(buying&&item==='pistol-ammo'?'每盒 12 发 · ':'')+(isShield(item)?'护盾 '+shields[item]+' · ':isHead(item)&&headDevices[item]?'前方照明 · ':'')+'持有 '+amount;
     header.append(name,info,itemLabels(item));
     button.textContent=(buying?'购买':'出售')+' · '+price;
     button.setAttribute('aria-label',button.textContent+' 券 · '+name.textContent);
@@ -339,7 +382,16 @@ export function createOutpostView(warehouse: ReturnType<typeof createWarehouse>,
       const ok=await (buying?warehouse.buy(item):warehouse.sell(item,price));
       message(ok?'':'交易未完成，库存或报价已更新');refresh();
     };
-    row.append(itemIcon(item),header,button);return row;
+    const icon = document.createElement('button');
+    icon.type = 'button'; icon.className = 'trade-inspect';
+    icon.setAttribute('aria-label', '检视 '+itemSpecs[item].name);
+    icon.append(itemIcon(item));
+    icon.onclick = () => {
+      const inspect = q<HTMLDialogElement>('trade-inspection');
+      q('trade-inspection-content').replaceChildren(itemNameLabel(item), itemLabels(item), itemDescription(item));
+      inspect.showModal();
+    };
+    row.append(icon,header,button);return row;
   }
   function updateMarket(){
     const market=warehouse.market();refreshAt=market.refreshAt;

@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import type { Vec3 } from '../contracts/demo.ts';
 import { box, strut } from './detail/geometry.ts';
 import { emissive, enamel, type Materials } from './detail/materialLibrary.ts';
-import { researchApproach, researchBuilding, researchPad, researchSteps, researchUpperY } from './researchPlan.ts';
+import { researchApproach, researchBuilding, researchPad, researchSteps, researchStair, researchUpperY } from './researchPlan.ts';
 import type { Solid } from './worldQueries.ts';
 
 export function buildResearchBuilding(root: THREE.Group, m: Materials, solids: Solid[],
@@ -45,7 +45,7 @@ export function buildResearchBuilding(root: THREE.Group, m: Materials, solids: S
   solid([27.5,upper+.52,-160.1],[.12,1.04,15.65],glass);
   for (const x of [28.1,31.5]) solid([x,upper+.51,-168],[1.2,1.02,.09],glass);
   // The visible steel treads have the same endpoints as the continuous walk surface.
-  const stairX = 29.8, bottom = -158.8, top = -168, rise = upper - y;
+  const {x:stairX,footZ:bottom,topZ:top} = researchStair, rise = upper - y;
   solids.push({min:[stairX-1.23,-.16,top],max:[stairX+1.23,0,bottom],floor:true,walkSurface:true,surface:'metal',
     slope:{axis:2,start:bottom,height:y,gradient:rise/(top-bottom)}});
   const treads = 20;

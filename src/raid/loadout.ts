@@ -8,7 +8,7 @@ export const isMaterial = (item: ItemId) => 'art' in itemSpecs[item] || ['mechan
 export const isCarryCargo = (item:ItemId) => isMaterial(item) || !!equipSlot(item);
 type WeaponSource = 'issued' | 'warehouse';
 export type Loadout = {
-  pack?: PackId;
+  pack?: PackId | 'issued';
   pistol?: WeaponSource;
   knife?: WeaponSource;
   shield?:ShieldId;
@@ -17,12 +17,19 @@ export type Loadout = {
   layout?: PreparedPlacement[];
 } & Partial<Record<Supply, number>>;
 
-export const defaultLoadout: Loadout = { pistol: 'issued', knife: 'issued' };
+export const basicIssuedPack: PackId = 'sling';
+export const issuedLoadouts = [{
+  id: 'basic',
+  name: '基础配发',
+  description: '巡检队员的标准套装。已预约的自带装备与物品将退回仓库。',
+  plan: { pistol: 'issued', knife: 'issued', pack: 'issued' } satisfies Loadout,
+}] as const;
+export const defaultLoadout: Loadout = issuedLoadouts[0].plan;
 export const issuedRounds = 15;
 
 export function loadoutRequests(plan: Loadout) {
   const requested: [ItemId, number][] = [];
-  if (plan.pack) requested.push([plan.pack, 1]);
+  if (plan.pack && plan.pack !== 'issued') requested.push([plan.pack, 1]);
   for (const weapon of ['pistol', 'knife'] as const)
     if (plan[weapon] === 'warehouse') requested.push([weapon, 1]);
   if(plan.shield)requested.push([plan.shield,1]);
@@ -44,7 +51,9 @@ export function buildLoadout(runId: string, plan: Loadout, stock: readonly Cargo
     return index>=0?remaining.splice(index,1)[0]:undefined;
   };
   if (plan.pack) {
-    const pack = take(plan.pack);
+    const pack = plan.pack === 'issued'
+      ? { item: basicIssuedPack, quantity: 1, issued: 1, instance: runId + '/pack' }
+      : take(plan.pack);
     if (!pack) return;
     bag.swap(pack);
   }

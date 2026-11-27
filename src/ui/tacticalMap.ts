@@ -1,259 +1,237 @@
-import { supplySites } from '../world/supplySites.ts';
-import { lab, mapBounds, mapViewBounds, ramp } from '../world/worldQueries.ts';
-import {dispatchFloor,gangways,harborBuildings,harborFloor,shipEnvelope,shipOutline,isShip} from '../world/harborPlan.ts';
-import { civicBuildings,observatoryFloor,terrainSections } from '../world/terrainPlan.ts';
-import { districtBuildings } from '../world/districtSites.ts';
-import { isLabLevel, researchBuilding, researchBuildingFloor } from '../world/researchPlan.ts';
-import { annexWalk, archiveFloor, archiveStair, researchAnnexBuildings } from '../world/researchAnnexPlan.ts';
-import { landOutline } from '../world/landPlan.ts';
-import { southBuildings } from '../world/southPlan.ts';
-import { marketBuildings } from '../world/marketPlan.ts';
-import { innBuilding, innFloor, innStair } from '../world/innPlan.ts';
-import { controlStair, drainChannel, drainCrossings, officeStair, sortingStair, vehicleCourt, worksiteBuildings, worksitePlace } from '../world/worksitePlan.ts';
 import type { ExitZone, FirstMap, Vec3 } from '../contracts/demo.ts';
+import { centerOf, drawMapLabel, drawMapLayer, drawPlayerMark, fitMap, floorNames, layerBounds, mapFloor, mapFloorLabel,
+  mapLandmarks, mapProjection, type MapFloor, type MapProjection, type PlanPoint } from './mapGeometry.ts';
 
-import { streetFootprints } from '../world/portBlocks.ts';
-import { freightHalls } from '../world/upperRoutes.ts';
-import { roads, footpaths } from '../world/roads.ts';
+type ExitState = (exit: ExitZone) => {kind:string; label:string};
+const exitColor = (kind: string) => kind==='locked' ? '#e6a58f' : kind==='active' ? '#f8d190' : '#95e8c7';
+const q = <T extends HTMLElement = HTMLElement>(id: string) => document.getElementById(id) as T;
+const clamp = (n: number, low: number, high: number) => Math.min(high,Math.max(low,n));
 
-const publicBuildings=[...civicBuildings,...districtBuildings,researchBuilding,...researchAnnexBuildings,...southBuildings,...marketBuildings,innBuilding,...worksiteBuildings];
-const buildingFloors = { inn: innFloor, archive: archiveFloor, dispatch: dispatchFloor, observatory: observatoryFloor };
-
-function fillLand(context: CanvasRenderingContext2D, project: (x: number, z: number) => number[], color: string) {
-  context.beginPath();
-  landOutline.forEach(([x, z], i) => {
-    const [px, pz] = project(x, z);
-    if (i === 0) context.moveTo(px, pz);
-    else context.lineTo(px, pz);
-  });
-  context.closePath();
-  context.fillStyle = color;
-  context.fill();
-}
-
-function upperBuildingAt(position: Vec3) {
-  for (const [building, floorAt] of Object.entries(buildingFloors)) {
-    if (floorAt(position) === '2F') return building;
+function drawExit(ctx: CanvasRenderingContext2D, projection: MapProjection, exit: ExitZone, state: string, selected = false) {
+  const [x,y]=projection.project(exit.position[0],exit.position[2]);
+  ctx.strokeStyle=exitColor(state);ctx.fillStyle='#17313a';ctx.lineWidth=2;
+  const size=selected?8:5;
+  ctx.fillRect(x-size,y-size,size*2,size*2);
+  ctx.strokeRect(x-size,y-size,size*2,size*2);
+  if(state==='locked'){
+    ctx.beginPath();ctx.moveTo(x-3,y+3);ctx.lineTo(x+3,y-3);ctx.stroke();
   }
-  if (researchBuildingFloor(position)==='2F') return 'research';
-  const site=worksitePlace(position);
-  if (site?.floor==='2F'||site?.floor==='夹层') return site.id;
-  return undefined;
 }
 
-export function createTacticalMap() {
-  const panel = document.querySelector<HTMLElement>('#tactical-map')!;
-  const canvas = document.querySelector<HTMLCanvasElement>('#map-canvas')!;
-  const ctx = canvas.getContext('2d')!;
-  const mini = document.querySelector<HTMLCanvasElement>('#minimap-canvas')!;
-  const radar = mini.getContext('2d')!;
-  const miniFloor = document.querySelector<HTMLElement>('#minimap-floor')!;
-  let lastRadar = -Infinity;
-  const scale=580/400, mapLeft=(900-(mapViewBounds.maxX-mapViewBounds.minX)*scale)/2;
-  const project = (x: number, z: number) => [mapLeft + (x - mapViewBounds.minX)*scale, 85 + (z - mapBounds.minZ)*scale];
-  let lastDraw = 0;
-  const compass = document.querySelector<HTMLElement>('#bearing')!;
-  const heading = document.querySelector<HTMLElement>('#heading')!;
+function drawContacts(ctx: CanvasRenderingContext2D, {project}: MapProjection, floor: MapFloor,
+  map: FirstMap, discovered: ReadonlySet<string>, consumed: ReadonlySet<string>) {
+  ctx.fillStyle=ctx.strokeStyle='#a5e2d5';ctx.lineWidth=1.2;
+  for(const contact of map.interactions){
+    if(!discovered.has(contact.id)||mapFloor(contact.position)!==floor)continue;
+    if(contact.kind==='door')continue;
+    const [x,y]=project(contact.position[0],contact.position[2]);
+    if(contact.kind==='switch')ctx.fillRect(x-3,y-3,6,6);
+    else {
+      ctx.beginPath();ctx.arc(x,y,2.8,0,Math.PI*2);
+      if(consumed.has(contact.id))ctx.stroke();else ctx.fill();
+    }
+  }
+}
+
+export function createTacticalMap(close: () => void) {
+  const panel=q('tactical-map'), canvas=q<HTMLCanvasElement>('map-canvas'), ctx=canvas.getContext('2d')!;
+  const mini=q<HTMLCanvasElement>('minimap-canvas'), radar=mini.getContext('2d')!;
+  const miniFloor=q('minimap-floor'), compass=q('bearing'), heading=q('heading');
+  const tabs=q('map-floors'), legend=q('map-exits'), selectedExitText=q('map-exit-detail');
+  const clearMarker=q<HTMLButtonElement>('map-clear-marker'), markerText=q('map-marker-status');
+  const left=q('map-location'), scaleBar=q('map-scale');
+  let floor: MapFloor='ground', center=centerOf(layerBounds(floor)), zoom=1;
+  let lastDraw=-Infinity,lastRadar=-Infinity, latestFeet: Vec3=[0,0,0];
+  let exits: readonly ExitZone[]=[];
+  let selectedExit: ExitZone|undefined;
+  let selectedLandmark: string|undefined;
+  let marker: { point:PlanPoint; floor:MapFloor }|undefined;
+  let drag: {id:number; x:number; y:number; original:PlanPoint; moved:boolean}|undefined;
+
+  const scale=()=>fitMap(layerBounds(floor),canvas.width,canvas.height,28)*zoom;
+  const projection=()=>mapProjection(center,canvas.width,canvas.height,scale());
+  const refresh=()=>{lastDraw=-Infinity;};
+  function constrain() {
+    const b=layerBounds(floor), halfX=canvas.width*.38/scale(), halfZ=canvas.height*.38/scale(), middle=centerOf(b);
+    const x=halfX*2>=b.maxX-b.minX?middle[0]:clamp(center[0],b.minX+halfX,b.maxX-halfX);
+    const z=halfZ*2>=b.maxZ-b.minZ?middle[1]:clamp(center[1],b.minZ+halfZ,b.maxZ-halfZ);
+    center=[x,z];
+  }
+  function setFloor(value: MapFloor) {
+    floor=value;
+    panel.dataset.floor=floor;
+    for(const tab of tabs.querySelectorAll('button'))tab.setAttribute('aria-pressed', String(tab.dataset.floor===floor));
+    selectedExit=undefined;selectedLandmark=undefined;
+    center=centerOf(layerBounds(floor));zoom=1;
+    refresh();
+  }
+  for(const [id,label] of Object.entries(floorNames)){
+    const button=document.createElement('button');
+    button.type='button';button.textContent=label;button.dataset.floor=id;
+    button.onclick=()=>setFloor(id as MapFloor);
+    tabs.append(button);
+  }
+  function position(event: PointerEvent|WheelEvent): PlanPoint {
+    const r=canvas.getBoundingClientRect();
+    return [(event.clientX-r.left)*canvas.width/r.width,(event.clientY-r.top)*canvas.height/r.height];
+  }
+  function zoomAt(factor: number, x=canvas.width/2, y=canvas.height/2) {
+    const [wx,wz]=projection().unproject(x,y);
+    zoom=clamp(zoom*factor,1,14);
+    center=[wx-(x-canvas.width/2)/scale(),wz-(y-canvas.height/2)/scale()];
+    constrain();refresh();
+  }
+  function mark(point: PlanPoint) {
+    const bounds=layerBounds(floor);
+    if(point[0]<bounds.minX||point[0]>bounds.maxX||point[1]<bounds.minZ||point[1]>bounds.maxZ)return;
+    marker={point,floor};selectedExit=undefined;selectedLandmark=undefined;refresh();
+  }
+  function chooseExit(exit: ExitZone, focus: boolean) {
+    selectedExit=exit;selectedLandmark=undefined;
+    if(focus){
+      zoom=Math.max(zoom,2.15);
+      center=[exit.position[0],exit.position[2]];
+      constrain();
+    }
+    refresh();
+  }
+  function renderedExits() { return exits.filter(exit=>mapFloor(exit.position)===floor); }
+  canvas.addEventListener('pointerdown',event=>{
+    if(event.button!==0||drag)return;
+    const [x,y]=position(event);
+    drag={id:event.pointerId,x,y,original:center,moved:false};
+    canvas.setPointerCapture(event.pointerId);
+  });
+  canvas.addEventListener('pointermove',event=>{
+    if(!drag||drag.id!==event.pointerId)return;
+    const [x,y]=position(event), dx=x-drag.x, dy=y-drag.y;
+    if(!drag.moved&&Math.hypot(dx,dy)<5)return;
+    drag.moved=true;canvas.classList.add('panning');
+    center=[drag.original[0]-dx/scale(),drag.original[1]-dy/scale()];
+    constrain();refresh();
+  });
+  canvas.addEventListener('pointerup',event=>{
+    if(!drag||drag.id!==event.pointerId)return;
+    const moved=drag.moved;
+    drag=undefined;canvas.classList.remove('panning');
+    if(moved)return;
+    const [x,y]=position(event), p=projection();
+    const exit=renderedExits().find(zone=>{
+      const [zx,zy]=p.project(zone.position[0],zone.position[2]);
+      return Math.hypot(x-zx,y-zy)<12;
+    });
+    if(exit){chooseExit(exit,false);return;}
+    const dpr=canvas.width/canvas.clientWidth;
+    const landmark=floor==='ground'&&mapLandmarks.find(spot=>{
+      const [px,py]=p.project(...centerOf(spot.bounds));
+      return Math.abs(px-x)<dpr*36&&Math.abs(py-13*dpr-y)<dpr*8;
+    });
+    if(landmark){
+      selectedLandmark=landmark.label;selectedExit=undefined;
+      zoom=Math.max(zoom,2.15);center=centerOf(landmark.bounds);constrain();refresh();
+    }else mark(p.unproject(x,y));
+  });
+  canvas.addEventListener('lostpointercapture',()=>{drag=undefined;canvas.classList.remove('panning');});
+  canvas.addEventListener('wheel',event=>{
+    event.preventDefault();
+    zoomAt(Math.exp(-clamp(event.deltaY*(event.deltaMode===1?18:1),-120,120)*.0026),...position(event));
+  },{passive:false});
+  canvas.addEventListener('keydown',event=>{
+    if(event.code==='Enter'||event.code==='Space'){event.preventDefault();mark(center);}
+  });
+  q('map-zoom-in').onclick=()=>zoomAt(1.45);
+  q('map-zoom-out').onclick=()=>zoomAt(1/1.45);
+  q('map-reset').onclick=()=>setFloor(floor);
+  q('map-recenter').onclick=()=>{
+    setFloor(mapFloor(latestFeet));zoom=2.25;
+    center=[latestFeet[0],latestFeet[2]];constrain();refresh();
+  };
+  clearMarker.onclick=()=>{marker=undefined;refresh();};
+  q('tactical-close').onclick=close;
+
+  function drawMarker(target: CanvasRenderingContext2D, p: MapProjection, level: MapFloor) {
+    if(!marker||marker.floor!==level)return;
+    const [x,y]=p.project(...marker.point);
+    target.fillStyle='#79e1f5';target.strokeStyle='#183a49';target.lineWidth=2;
+    target.beginPath();target.moveTo(x,y-7);target.lineTo(x+7,y);target.lineTo(x,y+7);target.lineTo(x-7,y);
+    target.closePath();target.fill();target.stroke();
+  }
+
+  let exitListKey='';
+  function updateExitList(status: ExitState) {
+    const shown=renderedExits(), key=shown.map(exit=>exit.id).join(',');
+    if(key!==exitListKey){
+      exitListKey=key;
+      legend.replaceChildren(...shown.map(exit=>{
+        const button=document.createElement('button');
+        button.type='button';button.dataset.exit=exit.id;button.textContent=exit.label;
+        button.onclick=()=>chooseExit(exit,true);
+        return button;
+      }));
+      legend.hidden=!shown.length;
+    }
+    shown.forEach((exit,i)=>{
+      const state=status(exit), button=legend.children[i] as HTMLButtonElement;
+      button.dataset.state=state.kind;
+      button.style.setProperty('--exit-color',exitColor(state.kind));
+      button.setAttribute('aria-pressed',String(selectedExit===exit));
+      button.setAttribute('aria-label',exit.label+' · '+state.label);
+      button.title=state.label;
+    });
+    const detail=selectedExit ? selectedExit.label+' · '+status(selectedExit).label : selectedLandmark??'';
+    if(selectedExitText.textContent!==detail)selectedExitText.textContent=detail;
+  }
 
   return {
-    reset() { panel.hidden = true; lastDraw = 0; lastRadar = -Infinity; },
-    toggle() { panel.hidden = !panel.hidden; lastDraw = 0; },
-    updateMini(map: FirstMap, feet: Vec3, yaw: number, now: number, discovered: ReadonlySet<string>,
-      consumed: ReadonlySet<string>, statusFor: (exit: ExitZone) => {kind: string}) {
-      if (now - lastRadar < 90) return;
-      lastRadar = now;
-      const underground = isLabLevel(feet);
-      const floor = underground ? 'B1' : innFloor(feet) ?? researchBuildingFloor(feet) ?? archiveFloor(feet) ??
-        dispatchFloor(feet) ?? observatoryFloor(feet) ?? worksitePlace(feet)?.floor ?? harborFloor(feet);
-      const upperBuilding=upperBuildingAt(feet);
-      if (miniFloor.textContent !== floor) miniFloor.textContent = floor;
-      const half = mini.width / 2, scale = half / (underground ? 25 : 45);
-      const point = (x: number, z: number) => [half + (x - feet[0]) * scale, half + (z - feet[2]) * scale];
-      function rect(x1: number, z1: number, x2: number, z2: number, color: string, stroke?: string) {
-        const [x, y] = point(x1, z1);
-        const w = (x2 - x1) * scale, h = (z2 - z1) * scale;
-        radar.fillStyle = color; radar.fillRect(x, y, w, h);
-        if (stroke) { radar.strokeStyle = stroke; radar.strokeRect(x, y, w, h); }
-      }
-      radar.fillStyle = underground ? '#141e2a' : '#1a4255';
-      radar.fillRect(0, 0, mini.width, mini.height);
-      if (underground) {
-        rect(lab.minX, lab.minZ, lab.maxX, lab.maxZ, '#304457', '#709497');
-        rect(ramp.minX, ramp.minZ, ramp.maxX, ramp.maxZ, '#53666b');
-      } else {
-        fillLand(radar, point, '#1d2b30');
-        for(const t of terrainSections)rect(t.minX,t.minZ,t.maxX,t.maxZ,t.northY===t.southY?'#405b5a':'#344b4a');
-        for (const road of roads) rect(road.x1, road.z1, road.x2, road.z2, '#4b5d5e');
-        for (const path of footpaths) rect(path.x1, path.z1, path.x2, path.z2, '#394b4d');
-        rect(vehicleCourt.minX,vehicleCourt.minZ,vehicleCourt.maxX,vehicleCourt.maxZ,'#647078');
-        rect(drainChannel.minX,drainChannel.minZ,drainChannel.maxX,drainChannel.maxZ,'#24555b');
-        for(const d of drainCrossings)rect(d.minX,d.minZ,d.maxX,d.maxZ,'#88aab0');
-        for(const r of streetFootprints)rect(r.minX,r.minZ,r.maxX,r.maxZ,r.building?'#2c3e43':'#47615b');
-        for (const [x, z, w, d] of freightHalls)
-          rect(x - w / 2, z - d / 2, x + w / 2, z + d / 2, '#2c3e43', '#708386');
-        for(const r of harborBuildings)rect(r.minX,r.minZ,r.maxX,r.maxZ,'#387174','#91beb9');
-        for(const r of publicBuildings)rect(r.minX,r.minZ,r.maxX,r.maxZ,'#445669','#a1bcbb');
-        rect(annexWalk.minX, annexWalk.minZ, annexWalk.maxX, annexWalk.maxZ, '#7798a5');
-        for(const r of gangways)rect(r.minX,r.minZ,r.maxX,r.maxZ,'#6a9d9b');
-        radar.beginPath();shipOutline.forEach(([x,z],i)=>{const p=point(x,z);i?radar.lineTo(p[0],p[1]):radar.moveTo(p[0],p[1]);});radar.closePath();radar.fillStyle='#5f8587';radar.fill();radar.strokeStyle='#c9e5d9';radar.stroke();
-      }
-      radar.fillStyle = '#a2cfc5';
-      for (const target of map.interactions) {
-        if (!discovered.has(target.id) || consumed.has(target.id) || isLabLevel(target.position) !== underground) continue;
-        if (upperBuildingAt(target.position) !== upperBuilding) continue;
-        if(isShip(target.position)&&isShip(feet)&&harborFloor(target.position)!==floor)continue;
-        const [x, z] = point(target.position[0], target.position[2]);
-        radar.fillRect(x - 2, z - 2, 4, 4);
-      }
-      for (const exit of map.exits) {
-        if (isLabLevel(exit.position) !== underground) continue;
-        const [x, z] = point(exit.position[0], exit.position[2]);
-        const state = statusFor(exit);
-        radar.strokeStyle = state.kind === 'locked' ? '#d2a188' : state.kind === 'active' ? '#ffe3a1' : '#9fe8be';
-        radar.lineWidth = 2; radar.strokeRect(x - 5, z - 5, 10, 10);
-      }
-      radar.save(); radar.translate(half, half); radar.rotate(-yaw);
-      radar.fillStyle = '#ffe0a4'; radar.strokeStyle = '#172429'; radar.lineWidth = 3;
-      radar.beginPath(); radar.moveTo(0, -12); radar.lineTo(7, 8); radar.lineTo(0, 4);
-      radar.lineTo(-7, 8); radar.closePath(); radar.stroke(); radar.fill(); radar.restore();
-      radar.fillStyle = '#f3e9d2'; radar.font = '700 14px monospace'; radar.textAlign = 'center';
-      radar.fillText('N', half, 19);
+    get open() {return !panel.hidden;},
+    show(feet: Vec3) {latestFeet=feet;setFloor(mapFloor(feet));panel.hidden=false;q<HTMLButtonElement>('tactical-close').focus();},
+    hide() {panel.hidden=true;drag=undefined;canvas.classList.remove('panning');},
+    reset() {this.hide();marker=undefined;lastRadar=-Infinity;refresh();},
+    updateMini(map: FirstMap, feet: Vec3, yaw: number, now: number, discovered: ReadonlySet<string>, consumed: ReadonlySet<string>, status: ExitState) {
+      if(now-lastRadar<90)return;
+      lastRadar=now;
+      const current=mapFloor(feet), p=mapProjection([feet[0],feet[2]],mini.width,mini.height,mini.width/(current==='b1'?51:90));
+      const floorLabel=mapFloorLabel(feet,current);
+      if(miniFloor.textContent!==floorLabel)miniFloor.textContent=floorLabel;
+      drawMapLayer(radar,p,current);
+      drawContacts(radar,p,current,map,discovered,consumed);
+      for(const exit of map.exits)if(mapFloor(exit.position)===current)drawExit(radar,p,exit,status(exit).kind);
+      drawMarker(radar,p,current);
+      drawPlayerMark(radar,mini.width/2,mini.height/2,yaw);
+      drawMapLabel(radar,mini.width/2,15,'N',13);
     },
-    update(map: FirstMap, feet: Vec3, yaw: number, now: number,discovered:ReadonlySet<string>,consumed:ReadonlySet<string>,statusFor:(exit:ExitZone)=>{kind:string;label:string}) {
-      const degrees = ((-yaw * 180 / Math.PI) % 360 + 360) % 360;
-      compass.textContent = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'][Math.round(degrees / 45) % 8];
-      heading.textContent = `${Math.round(degrees).toString().padStart(3, '0')}°`;
-      if (panel.hidden || now - lastDraw < 90) return;
-      lastDraw = now;
-      ctx.fillStyle = '#e8efe8';
-      ctx.fillRect(0, 0, 900, 750);
-      ctx.fillStyle = '#a0c7d0';
-      ctx.fillRect(80, 85, 740, 580);
-      fillLand(ctx, project, '#d3e0de');
-      for(const t of terrainSections){
-        const [tx,tz]=project(t.minX,t.minZ),[ex,end]=project(t.maxX,t.maxZ);
-        const grade=ctx.createLinearGradient(tx,tz,tx,end);
-        grade.addColorStop(0,t.northY?'#b1c8b4':'#d3e0de');
-        grade.addColorStop(1,t.southY?'#b1c8b4':'#d3e0de');
-        ctx.fillStyle=grade;ctx.fillRect(tx,tz,ex-tx,end-tz);
+    update(map: FirstMap, feet: Vec3, yaw: number, now: number, discovered: ReadonlySet<string>, consumed: ReadonlySet<string>, status: ExitState) {
+      const degrees=((-yaw*180/Math.PI)%360+360)%360;
+      compass.textContent=['N','NE','E','SE','S','SW','W','NW'][Math.round(degrees/45)%8];
+      heading.textContent=Math.round(degrees).toString().padStart(3,'0')+'°';
+      if(panel.hidden||now-lastDraw<90)return;
+      lastDraw=now;latestFeet=feet;exits=map.exits;
+      const dpr=Math.min(devicePixelRatio,2), w=Math.round(canvas.clientWidth*dpr), h=Math.round(canvas.clientHeight*dpr);
+      if(w>56&&h>56&&(canvas.width!==w||canvas.height!==h)){canvas.width=w;canvas.height=h;constrain();}
+      const p=projection();
+      drawMapLayer(ctx,p,floor);
+      if(floor==='ground') {
+        for(const landmark of mapLandmarks){
+          const [x,y]=p.project(...centerOf(landmark.bounds));
+          drawMapLabel(ctx,x,y-13*dpr,landmark.label,12*dpr);
+        }
+      } else if(floor==='b1'||floor==='cabin'||floor==='deck'||floor==='sun') {
+        const [x,y]=p.project(...centerOf(layerBounds(floor)));
+        drawMapLabel(ctx,x,y-18*dpr,floor==='b1'?'B1 实验室':floorNames[floor],12*dpr);
       }
-      ctx.fillStyle = '#253e59';
-      ctx.fillRect(0, 0, 900, 64);
-      ctx.fillStyle = '#83dacd';
-      ctx.fillRect(0, 63, 900, 4);
-      ctx.strokeStyle = '#7795a04d';
-      ctx.lineWidth = 1;
-      for (let i = 0; i <= 10; i++) {
-        const [x]=project(mapBounds.minX+i*40,mapBounds.minZ);ctx.beginPath();ctx.moveTo(x,85);ctx.lineTo(x,665);ctx.stroke();
-      }
-      for (let i = 0; i <= 10; i++) {
-        ctx.beginPath(); ctx.moveTo(80, 85 + i * 58); ctx.lineTo(820, 85 + i * 58); ctx.stroke();
-      }
-      ctx.font = 'bold 25px "Microsoft YaHei",sans-serif';
-      ctx.fillStyle = '#e4e8d8';
-      ctx.fillText('盐港隔离区', 80, 48);
-      ctx.font = '13px monospace';
-      ctx.fillStyle = '#a2b9bb';
-      ctx.fillText('N ↑   /   SECTOR MAP', 605, 48);
-      ctx.fillStyle = '#486174';
-      ctx.font = '12px monospace';
-      for (let i = 0; i < 10; i++) {
-        const [x]=project(mapBounds.minX+i*40+20,mapBounds.minZ);ctx.fillText(String.fromCharCode(65 + i),x,81);
-        ctx.fillText(String(i + 1).padStart(2, '0'), 52, 118 + i * 58);
-      }
-      for (const road of [...roads,...footpaths]) {
-        ctx.fillStyle = footpaths.includes(road) ? '#88aaab' : '#55838e';
-        const [left, top] = project(road.x1, road.z1);
-        const [right, bottom] = project(road.x2, road.z2);
-        ctx.fillRect(left, top, right - left, bottom - top);
-      }
-      ctx.fillStyle='#8390aa';
-      const stairMark=(x:number,z:number)=>{
-        const [sx,sz]=project(x,z);
-        ctx.fillStyle='#b34f2e';
-        ctx.fillRect(sx-3,sz-1.5,6,3);
-      };
-      for(const r of streetFootprints){
-        const [left,top]=project(r.minX,r.minZ),[right,bottom]=project(r.maxX,r.maxZ);
-        ctx.fillStyle=r.building?'#8390aa':'#adc7b6';
-        ctx.fillRect(left,top,right-left,bottom-top);
-      }
-      for(const [x,z,w,d] of freightHalls)stairMark(x+w/2-1.5,z-d/2+1.2);
-      for(const r of [...harborBuildings,...gangways,...publicBuildings]){const [x,z]=project(r.minX,r.minZ),[a,b]=project(r.maxX,r.maxZ);ctx.fillStyle='#6ca7aa';ctx.fillRect(x,z,a-x,b-z);ctx.strokeStyle='#39777e';ctx.strokeRect(x,z,a-x,b-z);}
-      for(const [r,color] of [[vehicleCourt,'#a6ada6'],[drainChannel,'#519298'],...drainCrossings.map(reg=>[reg,'#c8dce0'] as const)] as const) {
-        const [x,z]=project(r.minX,r.minZ),[a,b]=project(r.maxX,r.maxZ);
-        ctx.fillStyle=color;ctx.fillRect(x,z,a-x,b-z);
-      }
-      for(const stair of [sortingStair,officeStair,controlStair,archiveStair])stairMark(stair.x,stair.footZ);
-      const [bridgeX,bridgeZ]=project(annexWalk.minX,annexWalk.minZ),[bridgeRight,bridgeBottom]=project(annexWalk.maxX,annexWalk.maxZ);
-      ctx.fillStyle='#607e90';ctx.fillRect(bridgeX,bridgeZ,bridgeRight-bridgeX,bridgeBottom-bridgeZ);
-      stairMark(innStair.x,innStair.bottomZ);
-      ctx.beginPath();shipOutline.forEach(([x,z],i)=>{const p=project(x,z);i?ctx.lineTo(p[0],p[1]):ctx.moveTo(p[0],p[1]);});ctx.closePath();ctx.fillStyle='#6ca7aa';ctx.fill();ctx.strokeStyle='#39777e';ctx.stroke();
-      const [shipX,shipZ]=project((shipEnvelope.minX+shipEnvelope.maxX)/2,(shipEnvelope.minZ+shipEnvelope.maxZ)/2);
-      ctx.save();ctx.translate(shipX,shipZ);ctx.rotate(-Math.PI/2);ctx.fillStyle='#244958';ctx.font='bold 12px sans-serif';ctx.textAlign='center';ctx.fillText('海湾号邮轮',0,4);ctx.restore();
-      for (const region of map.regions ?? []) {
-        const [x, z] = project(region.center[0], region.center[2]);
-        const underground = isLabLevel(region.center);
-        ctx.fillStyle = underground ? '#8e68a022' : '#65879410';
-        ctx.strokeStyle = underground ? '#8b689f' : '#8aa2ad';
-        const r = region.id === 'approach' ? 74 : Math.max(30, region.radius / 400 * 740);
-        const left = Math.max(80, x - r), top = Math.max(85, z - r * .6);
-        const right = Math.min(820, x + r), bottom = Math.min(665, z + r * .6);
-        ctx.beginPath(); ctx.roundRect(left, top, right - left, bottom - top, 8); ctx.fill(); ctx.stroke();
-        ctx.font = `${underground ? 13 : 17}px "Microsoft YaHei",sans-serif`;
-        ctx.fillStyle = '#2c495f';
-        ctx.fillText(underground ? 'B1 实验室' : region.label, left + 12,
-          underground ? z + 24 : top + 25);
-      }
-      for (const site of supplySites) {
-        const [sx, sz] = project(site.x, site.z);
-        const caption = site.label + ' · ' + site.risk;
-        ctx.font = 'bold 13px "Microsoft YaHei",sans-serif';
-        const width = ctx.measureText(caption).width + 10;
-        const left = Math.min(sx + 6, 820 - width);
-        ctx.fillStyle = '#263e57';
-        ctx.fillRect(left, sz - 10, width, 19);
-        ctx.fillStyle = site.risk === '高' ? '#dc7859' : '#287c78';
-        ctx.fillRect(sx - 4, sz - 4, 8, 8);
-        ctx.fillStyle = '#f3f4e7';
-        ctx.fillText(caption, left + 5, sz + 4);
-      }
-      const monitoredFloors = Object.values(buildingFloors).map(floorAt => ({ floorAt, active: floorAt(feet) ?? '1F' }));
-      for (const target of map.interactions) {
-        if (target.kind !== 'loot'||!discovered.has(target.id)) continue;
-        if(isShip(target.position)&&isShip(feet)&&harborFloor(target.position)!==harborFloor(feet))continue;
-        if (monitoredFloors.some(({ floorAt, active }) => {
-          const level = floorAt(target.position);
-          return level && level !== active;
-        })) continue;
-        const site=worksitePlace(target.position), activeSite=worksitePlace(feet);
-        if(site?.floor && site.floor !== (activeSite?.id===site.id?activeSite.floor:'1F')) continue;
-        const [sx, sz] = project(target.position[0], target.position[2]);
-        ctx.fillStyle=ctx.strokeStyle='#347c78';
-        ctx.beginPath(); ctx.arc(sx, sz, 2.8, 0, Math.PI * 2); if(consumed.has(target.id))ctx.stroke();else ctx.fill();
-      }
-      for (const exit of map.exits) {
-        const [x, z] = project(exit.position[0], exit.position[2]);
-        const state = statusFor(exit);
-        ctx.strokeStyle = state.kind === 'locked' ? '#924529' : state.kind === 'active' ? '#886100' : '#117063';
-        ctx.lineWidth = 2;
-        ctx.strokeRect(x - 7, z - 7, 14, 14);
-        ctx.fillStyle = '#854423';
-        ctx.font = '15px "Microsoft YaHei",sans-serif';
-        const text = (exit.remote ? 'B1 ' : '') + exit.label + ' · ' + state.label;
-        ctx.fillText(text, Math.min(x + 13, 891 - ctx.measureText(text).width), z - 10);
-      }
-      const [x, z] = project(feet[0], feet[2]);
-      ctx.save();
-      ctx.translate(x, z);
-      ctx.rotate(-yaw);
-      ctx.fillStyle = '#ff9563';
-      ctx.strokeStyle = '#273d56'; ctx.lineWidth = 2.5;
-      ctx.beginPath(); ctx.moveTo(0, -12); ctx.lineTo(7, 8); ctx.lineTo(0, 4); ctx.lineTo(-7, 8); ctx.closePath(); ctx.fill(); ctx.stroke();
-      ctx.restore();
-      ctx.fillStyle = '#345267';
-      ctx.font = '14px "Microsoft YaHei",sans-serif';
-      ctx.fillText('▲ 当前位置   □ 撤离点   ■ 补给据点   • 已发现容器（空心为取尽）   浅绿 可进街屋   橙线 楼梯入口', 80, 710);
+      drawContacts(ctx,p,floor,map,discovered,consumed);
+      for(const exit of renderedExits())drawExit(ctx,p,exit,status(exit).kind,selectedExit===exit);
+      drawMarker(ctx,p,floor);
+      if(mapFloor(feet)===floor)drawPlayerMark(ctx,...p.project(feet[0],feet[2]),yaw);
+      const meters=[100,50,20,10,5,2,1].find(val=>val*p.scale/dpr<=95)??1;
+      scaleBar.style.setProperty('--scale-width',meters*p.scale/dpr+'px');
+      scaleBar.textContent=meters+' m';
+      left.textContent='X '+Math.round(feet[0])+' · Z '+Math.round(feet[2]);
+      panel.dataset.zoom=zoom.toFixed(2);
+      panel.dataset.center=center.map(n=>n.toFixed(2)).join(',');
+      clearMarker.disabled=!marker;
+      markerText.textContent=marker?'路标 '+Math.round(Math.hypot(feet[0]-marker.point[0],feet[2]-marker.point[1]))+' m · '+floorNames[marker.floor]:'';
+      updateExitList(status);
     },
   };
 }

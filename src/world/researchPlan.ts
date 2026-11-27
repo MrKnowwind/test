@@ -25,6 +25,7 @@ export function isLabLevel([x, y, z]: Vec3) {
 }
 
 export const researchBuilding = { minX: 14, maxX: 34, minZ: -172, maxZ: -152 };
+export const researchStair = { x: 29.8, footZ: -158.8, topZ: -168 };
 export const researchUpperY = researchPad.height + 3.35;
 
 export function researchBuildingFloor([x, y, z]: Vec3) {

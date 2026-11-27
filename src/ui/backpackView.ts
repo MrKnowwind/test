@@ -1,6 +1,6 @@
 import { itemIcon } from './itemArt.ts';
 import { equipmentSlot } from './equipmentSlots.ts';
-import { itemLabels } from './itemLabels.ts';
+import { itemDescription, itemLabels, itemNameLabel, itemProvenance, markIssued } from './itemLabels.ts';
 import { caseLabels } from '../raid/loot.ts';
 import {
   dimensions,
@@ -204,30 +204,28 @@ export function createBackpackView(actions: Action) {
     });
     bar.append(controls);
   }
-  function openDetail(at: HTMLElement, entry: Cargo, iconOnly = false) {
+  function openDetail(at: HTMLElement, entry: Cargo) {
     clearSelection();
     anchor = at;
     anchor.classList.add('selected');
     const spec = itemSpecs[entry.item];
     q('#selected-item').append(itemIcon(entry.item));
-    if (!iconOnly) {
-      const name = document.createElement('strong'), meta = document.createElement('small');
-      name.textContent = spec.name;
-      meta.textContent = [
-        spec.w + '×' + spec.h + ' 格', entry.quantity > 1 ? '×' + entry.quantity : '',
-        entry.durability !== undefined ? '剩余 ' + entry.durability + '/3' : '',
-        entry.loaded !== undefined ? '弹匣 ' + entry.loaded : '',
-        isShield(entry.item)?'护盾 '+shieldCharge(entry.item,entry.charge)+'/'+shields[entry.item]:isHead(entry.item)&&headDevices[entry.item]?'前方照明':'',
-        '基准 ' + (entry.durability !== undefined ? 30 * entry.durability : spec.price) + ' 券',
-        isPack(entry.item) ? '容量 ' + packs[entry.item].reduce((n, section) => n + section.w * section.h, 0) + ' 格' : '',
-      ].filter(Boolean).join('　');
-      q('#selected-item').append(name, meta, itemLabels(entry.item));
-    }
+    const meta = document.createElement('small');
+    meta.textContent = [
+      spec.w + '×' + spec.h + ' 格', entry.quantity > 1 ? '×' + entry.quantity : '',
+      entry.durability !== undefined ? '剩余 ' + entry.durability + '/3' : '',
+      entry.loaded !== undefined ? '弹匣 ' + entry.loaded : '',
+      isShield(entry.item)?'护盾 '+shieldCharge(entry.item,entry.charge)+'/'+shields[entry.item]:isHead(entry.item)&&headDevices[entry.item]?'前方照明':'',
+      '基准 ' + (entry.durability !== undefined ? 30 * entry.durability : spec.price) + ' 券',
+      isPack(entry.item) ? '容量 ' + packs[entry.item].reduce((n, section) => n + section.w * section.h, 0) + ' 格' : '',
+      itemProvenance(entry),
+    ].filter(Boolean).join('　');
+    q('#selected-item').append(itemNameLabel(entry.item), meta, itemLabels(entry.item), itemDescription(entry.item));
     detail.style.setProperty('--detail-color', spec.color);
     detail.hidden = false;
   }
   function select(s: Selection, at: HTMLElement) {
-    openDetail(at, s.entry, s.from === 'slot');
+    openDetail(at, s.entry);
     selected = s;
     const bar = q('.bag-actions');
     stackControls(bar,s);
@@ -285,6 +283,7 @@ export function createBackpackView(actions: Action) {
     b.setAttribute('aria-label', revealed ? spec.name : b.title);
     if (revealed) {
       b.append(itemIcon(e.item));
+      markIssued(b, e);
       if (e.quantity > 1 && spec.tag !== 'ammo') {
         const n = document.createElement('b');
         n.className = 'stack-count';
@@ -488,14 +487,14 @@ export function createBackpackView(actions: Action) {
     for (const [key] of gearLayout) {
       const primary = key === 'primary1' || key === 'primary2';
       const cargo = key === 'pack' ? bag.equipped : primary ? undefined : bag.slots[key];
-      const b = equipmentSlot(key,cargo?.item,!!cargo?.issued);
+      const b = equipmentSlot(key, cargo);
       (key==='head' || key==='shield' || key==='pack' ? wear : weapons).append(b);
       if (primary) continue;
       b.draggable = !!cargo;
       if (key === 'pack') {
         b.onclick = () => {
           if (!cargo) return;
-          openDetail(b, cargo, true);
+          openDetail(b, cargo);
           action('卸下并丢弃', actions.unpack);
           positionDetail();
         };

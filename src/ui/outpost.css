@@ -146,7 +146,6 @@
 }
 #backpack-panel #loadout .gear-square:not(.empty-gear), #overlay .panel #prepare-pane .gear-square:not(.empty-gear) { border-bottom: 2px solid var(--gear-color); }
 #backpack-panel #loadout .gear-square.empty-gear, #overlay .panel #prepare-pane .gear-square.empty-gear { border-style: dashed; background: #17292f; }
-#backpack-panel #loadout .gear-square.issued-gear, #overlay .panel #prepare-pane .gear-square.issued-gear { box-shadow: inset 0 0 0 2px #e4be8066; }
 .gear-square:disabled { cursor: default; }
 #backpack-panel #loadout .gear-square .item-icon, #prepare-pane .gear-square .item-icon {
   display: block; width: 78%; height: 78%; margin: 0; object-fit: contain;
@@ -195,7 +194,7 @@
 }
 #backpack-panel .selected { outline: 1px solid #ebd898; outline-offset: -2px; }
 #bag-detail {
-  position: fixed; z-index: 2; width: min(222px,calc(100vw - 16px)); padding: 9px;
+  position: fixed; z-index: 2; width: min(292px,calc(100vw - 16px)); padding: 9px;
   border: 1px solid #adc4b78c; border-left: 3px solid var(--detail-color);
   border-radius: 4px; backdrop-filter: blur(9px); background: #162429e5;
   box-shadow: 0 8px 27px #070d14a0; color: #eff5ef;
@@ -203,7 +202,7 @@
 .has-drag #bag-detail { visibility: hidden; }
 #bag-detail #close-detail { position: absolute; right: 3px; top: 2px; padding: 2px 6px; }
 #selected-item { color: inherit; display: grid; grid-template-columns: 35px 1fr; line-height: 1.45; font-size: 13px; padding: 0 19px 7px 0; }
-#selected-item .item-icon { grid-row: span 2; height: 32px; width: 32px; margin: 0; }
+#selected-item .item-icon { grid-row: span 4; height: 32px; width: 32px; margin: 0; }
 #selected-item small, #bag-detail .split-controls { color: #c0d4cc; }
 #bag-detail .bag-actions { gap: 4px; }
 #bag-detail .bag-actions button { padding: 4px 7px; font-size: 12px; }
@@ -354,7 +353,6 @@
 .inventory-tile canvas { width:88%; height:88%; max-width:100px; max-height:100px; margin:0; object-fit:contain; pointer-events:none; }
 .inventory-tile canvas.rotated { transform:rotate(90deg); max-width:min(100%,70px); max-height:min(100%,70px); }
 .inventory-tile small { position:absolute; bottom:2px; right:3px; color:#f4f4e7; text-shadow:0 1px 3px #000; font:700 12px monospace; pointer-events:none; }
-.inventory-tile .issued-mark { position:absolute; top:2px; left:2px; color:#bed0bc; font-size:9px; font-weight:400; pointer-events:none; }
 .stash-filter { display:flex; gap:7px; margin-bottom:9px; }
 .stash-filter input,.stash-filter select,.merchant-side select,.inspect-actions input {
   padding:7px 9px; border:1px solid #75978e70; border-radius:0; background:#172b33; font:inherit; font-size:12px; color:#e2ebe6; min-width:0;
@@ -426,3 +424,32 @@
   #overlay[data-mode=home] .panel button#primary { min-width:115px; font-size:15px; }
   .map-selection { grid-template-columns:1fr; }
 }
+
+.gear-square[data-provenance] { position: relative; }
+[data-provenance]::after {
+  content: ''; position: absolute; z-index: 1; inset: 3px;
+  border: 1px solid #a4eee5; pointer-events: none;
+}
+[data-provenance="mixed"]::after { border-style: dashed; }
+.item-description { margin: 0; color: #d6e5df; font-size: 12px; line-height: 1.5; }
+#selected-item .item-description { grid-column: 2; margin-top: 5px; }
+.merchant-stock .trade-inspect { display: grid; place-items: center; }
+.outpost-dialog {
+  width: min(470px, 91vw); max-height: 90dvh; padding: 20px;
+  color: #e7eee7; border: 1px solid #91aaa177; background: #172d35;
+}
+.outpost-dialog::backdrop { background: #09151bc9; }
+.outpost-dialog h2 { margin: 0 0 14px; font-size: 21px; }
+.outpost-dialog footer { display: flex; justify-content: flex-end; gap: 8px; margin-top: 16px; }
+.outpost-dialog button { color: inherit; border: 1px solid #729d9d; background: #27404a; padding: 7px 12px; }
+#issued-choices [aria-pressed=true], #issued-confirm { background: #3c6668; border-color: #99cfca; }
+#issued-preview { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 8px; margin-top: 14px; }
+#issued-preview > div { display: grid; gap: 5px; font-size: 13px; }
+#issued-preview small { color: #b6d0c9; }
+#issued-preview .gear-square { aspect-ratio: 1; width: 100%; border-color: var(--gear-color); opacity: 1; }
+#issued-preview .item-icon { width: 100%; height: auto; aspect-ratio: 1; margin: 0; }
+#issued-description, #trade-inspection-content { line-height: 1.5; }
+#trade-inspection-content { display: grid; gap: 8px; }
+
+#issued-feedback { color: #ffbbb1; }
+#issued-feedback:empty { display: none; }

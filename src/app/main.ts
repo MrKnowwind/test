@@ -91,7 +91,7 @@ async function startGame() {
   await loading.progress(16, '初始化界面与档案');
   const audio = createAudio();
   const medicineWheel=createMedicineWheel();
-  const tacticalMap = createTacticalMap();
+  const tacticalMap = createTacticalMap(closeTacticalMap);
 
   const settings = readSettings(window.localStorage);
   const input = createInput(canvas, settings);
@@ -328,6 +328,7 @@ async function startGame() {
     const result = run.raid.result;
     if (!result) return;
     bag.hide();
+    tacticalMap.reset();
     phase = 'result';
     saved = warehouse.commit(result, deployed);
     const exit = result.outcome === 'extracted' ? run.map.exits.find((zone) => zone.id === result.exitId) : undefined;
@@ -407,13 +408,25 @@ async function startGame() {
       view.primary.disabled = false;
     }
   }
+  function closeTacticalMap() {
+    if(!tacticalMap.open)return;
+    tacticalMap.hide();
+    input.reset();
+    if(phase==='raid'&&!input.locked())void canvas.requestPointerLock()?.catch(()=>view.showPaused());
+  }
+  window.addEventListener('keydown',event=>{
+    if(!tacticalMap.open||event.repeat)return;
+    if(event.code!=='Escape'&&!settings.bindings.map.includes(event.code))return;
+    event.preventDefault();
+    closeTacticalMap();
+  });
   document.addEventListener('pointerlockchange', () => {
     accumulator = 0;
     if (launching || phase === 'result') return;
     if (input.locked()) {
       if (phase === 'home') void launchRaid(outpost.plan);
       else view.showPlaying();
-    } else if (bag.open) {
+    } else if (bag.open || tacticalMap.open) {
       run.player.interrupt();
       view.showPlaying();
     } else if (phase === 'raid') {
@@ -473,7 +486,19 @@ async function startGame() {
 
   function step(dt: number) {
     const { player, raid, map, combat, viewmodel } = run;
-    const control = input.sample();
+    let control = input.sample();
+    if(control.mapPressed && !bag.open && !tacticalMap.open) {
+      player.interrupt();
+      run.treatment.cancel();
+      medicineWheel.reset();
+      tacticalMap.show(player.feet);
+      input.reset();
+      document.exitPointerLock();
+    }
+    if(tacticalMap.open){
+      input.reset();
+      control=input.sample();
+    }
     const chosen=medicineWheel.update(control,run.treatment.available());
     if(control.healPressed||control.medicineRelease==='quick'){
       if(run.treatment.remaining)run.treatment.cancel();
@@ -484,7 +509,6 @@ async function startGame() {
     if(control.backpackPressed||control.switchTo)run.treatment.cancel();
     if(control.quiet||run.treatment.remaining)control.running=false;
     if (control.ammoPressed) ammoTime = 2.4;
-    if (control.mapPressed) tacticalMap.toggle();
     if (control.backpackPressed && !player.busy) {
       control.jumpPressed = control.stancePressed = false;
       control.forward = control.strafe = 0;
@@ -625,7 +649,7 @@ async function startGame() {
     const { player, raid, map, frame } = run;
     const underground = isLabLevel(player.feet);
     if(bag.open){const armor=raid.backpack.slots.shield?.item,helmet=raid.backpack.slots.head?.item,key=(armor??'')+'|'+(helmet??'');if(key!==portraitGear){portraitGear=key;renderOperatorPortrait(renderer,armor&&isShield(armor)?armor:undefined,helmet&&isHead(helmet)?helmet:undefined);}}
-    audio.environment(phase === 'raid' && (input.locked() || bag.open), underground, player.feet[0]<-120);
+    audio.environment(phase === 'raid' && (input.locked() || bag.open || tacticalMap.open), underground, player.feet[0]<-120);
     weaponLight.intensity = underground ? 0.72 : 1.7;
     headlamp.intensity=phase==='raid'&&raid.backpack.slots.head?.item==='head-survey'?95:0;
     if(headlamp.intensity){headlamp.position.set(...player.eye);headlamp.target.position.set(player.eye[0]+player.direction[0]*12,player.eye[1]+player.direction[1]*12,player.eye[2]+player.direction[2]*12);}
@@ -678,7 +702,7 @@ async function startGame() {
     const elapsed = (now - previous) / 1000;
     previous = now;
     if (launching) return;
-    if(phase === 'raid' && (input.locked()||bag.open) && !document.hidden && !run.raid.result){
+    if(phase === 'raid' && (input.locked()||bag.open||tacticalMap.open) && !document.hidden && !run.raid.result){
       sampledFrames++;statsTime+=elapsed;
       if(statsTime>=1){
         fps=Math.round(sampledFrames/statsTime);
@@ -686,7 +710,7 @@ async function startGame() {
         statsTime=0;sampledFrames=0;
       }
     }else{statsTime=0;sampledFrames=0;if(!meter.hidden)meter.value='已暂停';}
-    if (phase === 'raid' && (input.locked() || bag.open) && !run.raid.result) {
+    if (phase === 'raid' && (input.locked() || bag.open || tacticalMap.open) && !run.raid.result) {
       accumulator = Math.min(accumulator + elapsed, 0.1);
       while (accumulator >= 1 / 60 && !run.raid.result) {
         step(1 / 60);

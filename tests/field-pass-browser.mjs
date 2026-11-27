@@ -2,6 +2,9 @@ import assert from 'node:assert/strict';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { chromium } from 'playwright';
+import { itemSpecs } from '../src/raid/catalog.ts';
+import { itemDescriptions } from '../src/raid/itemDescriptions.ts';
+import { shipLevels } from '../src/world/harborPlan.ts';
 import { movement as speeds } from '../src/player/controller.ts';
 import { districtRoutes } from './fixtures/district-routes.mjs';
 import { lab, labLift, researchPad, researchUpperY } from '../src/world/researchPlan.ts';
@@ -83,8 +86,17 @@ async function start(seed=42, liveUI=false, beforeDeploy) {
   await page.locator('#primary:enabled').waitFor({timeout:90000});
   await quality('balanced');
   if(beforeDeploy) await beforeDeploy();
-  await click('#primary');
-  await page.waitForFunction(()=>raidQA.state().locked,undefined,{polling:10});
+  await page.locator('#primary').click();
+  try {
+    await page.waitForFunction(()=>raidQA.state().locked,undefined,{polling:10});
+  } catch(error) {
+    const diagnostics=await page.evaluate(()=>({
+      mode:document.getElementById('overlay').dataset.mode,
+      message:document.getElementById('error').textContent,
+      pointerLock:!!document.pointerLockElement,
+    }));
+    throw new Error('Deployment did not capture the mouse '+JSON.stringify(diagnostics),{cause:error});
+  }
   await tick();
 }
 async function resume() {
@@ -623,7 +635,9 @@ async function loadout() {
   await page.setViewportSize({width:1440,height:900});
   const pistol='#backpack-panel #loadout [data-gear-slot=pistol]';
   await click(pistol);
-  assert.equal(await page.locator('#selected-item strong, #selected-item small').count(),0);
+  assert.equal(await page.locator(pistol).textContent(),'');
+  assert.equal(await page.locator('#selected-item .item-name').textContent(),'港卫 P8');
+  assert.match(await page.locator('#selected-item .item-description').textContent(),/8 发/);
   await page.getByRole('button',{name:'收进格子',exact:true}).click();
   const stowed=page.locator('#carry-grids').getByRole('button',{name:'港卫 P8',exact:true});
   await stowed.click();
@@ -893,8 +907,139 @@ async function worksites() {
   const bundle=await page.locator('script[type=module]').getAttribute('src');
   report.worksites={bundle,searched,drainCrossings:2,stairRuns:3};
 }
+async function phase35d() {
+  const viewport={width:1440,height:900};
+  await page.setViewportSize(viewport);
+  const items=Object.keys(itemSpecs);
+  await page.addInitScript(ids=>{
+    localStorage.setItem('wasteland-raid.warehouse.v1:qa-35d',JSON.stringify(Object.fromEntries(ids.map(id=>[id,1]))));
+  },items);
+  let artCount=0, silhouetteCount=0;
+  await start(42,false,async()=>{
+    await click('.outpost-nav [data-outpost=prepare]');
+    const stash=page.locator('#stash-grid [data-stock-entry]');
+    assert.equal(await stash.count(),items.length);
+    const art=await stash.evaluateAll(tiles=>tiles.map(tile=>{
+      const image=tile.querySelector('canvas'), pixels=image.getContext('2d').getImageData(0,0,image.width,image.height).data;
+      let alpha='';
+      for(let i=3;i<pixels.length;i+=4)alpha+=pixels[i]>160?'1':'0';
+      return {name:tile.getAttribute('aria-label'),image:image.toDataURL(),alpha};
+    }));
+    artCount=new Set(art.map(icon=>icon.image)).size;
+    silhouetteCount=new Set(art.map(icon=>icon.alpha)).size;
+    assert.equal(artCount,items.length);
+    assert.equal(silhouetteCount,items.length);
+    const stock=(item)=>page.locator('#stash-grid').getByRole('button',{name:itemSpecs[item].name,exact:true});
+    for(const item of ['pistol','knife','brine-reference','pulse-logger','servo','spectral-master','tally-slip','head-survey']){
+      await stock(item).click();
+      assert.equal(await page.locator('#stash-detail .item-description').textContent(),itemDescriptions[item]);
+      assert.equal(await page.locator('#stash-detail .item-name').evaluate(node=>node.style.color), rgb(itemSpecs[item].color));
+    }
+    await stock('sling').click({modifiers:['Shift']});
+    const pack=page.locator('#equipment-slots [data-gear-slot=pack]');
+    assert.equal(await pack.getAttribute('data-provenance'),null);
+    await click('#reset-loadout');
+    assert.equal(await page.locator('#issued-choices button').count(),1);
+    assert.match(await page.locator('#issued-preview').textContent(),/弹匣 8 发 · 备弹 15 发/);
+    assert.match(await page.locator('#issued-preview').textContent(),/随身合计 24 格/);
+    await capture('issued-choice');
+    await click('#issued-cancel');
+    assert.equal(await pack.getAttribute('data-provenance'),null);
+    await click('#reset-loadout');await click('#issued-confirm');
+    assert.equal(await pack.getAttribute('data-provenance'),'issued');
+    assert.equal(await stock('sling').count(),1);
+    assert.equal(await page.locator('.issued-mark').count(),0);
+    const ammo=page.locator('#stash-grid').getByRole('button',{name:'9mm 弹药',exact:true});
+    await ammo.click({modifiers:['Shift']});
+    const mixed=page.locator('#prepare-grid [data-provenance=mixed]');
+    assert.equal(await mixed.getAttribute('aria-description'),'配发 15 · 自带 1');
+    await click('.outpost-nav [data-outpost=buy]');
+    await page.getByRole('button',{name:'检视 港卫 P8',exact:true}).click();
+    assert.equal(await page.locator('#trade-inspection .item-description').textContent(),itemDescriptions.pistol);
+    await click('#trade-inspection-close');
+  });
+  await press('Tab');
+  assert.equal(await page.locator('#loadout [data-gear-slot=pack]').getAttribute('data-provenance'),'issued');
+  await click('#loadout [data-gear-slot=pistol]');
+  assert.equal(await page.locator('#selected-item .item-description').textContent(),itemDescriptions.pistol);
+  assert.equal(await page.locator('#selected-item .item-name').evaluate(node=>node.style.color),rgb(itemSpecs.pistol.color));
+  await capture('raid-inspection');
+  await closeBag();
+
+  const open=async()=>{
+    await press('m');
+    await page.locator('#tactical-map').waitFor({state:'visible'});
+    await page.waitForFunction(()=>!document.pointerLockElement);
+    await tick(8);
+  };
+  const select=async level=>{await click('#map-floors [data-floor='+level+']');await tick(8);};
+  const map=page.locator('#tactical-map'), canvas=page.locator('#map-canvas');
+  await open();
+  assert.equal(await map.getAttribute('data-floor'),'ground');
+  assert.equal(await page.locator('#map-exits [data-exit][data-state=ready]').count(),1);
+  const locked=page.locator('#map-exits [data-state=locked]').filter({hasText:/北部检查口|南部公路出口/});
+  await locked.click();await tick(8);
+  assert.match(await page.locator('#map-exit-detail').textContent(),/本局未开放/);
+  await click('#map-reset');await tick(8);
+  await capture('ground-overview');
+  const bounds=await canvas.boundingBox();
+  await page.mouse.move(bounds.x+bounds.width*.45,bounds.y+bounds.height*.45);
+  await page.mouse.wheel(0,-420);await tick(8);
+  assert.ok(Number(await map.getAttribute('data-zoom'))>1);
+  await click('#map-zoom-in');await tick(8);
+  const before=await map.getAttribute('data-center');
+  await page.mouse.move(bounds.x+bounds.width*.5,bounds.y+bounds.height*.5);
+  await page.mouse.down();await page.mouse.move(bounds.x+bounds.width*.5+84,bounds.y+bounds.height*.5+59,{steps:4});await page.mouse.up();
+  await tick(8);
+  assert.notEqual(await map.getAttribute('data-center'),before);
+  await canvas.click({position:{x:bounds.width*.55,y:bounds.height*.60}});await tick(8);
+  assert.match(await page.locator('#map-marker-status').textContent(),/路标 \d+ m/);
+  await click('#map-clear-marker');await tick(8);
+  assert.equal(await page.locator('#map-marker-status').textContent(),'');
+  assert.equal((await state()).weapon.loaded,8);
+  for(const level of ['upper','b1','cabin','deck','sun']){
+    await select(level);
+    assert.equal(await map.getAttribute('data-floor'),level);
+    assert.equal(await page.locator('#map-exits [data-exit]').count(),level==='b1'?1:0);
+  }
+  await select('b1');
+  await click('#map-exits [data-exit=lab-lift]');await tick(8);
+  assert.match(await page.locator('#map-exit-detail').textContent(),/需要开启实验室配电柜/);
+  await capture('underground-lift');
+  await pose([-211,shipLevels.sun,30],0);await tick(8);
+  await click('#map-recenter');await tick(8);
+  assert.equal(await map.getAttribute('data-floor'),'sun');
+  assert.equal(await page.locator('#minimap-floor').textContent(),'顶层甲板');
+  await page.setViewportSize({width:405,height:695});await tick(12);
+  const compact=await map.boundingBox();
+  assert.ok(compact.x>=0&&compact.x+compact.width<=405&&compact.height<=695);
+  await capture('map-compact');
+  await page.setViewportSize(viewport);
+  await click('#tactical-close');
+  await page.waitForFunction(()=>raidQA.state().locked);
+  for(const key of ['m','Escape']){
+    await open();await page.keyboard.press(key);
+    await page.waitForFunction(()=>raidQA.state().locked);
+    assert.equal(await map.isVisible(),false);
+  }
+  const active=await page.evaluate(()=>{const {exits,spawn}=raidQA.state();return exits.find(e=>e.openForSpawnSide===spawn.side);});
+  await pose(active.position,0);await open();
+  assert.equal((await state()).countdown.exit.id,active.id);
+  const remaining=(await state()).countdown.remaining;
+  await tick(60);
+  assert.ok((await state()).countdown.remaining<remaining-.8);
+  await tick(300);
+  assert.equal((await state()).result?.outcome,'extracted');
+  assert.equal((await state()).result.items.sling,undefined);
+  assert.equal(await map.isVisible(),false);
+  report.phase35d={artCount,silhouetteCount,extractedWithMapOpen:active.id,viewport:compact};
+}
+
+function rgb(hex) {
+  return 'rgb('+hex.slice(1).match(/../g).map(n=>parseInt(n,16)).join(', ')+')';
+}
 try {
-  for(const [name,fn] of Object.entries({districts,bags,movement,exits,service,routes,controls,feel,research,south,market,inn,loadout,interiors,annex,civic,terrain,street,worksites})){
+  for(const [name,fn] of Object.entries({districts,bags,movement,exits,service,routes,controls,feel,research,south,market,inn,loadout,interiors,annex,civic,terrain,street,worksites,phase35d})){
     if(cases.has(name)){await fn();console.log(name+' passed');}
   }
   assert.deepEqual(errors,[]);

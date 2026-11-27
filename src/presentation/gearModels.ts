@@ -12,17 +12,43 @@ export function makeGearModel(item:ShieldId|HeadId|'shield-cell') {
   if(isShield(item)){
     const color=new THREE.Color(itemSpecs[item].color),shell=pigment(color.getHex()),glow=pigment(color.getHex(),.65);
     block(root,ink,[.36,.36,.075],[0,0,0],.035);
+    const tier = shields[item] / 25;
     for(const s of [-1,1]){
       block(root,ink,[.055,.28,.078],[s*.14,.18,-.014],.022).rotation.z=s*.14;
-      block(root,shell,[.155,.17,.06],[s*.094,.076,.042],.027).rotation.z=s*.11;
-      block(root,steel,[.125,.032,.012],[s*.095,.026,.079],.009);
-      for(let j=0;j<3;j++)block(root,glow,[.024,.009,.008],[s*(.044+j*.037),.105,.081],.003);
-      block(root,ink,[.082,.105,.07],[s*.135,-.104,.041],.017);
-      block(root,shell,[.066,.08,.016],[s*.135,-.104,.083],.013);
+      if(tier===1){
+        block(root,steel,[.065,.12,.022],[s*.141,.073,.057],.012);
+        block(root,ink,[.102,.096,.060],[s*.107,-.110,.043],.015);
+      }else if(tier===2){
+        block(root,shell,[.155,.17,.060],[s*.094,.076,.042],.027).rotation.z=s*.11;
+        block(root,steel,[.125,.032,.012],[s*.095,.026,.079],.009);
+        block(root,ink,[.082,.105,.070],[s*.135,-.104,.041],.017);
+        block(root,shell,[.066,.08,.016],[s*.135,-.104,.083],.013);
+      }else if(tier===3){
+        for(let j=0;j<3;j++){
+          block(root,j===1?steel:shell,[.150,.045,.086],[s*(.102+j*.021),.119-j*.066,.040],.012).rotation.z=-s*.28;
+        }
+        block(root,glow,[.038,.094,.025],[s*.155,-.105,.066],.010);
+      }else if(tier===4){
+        block(root,shell,[.130,.094,.105],[s*.204,.186,.033],.024).rotation.z=-s*.24;
+        block(root,shell,[.173,.151,.070],[s*.105,.052,.058],.020).rotation.z=s*.17;
+        block(root,steel,[.103,.071,.087],[s*.153,-.085,.043],.012).rotation.z=-s*.14;
+        block(root,glow,[.066,.013,.012],[s*.181,.186,.089],.004).rotation.z=-s*.24;
+      }else{
+        block(root,shell,[.125,.287,.097],[s*.103,.004,.058],.035).rotation.z=-s*.18;
+        block(root,steel,[.064,.098,.089],[s*.170,.128,.036],.015).rotation.z=-s*.28;
+        block(root,glow,[.022,.129,.013],[s*.104,.014,.110],.006).rotation.z=-s*.18;
+      }
     }
-    block(root,steel,[.111,.205,.067],[0,-.025,.049],.025);
-    const ring=new THREE.Mesh(new THREE.TorusGeometry(.037,.009,10,6),glow);ring.position.set(0,.01,.09);root.add(ring);
-    oval(root,ink,[.025,.025,.011],[0,.01,.094]);oval(root,glow,[.014,.014,.008],[0,.01,.106]);
+    const centerWidth=tier===1?.191:tier===5?.145:.111;
+    block(root,tier===1?shell:steel,[centerWidth,tier===1?.242:.205,.067],[0,-.025,.049],.025);
+    if(tier===1){
+      block(root,ink,[.084,.056,.018],[0,.018,.083],.008);
+      block(root,glow,[.050,.015,.008],[0,.019,.095],.005);
+    }else{
+      const ring=new THREE.Mesh(new THREE.TorusGeometry(tier===5?.046:.035,.009,tier===5?14:10,6),glow);
+      ring.position.set(0,.020,.098);root.add(ring);
+      oval(root,ink,[.025,.025,.011],[0,.020,.100]);oval(root,glow,[.014,.014,.008],[0,.020,.112]);
+    }
     for(let j=0;j<shields[item]/25;j++)block(root,glow,[.015,.031,.009],[(j-(shields[item]/25-1)/2)*.018,-.095,.089],.003);
   }else if(item==='head-scout'||item==='head-survey'){
     const mine=item==='head-survey',shell=pigment(mine?0xeabc54:0xe3a650),band=pigment(0x41596a);

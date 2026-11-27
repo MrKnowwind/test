@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import {box,cylinder,mesh,strut} from './detail/geometry.ts';
 import {enamel,emissive,type Materials} from './detail/materialLibrary.ts';
-import {dispatchOffice,dispatchUpperY,gangways,shipDeck,shipLevels,shipOutline} from './harborPlan.ts';
+import {dispatchOffice,dispatchUpperY,gangways,shipDeck,shipLevels,shipOutline,sunDeck} from './harborPlan.ts';
 import type {Solid,Slope} from './worldQueries.ts';
 
 // Fictional civil passenger terminal and ship. The same dimensions drive
@@ -176,7 +176,7 @@ export function buildHarbor(root:THREE.Group,m:Materials,solids:Solid[]){
   }
   upperRoom(-70,-47,-64,'library');upperRoom(-43,-22,-33,'cafe');
   // Aft superstructure: two interior halls plus a true roof observation deck.
-  const sun=shipLevels.sun,ax=-220,cx=-193,az=14,cz=39;
+  const sun=shipLevels.sun,{minX:ax,maxX:cx,minZ:az,maxZ:cz}=sunDeck;
   wallX(ax,az,cz,upper,3.35);openingX(cx,az,cz,upper,3.35,[22,34],2.6);wallZ(az,ax,cx,upper,3.35);wallZ(28,ax,cx,upper,3.35);wallZ(cz,ax,cx,upper,3.35);
   for(let z=az+2;z<cz-1;z+=4){b(cx+.11,upper+2.0,z,.028,1.45,2.5,blue,.035);b(cx+.13,upper+2.27,z,.02,.52,2.25,glass,.025);}
   counter(-216,upper,22,3.1,1.0);b(-207,upper+.016,21,16,.02,11.4,wood);for(const x of [-211,-205,-198])bench(x,upper,17,3.0);for(const x of [-210,-203,-197])bench(x,upper,26,2.8,.8);

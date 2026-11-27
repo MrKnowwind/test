@@ -28,7 +28,27 @@
         <section id="hud-minimap" aria-label="小地图"><canvas id="minimap-canvas" width="216" height="216"></canvas><span id="minimap-floor"></span></section>
         <section id="raid-objectives" aria-label="任务" hidden><h2>任务</h2><div id="objective-list"></div></section>
         <div class="compass"><span id="bearing">N</span><span id="heading"></span></div>
-        <div id="tactical-map" hidden><canvas id="map-canvas" width="900" height="750" aria-label="地区分布和撤离地图"></canvas></div>
+        <section id="tactical-map" aria-labelledby="tactical-title" hidden>
+          <header><h2 id="tactical-title">盐港隔离区</h2><span>战术地图</span><button id="tactical-close" type="button" aria-label="关闭地图">×</button></header>
+          <nav id="map-floors" aria-label="楼层"></nav>
+          <div class="map-viewport">
+            <canvas id="map-canvas" width="900" height="580" tabindex="0" aria-label="战术地图，按 Enter 标记视图中心"></canvas>
+            <span class="map-north" aria-label="北方朝上">N ↑</span>
+            <div class="map-controls">
+              <button id="map-zoom-in" type="button" aria-label="放大地图">+</button>
+              <button id="map-zoom-out" type="button" aria-label="缩小地图">−</button>
+              <button id="map-recenter" type="button">定位</button>
+              <button id="map-reset" type="button">复位</button>
+            </div>
+            <span id="map-scale"></span>
+          </div>
+          <div class="map-information">
+            <div class="map-keys"><span class="map-gold">高价值区</span><span>▫ 撤离</span><span>• 已发现容器</span><span>– 层间通道</span><span id="map-location"></span></div>
+            <div id="map-exits" aria-label="本层撤离点"></div>
+            <output id="map-exit-detail" aria-live="polite"></output>
+            <div class="map-markers"><span>拖动平移 · 滚轮缩放 · 点击放置路标</span><output id="map-marker-status"></output><button id="map-clear-marker" type="button" disabled>清除路标</button></div>
+          </div>
+        </section>
         <div id="exfil-clock" role="status" hidden></div>
         <div id="crosshair" aria-hidden="true"></div>
         <div id="hurt" aria-hidden="true"></div>
@@ -70,7 +90,7 @@
               <div class="lobby-intel"><div class="section-heading">当前行动</div><canvas class="port-map" width="420" height="420" aria-label="盐港地图概览"></canvas><h3>盐港隔离区</h3><div class="map-meta"><span>单人 PvE</span><span>400 × 400 m</span></div><div class="lobby-loadout" id="lobby-loadout"></div></div>
             </section>
             <section id="prepare-pane" class="outpost-pane" aria-label="仓库" hidden>
-              <div class="prepare-side"><header class="section-heading">人物与装备 <button id="reset-loadout" type="button">基础配发</button></header>
+              <div class="prepare-side"><header class="section-heading">人物与装备 <button id="reset-loadout" type="button">配发选择</button></header>
                 <section class="gear-arrangement"><div class="gear-top equipment-preview"><canvas class="outpost-operator" aria-label="出击队员，拖动旋转" tabindex="0"></canvas><div id="equipment-slots" class="gear-wearable-grid" aria-label="装备槽"></div></div><div id="weapon-slots" class="gear-weapon-grid" aria-label="武器槽"></div></section>
                 <details class="prepare-config"><summary>精确配置装备与数量</summary><div id="prepare-slots"></div></details><div id="prepare-grid" aria-label="随身空间与背包"></div>
               </div>
@@ -107,6 +127,18 @@
           </div>
         </div>
       </section>
+      <dialog id="issued-dialog" class="outpost-dialog" aria-labelledby="issued-title">
+        <header><h2 id="issued-title">配发选择</h2></header>
+        <div id="issued-choices" aria-label="可领取套装"></div>
+        <div id="issued-preview" aria-label="配发装备与携行预览"></div>
+        <p id="issued-description"></p>
+        <output id="issued-feedback" role="status"></output>
+        <footer><button id="issued-cancel" type="button" autofocus>返回</button><button id="issued-confirm" type="button">确认配发</button></footer>
+      </dialog>
+      <dialog id="trade-inspection" class="outpost-dialog" aria-label="物品检视">
+        <div id="trade-inspection-content"></div>
+        <footer><button id="trade-inspection-close" type="button" autofocus>返回</button></footer>
+      </dialog>
       <dialog id="map-dialog" aria-labelledby="map-dialog-title">
         <header><h2 id="map-dialog-title">选择行动地图</h2><button id="map-close" aria-label="关闭选图">×</button></header>
         <div class="map-selection"><canvas class="port-map" width="420" height="420" aria-label="盐港地图"></canvas><div><p class="eyebrow">SALTLINE / 可用地图</p><h2>盐港隔离区</h2><p>单人 PvE · 400 × 400 m 陆地</p><p>货运码头、物流仓储、处理厂区、研究设施与地下实验室。</p><p>随机部署于八处入口之一。常规撤离口位于部署侧的对面。</p><button id="map-select" type="button">选择盐港隔离区</button></div></div>

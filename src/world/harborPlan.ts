@@ -6,6 +6,7 @@ import type { MapInteraction, Vec3 } from '../contracts/demo.ts';
 export const shipEnvelope={minX:-232,maxX:-186,minZ:-112,maxZ:55};
 export const shipOutline=[[-208,-112],[-195,-105],[-186,-93],[-186,42],[-190,50],[-199,55],[-217,55],[-226,50],[-230,42],[-230,-93],[-221,-105]] as const;
 export const shipDeck={minX:-229,maxX:-186,minZ:-92,maxZ:42};
+export const sunDeck={minX:-220,maxX:-193,minZ:14,maxZ:39};
 export const shipLevels={cabin:.7,upper:4.1,sun:7.65,sea:-2.1};
 export const gangways=[-48,0].map(z=>({minX:-186.2,maxX:-164.8,minZ:z-1.6,maxZ:z+1.6,z}));
 export const offshoreWalkAreas=[shipDeck,...gangways];
