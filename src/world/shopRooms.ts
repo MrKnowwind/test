@@ -206,5 +206,5 @@ export function buildRoomFixture(root: THREE.Group, m: Materials, solid: BuildSo
 
 export function roomCase(id: string, role: Fixture, site: FixtureSite): MapInteraction {
   const [label,item,kind,tags] = stores[role];
-  return { id, label, item, position: fixturePosition(site), kind: 'loot', quantity: 1, search:{kind,tags} };
+  return { id, label, item, position: fixturePosition(site), kind: 'loot', quantity: 1, search:{kind,tags}, yaw:Math.atan2(-site.nx,-site.nz) };
 }

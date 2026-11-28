@@ -24,7 +24,7 @@ export function buildNorthTerrace(root:THREE.Group,m:Materials,solids:Solid[]){
     box(root,face,.22,h-.04,3.96,x,(h-.04)/2,z,.015);
     box(root,m.steel,.28,.13,3.93,x,h-.22,z);
   }
-  box(root,m.concrete,w,.48,.35,cx,p.height-.27,p.minZ);
+  box(root,m.concrete,w+.30,.48,.35,cx,p.height-.27,p.minZ);
   const railMat=enamel(0x4e716f);
   // Guard physical crest and steep sides, leaving the southern graded entrance open.
   const rail=(x1:number,z1:number,x2:number,z2:number)=>{
@@ -82,7 +82,7 @@ export function buildCivicDistrict(root:THREE.Group,m:Materials,solids:Solid[]){
   function wallZ(z:number,x1:number,x2:number,y:number,h:number,mat:THREE.Material){if(x2-x1>.01)solid((x1+x2)/2,y+h/2,z,x2-x1,h,.21,mat);}
   function entryX(x:number,z1:number,z2:number,y:number,h:number,z:number,w:number,mat:THREE.Material){wallX(x,z1,z-w/2,y,h,mat);wallX(x,z+w/2,z2,y,h,mat);solid(x,y+2.3+(h-2.3)/2,z,.23,h-2.3,w,mat);for(const dz of [-w/2,w/2])b(x,y+1.15,z+dz,.30,2.3,.12,slate);}
   function counter(x:number,y:number,z:number,w=2.4,d=.9,mat=slate){solid(x,y+.47,z,w,.94,d,mat,.045);b(x,y+.98,z,w+.08,.045,d+.07,wood,.02);for(const dx of [-w*.29,w*.29])b(x+dx,y+.54,z+d/2+.015,w*.24,.46,.025,cream,.025);}
-  function seat(x:number,y:number,z:number,w=2.6,mat=sage){solid(x,y+.39,z,w,.78,.88,mat,.08);b(x,y+.63,z-.32,w,.47,.20,slate,.035);}
+  function seat(x:number,y:number,z:number,w=2.6,mat=sage){solid(x,y+.39,z,w,.78,.88,mat,.08);b(x,y+.63,z-.32,w-.045,.47,.20,slate,.035);}
   function bed(x:number,y:number,z:number,mat=sage){solid(x,y+.26,z,1.4,.52,2.1,slate,.03);b(x,y+.60,z,1.35,.16,2.03,cream,.05);b(x,y+.72,z+.33,1.32,.08,1.26,mat,.03);b(x,y+.77,z-.62,1.24,.16,.52,cream,.04);}
   function lamp(x:number,y:number,z:number){b(x,y,z,1.3,.08,.22,light,.02);const l=new THREE.PointLight(0xe5f6dd,22,8,1.7);l.position.set(x,y-.15,z);group.add(l);}
   function ramp(x1:number,x2:number,z1:number,z2:number,axis:0|2,start:number,y:number,grade:number){const slope:Slope={axis,start,height:y,gradient:grade};const g=new THREE.BoxGeometry(x2-x1,.18,z2-z1);g.translate((x1+x2)/2,-.09,(z1+z2)/2);const p=g.getAttribute('position');for(let i=0;i<p.count;i++)p.setY(i,p.getY(i)+y+((axis===0?p.getX(i):p.getZ(i))-start)*grade);g.computeVertexNormals();mesh(group,g,slate);solids.push({min:[x1,-.18,z1],max:[x2,0,z2],floor:true,walkSurface:true,slope,surface:'concrete'});}
@@ -190,7 +190,7 @@ export function buildCivicDistrict(root:THREE.Group,m:Materials,solids:Solid[]){
     b(x2+.12,f+1.65,z,.045,1.6,4.3,glass,.035);for(const dz of [-1.38,1.38])b(x2+.19,f+1.65,z+dz,.09,1.65,.10,cream);
     b(x1-.12,f+1.65,z,.045,1.45,3.7,glass,.035);b(x2+.18,f+.83,z,.48,.16,4.7,accent,.04);
     slab(x1-.15,x2+.15,a-.13,c+.13,f+3.02,slate);
-    if(i!==2){for(const side of [-1,1]){const roof=b(-135,f+3.77,z+side*2.35,18.7,.17,5.05,accent,.04);roof.rotation.x=side*.32;}b(-135,f+4.50,z,18.9,.18,.23,slate,.045);}else{b(-135,f+3.21,z,18.9,.32,9.5,blue,.08);solid(-139,f+3.91,z,2.0,1.40,1.8,slate,.07);}
+    if(i!==2){for(const side of [-1,1]){const roof=b(-135,f+3.77,z+side*2.25,18.7,.17,4.65,accent,.04);roof.rotation.x=side*.32;}b(-135,f+4.50,z,18.9,.18,.23,slate,.045);}else{b(-135,f+3.21,z,18.9,.32,9.0,blue,.08);solid(-139,f+3.91,z,2.0,1.40,1.8,slate,.07);}
     lamp(-135,2.78,z);lamp(-135,f+2.63,z);
     // Individual planters and porch equipment; leave central entries clear.
     for(const dz of [-3.2,3.2]){solid(-125.44,.35,z+dz,.78,.7,.85,cream,.07);cylinder(group,green,.32,.78,-125.44,1.04,z+dz,10);}

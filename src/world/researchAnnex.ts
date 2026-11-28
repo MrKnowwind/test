@@ -130,7 +130,7 @@ export function buildResearchAnnex(root: THREE.Group, m: Materials, solids: Soli
   wallX(ax2, -152.9, -150.1, 2.51, 1.09, slate);
   wallX(archiveStackEast, az1, az2, 3.60, roof - 3.60, slate);
   solid([192.8, y + roof, -146.25], [16.2, .27, 18.15], slate, .05);
-  const roofWest = archiveStackEast + .025, roofEast = ax2 + .11;
+  const roofWest = archiveStackEast + .025, roofEast = ax2 + .23;
   solid([(roofWest+roofEast)/2, y + 3.62, -146.25], [roofEast-roofWest, .24, 17.99], m.steel, .042);
   box(root, slate, 14.5, .20, 2.2, 192.85, y + roof + .57, -145.3, .06);
   for (const z of [-146.41, -144.19])

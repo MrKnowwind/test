@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { addOuterLandscape } from './outerLandscape.ts';
 import type { Vec3 } from '../contracts/demo.ts';
 import type { Materials } from './detail/materialLibrary.ts';
 import { box, cable, cylinder, mesh, strut } from './detail/geometry.ts';
@@ -134,18 +135,5 @@ export function addPortHorizon(root: THREE.Group,m: Materials) {
     for(let dz=-5;dz<=5;dz+=1)box(ship,m.zinc,5.75,2.3,.025,x,8+y*2.8,z+dz);
   }
   cylinder(ship,m.steel,.14,12,0,21,31,12);
-  // No floating offshore cranes: the working gantry cranes remain on the real quay.
-  const rock=new THREE.MeshStandardMaterial({color:0x8496b8,roughness:1});
-  for(const [cx,cz,yaw] of [[25,-320,0],[328,-20,Math.PI/2],[20,285,0]]) {
-    const terrain=new THREE.PlaneGeometry(680,210,80,24);terrain.rotateX(-Math.PI/2);
-    const points=terrain.getAttribute('position');
-    for(let i=0;i<points.count;i++) {
-      const x=points.getX(i),z=points.getZ(i),t=(z+105)/210;
-      const ridge=Math.sin(Math.PI*t)**1.3;
-      const height=ridge*(38+22*Math.sin(x*.017)+12*Math.sin(x*.043+z*.024)+8*Math.cos(x*.079-z*.03));
-      points.setY(i,Math.max(0,height));
-    }
-    terrain.computeVertexNormals();
-    const object=mesh(root,terrain,rock,cx,-5,cz);object.rotation.y=yaw;
-  }
+  addOuterLandscape(root,m);
 }

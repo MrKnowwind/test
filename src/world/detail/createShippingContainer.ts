@@ -45,7 +45,7 @@ export function createShippingContainer(materials: Materials, { code, seed, tint
   if(open){
     box(root,frame,w-.151,.075,d-.12,0,.0375,0).castShadow=true;
     box(root,skin,w-.151,.10,d-.12,0,h-.11,0).castShadow=true;
-    box(root,skin,w-.15,h-.16,.10,0,h/2,-d/2+.09).castShadow=true;
+    box(root,skin,w-.15,h-.16,.07,0,h/2,-d/2+.055).castShadow=true;
     for(const side of [-1,1])box(root,skin,.10,h-.16,d-.12,side*(w/2-.09),h/2,0).castShadow=true;
     for(let z=-2.8;z<2.9;z+=.23)box(root,materials.timber,w-.24,.026,.20,0,.082,z);
   }else{const body=box(root,frame,w-.151,h-.13,d-.12,0,h/2,0);body.castShadow=true;}
@@ -93,7 +93,8 @@ export function createShippingContainer(materials: Materials, { code, seed, tint
     box(root, materials.rubber, .037, 2.32, .032, 0, 1.29, face);
     for (const side of [-1, 1]) {
       const x = side * .547;
-      box(root, frame, 1.057, 2.25, .071, x, 1.29, face - .03, .012);
+      // The backing plate must sit behind the corrugated skin, including the low valleys.
+      box(root, frame, 1.057, 2.25, .071, x, 1.29, face - .055, .012);
       panels.push(mesh(root, doorSheet, skin, x, 1.29, face + .008));
       for (const y of [.198, 2.382]) box(root, frame, 1.05, .092, .06, x, y, face + .022, .008);
       for (const offset of [-.33, .31]) {
@@ -122,14 +123,14 @@ export function createShippingContainer(materials: Materials, { code, seed, tint
       ctx.globalCompositeOperation = 'destination-out';
       for (let i = 0; i < 390; i++) ctx.fillRect(rand() * w, rand() * h, rand() * 8, 1 + rand() * 4);
     });
-    id.position.set(.59, 1.94, face + .032);
+    id.position.set(.59, 1.94, face + .049);
     const plate = label(root, .34, .18, (ctx, w, h) => {
       ctx.fillStyle = '#bb9f64'; ctx.fillRect(0, 0, w, h);
       ctx.fillStyle = '#282821'; ctx.font = 'bold 64px monospace'; ctx.fillText('CSC', 24, 84);
       ctx.font = '30px monospace'; ctx.fillText('SAFETY APPROVAL', 24, 149);
       for (let y = 182; y < h - 16; y += 22) ctx.fillRect(26, y, w - 52, 2);
     });
-    plate.position.set(-.52, .58, face + .038);
+    plate.position.set(-.52, .58, face + .052);
   } else {
     panels.push(mesh(root, backSheet, skin, 0, h / 2, d / 2 - .043));
   }

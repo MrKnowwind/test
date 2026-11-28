@@ -113,9 +113,14 @@
 #objective-list { display: grid; gap: 4px; }
 #objective-list article { display: grid; gap: 2px; padding: 7px 10px; color: #ecf2ed; background: #192829e6; border-left: 2px solid #e1c186; }
 #objective-list span { color: #c1d4cb; font-size: 12px; }
-#ammo-popup { position: absolute; right: 0; bottom: calc(100% + 8px); min-width: 144px; padding: 8px 12px; backdrop-filter: blur(6px); background: #17282fe8; border: 1px solid #91b3b17a; color: #e6f1ed; text-align: left; }
-#ammo-popup span, #ammo-popup small, #ammo-popup strong { display: block; }
-#ammo-popup small { font-size: 11px; color: #b2cdc3; }
+#ammo-popup { min-width: 128px; color: #e6f1ed; text-align: right; border-top: 1px solid #91b3b16a; padding-top: 5px; }
+#ammo-type { font-size: 10px; letter-spacing:.10em; color:#b2cdc3; }
+.ammo-count { display:flex; align-items:baseline; justify-content:flex-end; gap:7px; font-variant-numeric:tabular-nums; line-height:1; }
+.ammo-count #ammo { font-size:32px; font-weight:750; letter-spacing:.025em; }
+.ammo-count #ammo-capacity { font-size:17px; color:#bacbd0; }
+.ammo-divider { color:#8da7ac; font-size:16px; }
+#ammo-popup[data-low] #ammo { color:#ff9a78; }
+#ammo-popup[data-inspect] { border-color:#f2deb0; }
 
 #backpack-panel { padding: 0; --discard-width: clamp(44px,6vw,84px); background: #101c2096; backdrop-filter: blur(4px); }
 #backpack-panel .bag-window { width: min(850px, 96vw); max-width: none; max-height: 95dvh; padding: clamp(12px,2vw,24px); }

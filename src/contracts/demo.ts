@@ -35,7 +35,7 @@ export interface ExitZone {
 }
 
 export type MapInteraction = { id: string; label: string; position: Vec3 } & (
-  | { kind: 'loot'; item: ItemId; quantity: number; search?: CaseContents }
+  | { kind: 'loot'; item: ItemId; quantity: number; search?: CaseContents; yaw?: number }
   | { kind: 'loose'; item:ItemId; quantity:number }
   | { kind: 'door' }
   | { kind: 'switch'; flag: FlagId }
@@ -73,6 +73,7 @@ export interface WeaponState {
   action: 'ready' | 'firing' | 'reloading' | 'slashing';
   actionProgress: number;
   loaded: number;
+  magazineCapacity: number;
   reserve: number;
 }
 

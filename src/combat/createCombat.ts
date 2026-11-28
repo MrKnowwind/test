@@ -25,7 +25,7 @@ export function createCombat(world: WorldQueries, spawns: readonly EnemySpawn[],
   let creative=false;
   const weapon: WeaponState = {
     id: 'pistol', aiming: false, action: 'ready', actionProgress: 0,
-    loaded: MAGAZINE_SIZE, reserve: STARTING_RESERVE,
+    loaded: MAGAZINE_SIZE, magazineCapacity: MAGAZINE_SIZE, reserve: STARTING_RESERVE,
   };
   const agents = spawns.map((spawn) => createEnemy(world, spawn));
   const enemies = agents.map(({ state }) => state);

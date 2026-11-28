@@ -185,7 +185,7 @@ export function createViewmodel() {
   }
 
   pistol.grip.updateMatrix();
-  update(0, { id: 'knife', action: 'ready', actionProgress: 0, aiming: false, loaded: 0, reserve: 0 }, false);
+  update(0, { id: 'knife', action: 'ready', actionProgress: 0, aiming: false, loaded: 0, magazineCapacity: 0, reserve: 0 }, false);
   return { group,ejection:pistol.ejection, markShot(){pendingFlash=true;}, present(){
     if(pendingFlash && pistol.body.visible){pistol.flash.visible=true;pistol.flash.scale.setScalar(1);pendingFlash=false;}
   }, pickup(){pickupTime=.23;}, get muzzle() { return lastWeapon === 'knife' ? knifeMuzzle : firearms[lastWeapon as keyof typeof firearms].muzzle; }, update };

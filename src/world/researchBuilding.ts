@@ -29,7 +29,8 @@ export function buildResearchBuilding(root: THREE.Group, m: Materials, solids: S
     solid([centerX,y+5.45,z],[20,3.1,.27],glass,.015);
     for (const x of [22,26]) solid([x,y+1.6,z],[.28,3.2,.46],trim);
     box(root,light,3.6,.08,.22,centerX,y+2.84,z);
-    box(root,purple,8.4,.28,2.4,centerX,y+3.27,z + Math.sign(z-centerZ)*.72,.04);
+    // Canopy attaches to the exterior face instead of sharing the mezzanine underside.
+    box(root,purple,8.4,.28,2.4,centerX,y+3.27,z + Math.sign(z-centerZ)*1.35,.04);
   }
   solid([centerX,y+7.16,centerZ],[20.8,.32,20.8],m.steel,.04);
   box(root,glass,9.1,.58,13.2,23.8,y+7.56,centerZ,.09);

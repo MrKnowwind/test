@@ -44,7 +44,7 @@ export function createFirstMap(seed: number, environment = createEnvironment()):
   const { scene, solids, rooms } = environment;
   const doors=createShopDoors(scene,solids,rooms.doors);
   const queries=createWorldQueries(solids);
-  const loose=loosePoints(seed,mapInteractions,p=>queries.blockedDistance(p,[0,-1,0],3));
+  const loose=loosePoints(seed,mapInteractions,p=>queries.blockedDistance(p,[0,-1,0],3),environment.outdoorLoot);
   // Spread five indoor encounters over the map, away from every insertion point.
   const indoor:EnemySpawn[]=[];
   const candidates=rooms.occupants.filter(e=>spawnPoints.every(s=>Math.hypot(s.position[0]-e.position[0],s.position[2]-e.position[2])>20));

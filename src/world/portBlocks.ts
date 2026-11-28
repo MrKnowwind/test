@@ -152,11 +152,13 @@ export function* buildPortBlocks(root:THREE.Group,m:Materials,solid:BuildSolid) 
     if(!isStreetBuilding(plan)) {
       buildYard(root,m,solid,plan,accent);
     } else {
-      const {id,roof,cellW,cellD}=plan;
+      const {id,roof,cellW,cellD,edges}=plan;
       for (const cell of plan.cells) {
         const h=ceiling(roof,cell.room);
         box(root,cell.room==='a'?m.concrete:m.zinc,cellW,.022,cellD,cell.x,.017,cell.z);
-        solid([cell.x,h+.13,cell.z],[cellW,.26,cellD],accent,.01);
+        const inset=(dx:number,dz:number)=>edges.some(e=>e.other&&(e.cell===cell||e.other===cell)&&Math.abs(e.x-(cell.x+dx*cellW/2))<.001&&Math.abs(e.z-(cell.z+dz*cellD/2))<.001)?.035:0;
+        const left=inset(-1,0),right=inset(1,0),north=inset(0,-1),south=inset(0,1);
+        solid([cell.x+(left-right)/2,h+.13,cell.z+(north-south)/2],[cellW-left-right,.26,cellD-north-south],accent,.01);
         const width=cellW-.22,depth=cellD-.22;
         if(roof==='gable') {
           gableRoof(root,accent,width,depth,width*.5*Math.tan(.27),.14,cell.x,h+.33,cell.z).castShadow=true;
@@ -179,8 +181,19 @@ export function* buildPortBlocks(root:THREE.Group,m:Materials,solid:BuildSolid) 
         const h=Math.max(ceiling(roof,edge.cell.room),edge.other?ceiling(roof,edge.other.room):0);
         const at=(u:number,y:number):Vec3=>[x+(alongX?u:0),y,z+(alongX?0:u)];
         const size=(w:number,height:number,thickness:number):Vec3=>alongX?[w,height,thickness]:[thickness,height,w];
-        const partition=(u:number,w:number,low:number,high:number,material:THREE.Material)=>
-          solid(at(u,(low+high)/2),size(w,high-low,wallDepth),material,.013);
+        // One wall owns each right-angle junction. Adjacent edges meet without two end faces overlapping.
+        function endAdjustment(sign:number){
+          const ex=x+(alongX?sign*span/2:0),ez=z+(alongX?0:sign*span/2);
+          const touching=edges.filter(other=>other!==edge&&Math.abs(other.x-ex)<(other.alongX?other.span/2+.001:.001)&&Math.abs(other.z-ez)<(other.alongX?.001:other.span/2+.001));
+          if(!touching.some(other=>other.alongX!==alongX))return 0;
+          return alongX?(touching.some(other=>other.alongX)?0:wallDepth/2):-wallDepth/2;
+        }
+        const partition=(u:number,w:number,low:number,high:number,material:THREE.Material)=>{
+          const a=u-w/2,b=u+w/2;
+          const start=Math.abs(a+span/2)<.001?a-endAdjustment(-1):a;
+          const end=Math.abs(b-span/2)<.001?b+endAdjustment(1):b;
+          return solid(at((start+end)/2,(low+high)/2),size(end-start,high-low,wallDepth),material,.013);
+        };
         if(passage){
           const wing=(span-doorWidth)/2;
           for(const side of [-1,1]) partition(side*(doorWidth+wing)/2,wing,0,h,m.ceramic);

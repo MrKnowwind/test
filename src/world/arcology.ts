@@ -131,7 +131,7 @@ export function addArcology(root: THREE.Group,m: Materials,solid: Solid) {
   }
   for(const side of [-1,1]) {
     solid([x+side*1.9,11,85.5],[.78,.65,117],navy,.08);
-    box(root,mint,.81,.095,117,x+side*1.9,11.07,85.5);
+    box(root,mint,.81,.095,116.8,x+side*1.9,11.07,85.5);
   }
   for(let z=29;z<144;z+=4) box(root,m.zinc,3.75,.18,.42,x,10.86,z);
   // Parked shuttle faces the southern arrival. Underframe rests on the tracks.

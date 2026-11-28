@@ -292,6 +292,7 @@ async function startGame() {
     return [x,y+.15,z];
   }
   function disposeRun() {
+    run.containers.dispose();
     for(const visual of run.enemies.values())visual.restore();
     const roots = [run.map.scene, run.viewmodel.group];
     const resources = new Set<{ dispose(): void }>();
@@ -656,9 +657,10 @@ async function startGame() {
     renderer.info.reset();
     camera.layers.set(0);
     run.viewmodel.present();
+    const target = findInteraction(map, raid.targets, raid.consumed, player.eye, player.direction);
+    run.containers.updateHighlights(renderer,player.eye,target?.id,raid.consumed);
     rendering.render(underground);
     const countdown = raid.countdown;
-    const target = findInteraction(map, raid.targets, raid.consumed, player.eye, player.direction);
     const exit = raid.exitAt(player.feet);
     const reason = exit && raid.blockedReason(exit);
     const action = target?.kind === 'loot' ? '搜索' : target?.kind === 'loose' ? isPack(target.item) ? '查看' : '拾取'

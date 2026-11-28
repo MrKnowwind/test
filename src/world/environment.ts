@@ -17,6 +17,7 @@ import {
 } from './worldQueries.ts';
 
 import { addDistrictDetails, addPortHorizon } from './districtDetails.ts';
+import { buildOutdoorLoot } from './outdoorLoot.ts';
 import { buildHarbor } from './harbor.ts';
 import { harborInteractions,openContainerPlans } from './harborPlan.ts';
 import { northTerrace,terrainHeight,civicInteractions,gradeHeight,newTerrainSections,tidalWalk } from './terrainPlan.ts';
@@ -268,8 +269,8 @@ function* environmentSteps() {
   }
   for (const x of [tidalWalk.minX, tidalWalk.maxX]) {
     const center = (tidalWalk.minZ + tidalWalk.maxZ) / 2;
-    solid([x, tidalWalk.height / 2, center], [.24, -tidalWalk.height, tidalWalk.maxZ - tidalWalk.minZ], m.concrete);
-    box(allStatic, m.zinc, .36, .08, tidalWalk.maxZ - tidalWalk.minZ, x, .04, center);
+    solid([x, tidalWalk.height / 2, center], [.24, -tidalWalk.height, tidalWalk.maxZ - tidalWalk.minZ-.08], m.concrete);
+    box(allStatic, m.zinc, .36, .08, tidalWalk.maxZ - tidalWalk.minZ-.08, x, .04, center);
   }
   const foundation = cutOut(cutOut([researchPad], lab), ramp);
   for (const r of foundation) {
@@ -318,7 +319,7 @@ function* environmentSteps() {
       solids.push({min:[x+offset[0]-1.13,y,z+offset[2]-2.95],max:[x+offset[0]+1.13,y+.09,z+offset[2]+2.95],floor:true,walkSurface:true,surface:'metal'});
       for(const s of [-1,1])obstacle(x+s*1.14,y+1.29,z,.17,2.58,6.06);
       obstacle(x,y+1.29,z-2.96,2.44,2.58,.14);obstacle(x,y+2.53,z,2.44,.12,6.06);
-      solid([x,y+.40,z-2.05],[1.65,.80,1.0],open.style==='cold'?offwhite:painted,.045);
+      solid([x,y+.45,z-2.05],[1.65,.70,1.0],open.style==='cold'?offwhite:painted,.045);
       const dec= open.style==='luggage'?m.timber:open.style==='tools'?m.zinc:open.style==='cold'?offwhite:yellow;
       for(const dz of [-.35,.35])box(staticRoot,dec,.40,.25,.32,x+.53,y+.53,z-2.05+dz,.035);
       if(open.style==='cold'){for(const dx of [-.7,.7])box(staticRoot,offwhite,.08,.09,3.1,x+dx,y+1.95,z-.25);}
@@ -375,8 +376,12 @@ function* environmentSteps() {
   // Central warehouse: a roofed, open-span interior with two cross routes.
   const wx = -4, wz = 8, ww = 24, wd = 26;
   for (const x of [wx - ww/2, wx + ww/2]) {
-    for (const z of [wz - wd/2, wz - 4, wz + 5, wz + wd/2]) post(x, 0, z, 6.2);
-    solid([x, 1.0, wz], [.23, 2, wd], m.concrete, .015);
+    const columns=[wz - wd/2, wz - 4, wz + 5, wz + wd/2];
+    for (const z of columns) post(x, 0, z, 6.2);
+    for(let i=1;i<columns.length;i++){
+      const a=columns[i-1]+.12,b=columns[i]-.12;
+      solid([x,1,(a+b)/2],[.23,2,b-a],m.concrete,.015);
+    }
     mesh(staticRoot, foldedSheet(wd, .76, 74, .045), painted, x, 2.48, wz).rotation.y = x < wx ? -Math.PI/2 : Math.PI/2;
     mesh(staticRoot, foldedSheet(wd, 1.18, 74, .045), painted, x, 5.09, wz).rotation.y = x < wx ? -Math.PI/2 : Math.PI/2;
     // A continuous clerestory band breaks the shed's mass and admits visible cold fill.
@@ -392,7 +397,7 @@ function* environmentSteps() {
     obstacle(x, 3.9, wz, .18, 3.8, wd);
   }
   for (const z of [wz - wd/2, wz + wd/2]) {
-    for (const x of [wx - 8, wx + 8]) solid([x, 3.0, z], [8, 6, .24], painted, .02);
+    for (const s of [-1,1]) solid([wx+s*7.94,3,z],[7.88,6,.24],painted,.02);
     solid([wx, 5.35, z], [8.1, 1.7, .24], painted, .02);
     box(staticRoot, m.zinc, ww+.5, .17, .45, wx, 6.3,z,.012);
     for (const side of [-1, 1]) {
@@ -681,12 +686,6 @@ function* environmentSteps() {
     lamp([x+1,7.16,z],0xffc18b,110);
   }
 
-  // A quiet port skyline extends past the fence without extra navigable acreage.
-  for(const [x,z,h,w] of [[-265,-112,11,9],[-212,-138,16,11],[140,-263,18,13],[112,-267,10,16],[-116,-263,14,12],[269,10,15,10]]) {
-    box(staticRoot,painted,w,h,12,x,h/2,z,.1);
-    box(staticRoot,m.zinc,w+.3,.22,12.3,x,h,z,.03);
-    for(let y=3;y<h;y+=3.5) box(staticRoot,m.steel,w+.08,.12,12.1,x,y,z,.01);
-  }
   for(const x of [33,43,51]) {
     solid([x,.75,-60],[3.3,1.5,3.3],m.steel);
     obstacle(x,10.5,-60,2.6,18,2.6);
@@ -718,7 +717,7 @@ function* environmentSteps() {
   }
   for(const z of [-39,-34,-29,-24]) {
     for(const x of [-7.5,25.5]) {
-      solid([x,-3.05,z],[.54,4.7,.72],violet,.12);
+      solid([x,-3.215,z],[.54,4.37,.72],violet,.12);
       box(staticRoot,guide,.565,2.1,.18,x,-2.8,z);
     }
     box(staticRoot,m.steel,33.5,.34,.72,9,-.86,z,.07);
@@ -811,7 +810,7 @@ function* environmentSteps() {
       box(staticRoot, m.safety, 3.42, .06, .14, x + 10, top + .025, stepZ + 1.25);
     }
     const topZ = z + 3 - (count - 1) * 2.6;
-    solid([x + 6.7, site.height - .15, topZ], [3.4, .3, 2.6], m.steel);
+    solid([x + 6.65, site.height - .15, topZ], [3.3, .3, 2.6], m.steel);
     solid([x + 4.3, site.height - .15, (topZ + z - 8) / 2], [1.4, .3, Math.abs(topZ - (z - 8)) + 2.6], m.steel);
     box(staticRoot,m.steel,4.8,.15,.42,x,3.62,z+2,.04);
     lamp([x, 3.47, z + 2], 0x85efed, 6);
@@ -834,13 +833,14 @@ function* environmentSteps() {
   buildMarketDistrict(staticRoot,m,solid);
   buildInn(staticRoot,m,solids,solid);
   buildResearchAnnex(staticRoot,m,solids,solid);
+  const outdoorLoot=buildOutdoorLoot(allStatic,m,solids,[...mapInteractions,...rooms.cases]);
   addPortHorizon(allStatic, m);
   for(const interaction of mapInteractions) addPickup(interaction);
 
   // Batch static streets by cell and shading. Pickups and doors remain independently interactive.
   yield .85;
   for(const progress of batchStatic(allStatic)) yield .85 + progress * .15;
-  return { scene, solids, rooms };
+  return { scene, solids, rooms, outdoorLoot };
 
   function rampHeightLocal(z:number) { return slopeHeight(rampSlope,40.5,z - 130) - researchPad.height; }
 
@@ -924,7 +924,8 @@ function* batchStatic(root: THREE.Group) {
     if(detail)detailBatches.add(key);
     const batch=batches.get(key)??{material,geometries:[] as THREE.BufferGeometry[],cast:object.castShadow,receive:object.receiveShadow};
     const geometry=object.geometry.index?object.geometry.toNonIndexed():object.geometry.clone();
-    for(const attr of Object.keys(geometry.attributes))if(!['position','normal','uv'].includes(attr))geometry.deleteAttribute(attr);
+    for(const attr of Object.keys(geometry.attributes))if(!['position','normal','uv','color'].includes(attr))geometry.deleteAttribute(attr);
+    if(!geometry.hasAttribute('uv'))geometry.setAttribute('uv',new THREE.BufferAttribute(new Float32Array(geometry.getAttribute('position').count*2),2));
     geometry.applyMatrix4(object.matrixWorld);
     if(tint){
       const c=original.color, colors=new Uint8Array(geometry.getAttribute('position').count*3);

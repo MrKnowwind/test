@@ -90,7 +90,7 @@ const viewmodel = createViewmodel();
 camera.add(viewmodel.group);
 const actors = [createEnemyVisual('infected'), createEnemyVisual('security-bot')];
 world.add(...actors.map(actor => actor.group));
-const weapon: WeaponState = { id: 'pistol', aiming: false, action: 'ready', actionProgress: 0, loaded: 5, reserve: 6 };
+const weapon: WeaponState = { id: 'pistol', aiming: false, action: 'ready', actionProgress: 0, loaded: 5, magazineCapacity: 8, reserve: 6 };
 
 export interface ArtShot {
   weapon?: Partial<WeaponState>;

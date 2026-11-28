@@ -14,7 +14,7 @@ export function createGameView() {
   const primary = byId<HTMLButtonElement>('primary'), abandon = byId<HTMLButtonElement>('abandon');
   const error = byId('error'), floor = byId('floor'), spawn = byId('spawn');
   const health = byId('health'), bar = byId('health-bar'), weapon = byId('weapon'), action = byId('weapon-action');
-  const ammo = byId('ammo'), ammoPopup = byId('ammo-popup'), ammoType = byId('ammo-type'), ammoLabel = byId('ammo-label');
+  const ammo = byId('ammo'), ammoPopup = byId('ammo-popup'), ammoType = byId('ammo-type'), ammoCapacity = byId('ammo-capacity');
   const notice = byId('notice'), prompt = byId('prompt'), clock = byId('exfil-clock');
   const crosshair = byId('crosshair'), hurt = byId('hurt');
   const objectives = byId('raid-objectives'), objectiveList = byId('objective-list');
@@ -80,11 +80,13 @@ export function createGameView() {
       label(weapon, treatment ? itemName(treatment.item) : state.unarmed ? '空手' : names[state.id]);
       label(action, treatment ? Math.floor(treatment.progress * 100) + '%' :
         state.action === 'reloading' ? '换弹中' : '');
-      ammoPopup.hidden = !!treatment || !(inspectAmmo || state.action === 'reloading') || !!state.unarmed || state.id === 'knife';
+      ammoPopup.hidden = !!treatment || !!state.unarmed || state.id === 'knife';
       if (!ammoPopup.hidden) {
         label(ammoType, itemName('pistol-ammo'));
-        label(ammo, state.loaded + ' / ' + state.reserve);
-        label(ammoLabel, '弹匣 / 备弹');
+        label(ammo, String(state.loaded).padStart(2,'0'));
+        label(ammoCapacity, String(state.magazineCapacity).padStart(2,'0'));
+        ammoPopup.toggleAttribute('data-low',state.loaded<=2);
+        ammoPopup.toggleAttribute('data-inspect',inspectAmmo);
       }
     },
     feedback(message: string, interaction: string, timerText: string, hit: boolean, damage: number, aiming: boolean) {

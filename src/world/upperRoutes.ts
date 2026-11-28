@@ -48,7 +48,7 @@ export function upperRoutes(root:THREE.Group,m:Materials,solid:Builder,solids:So
     box(root,m.steel,w,.26,d,x,top-.13,z).castShadow=true;
     solids.push({min:[x-w/2,top-.26,z-d/2],max:[x+w/2,top,z+d/2],walkSurface:true,surface:'metal'});
     // Keep the rim on the exposed end and carry the finish right to the shared edge.
-    box(root,m.zinc,w-.07,.016,d-.035,x,top+.006,z+(join==='south'?.0175:-.0175));
+    box(root,m.zinc,w-.07,.016,d-.035,x,top+.006,z+(join==='south'?.005:-.005));
   }
   function warehouse(x:number,z:number,w:number,d:number,index:number,cases:MapInteraction[]){
     const y=3.12,sideX=x+w/2-1.5,west=x-w/2+1.75,north=z-d/2,south=z+d/2;

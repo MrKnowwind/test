@@ -1,6 +1,7 @@
 import type { MapInteraction, Vec3 } from '../contracts/demo.ts';
 import { drawLoose, type Risk } from '../raid/loot.ts';
 import { itemSpecs, type Tag, type ItemId } from '../raid/catalog.ts';
+import type { OutdoorLootSite } from './outdoorLoot.ts';
 
 // Offsets along existing benches keep loose goods distinct from the search case.
 const sites: readonly [string, Tag, Risk, number, (readonly ItemId[])?][] = [
@@ -21,6 +22,7 @@ export function loosePoints(
   seed: number,
   anchors: readonly MapInteraction[],
   support: (p: Vec3) => number | null,
+  outdoor:readonly OutdoorLootSite[] = [],
 ) {
   const result: MapInteraction[] = [];
   for (const [anchor, tag, risk, offset, pool] of sites) {
@@ -41,6 +43,10 @@ export function loosePoints(
       quantity: item === 'pistol-ammo' ? 6 : 1,
       position: [top[0], top[1] - distance + 0.12, top[2]],
     });
+  }
+  for(const site of outdoor){
+    const item=drawLoose(seed,site.id,site.tag,site.risk);
+    if(item)result.push({kind:'loose',id:site.id,label:itemSpecs[item].name,item,quantity:item==='pistol-ammo'?6:1,position:site.position});
   }
   return result;
 }

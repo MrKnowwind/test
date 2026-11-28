@@ -151,8 +151,14 @@ try {
   assert.deepEqual((await state()).warehouse, {'pistol-ammo':12});
   assert.ok(await page.locator('#hud-minimap').isVisible());
   assert.ok(await page.locator('#raid-objectives').isHidden());
-  assert.ok(await page.locator('#ammo-popup').isHidden());
+  assert.ok(await page.locator('#ammo-popup').isVisible());
+  assert.equal(await page.locator('#ammo').textContent(),'08');
+  assert.equal(await page.locator('#ammo-capacity').textContent(),'08');
   await press('KeyN');
+  assert.ok(await page.locator('#ammo-popup').isVisible());
+  await press('Digit4');
+  assert.ok(await page.locator('#ammo-popup').isHidden());
+  await press('Digit3');
   assert.ok(await page.locator('#ammo-popup').isVisible());
   await press('Tab'); await openBag();
   assert.equal(await page.locator('.pack-layout[data-pack=repairpack]').count(), 1);
